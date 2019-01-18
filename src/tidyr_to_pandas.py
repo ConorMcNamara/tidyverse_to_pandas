@@ -19,7 +19,8 @@ def spread(data, key, values, sep=None):
 
     Returns
     -------
-    The dataframe after we've spread it
+    spread_data: pandas DataFrame
+        The dataframe after we've performed spread() on it
 
     For example, suppose we had a dataframe like
     row	var	            value
@@ -210,6 +211,20 @@ def unite(data, col, index_cols, sep='_', remove=True):
     -------
     data: pandas DataFrame
         The data frame after we've united the column(s) together.
+
+    For example, suppose we had a dataframe like
+    col1 col2
+    a    1
+    b    2
+    c    3
+    d    4
+
+    Then running unite(df, 'col1-col2', ['col1', 'col2']) would return
+    col1-col2
+    a_1
+    b_2
+    c_3
+    d_4
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use unite on non-DataFrame")
@@ -241,6 +256,22 @@ def extract(data, col, into, regex=r'', remove=True):
     -------
     data: pandas DataFrame
         The DataFrame after we've applied our regular expression to the column
+
+    For example, suppose we had a dataframe like
+    col1
+    NA
+    "a-b"
+    "a-d"
+    "b-c"
+    "d-e"
+
+    Then running extract(df, 'col1', ['A', 'B'], r'([a-d]+)-([a-d]+)') will return
+    A   B
+    nan nan
+    "a" "b"
+    "a" "d"
+    "b" "c"
+    nan nan
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use extract on non-DataFrame")
