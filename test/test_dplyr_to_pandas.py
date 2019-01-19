@@ -132,3 +132,7 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'V2': [30, 50, 20, 25, 25],
                                  'V3': [1, 1, 0, 0, 1]})
         pd.testing.assert_frame_equal(actual, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
