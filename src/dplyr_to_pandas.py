@@ -27,9 +27,14 @@ def mutate(data, *args):
         before_arg = re.sub(r'(=|\s+)', r'', before_equals)
         after_equals = re.search(r'=(.*)', arg).group(0)
         after_equals = re.sub(r'(=|\s+)', r'', after_equals)
-        after_arg = re.sub(r'\b([a-zA-Z]+)\b', r'x.\1', after_equals)  # Handles camelCase
-        after_arg = re.sub(r'\b([a-zA-Z]+_)', r'x.\1', after_arg)  # Handles snake_case
-        after_arg = 'lambda x: {}'.format(after_arg)
+        after_equals = re.sub(r'\b([a-zA-Z]+)\b', r'x.\1', after_equals)  # Handles camelCase
+        if re.search(r'(_)', after_equals):  # Handles snake_case
+            after_equals = re.sub(r'\b([a-zA-Z]+_)', r'x.\1', after_equals)
+        if re.search(r'([a-zA-Z]+\d)', after_equals):  # Handles camelCase1
+            after_equals = re.sub(r'\b([a-zA-Z]+\d)\b', r'x.\1', after_equals)
+        if re.search(r'(^\d)', after_equals):  # Handles 18a
+            after_equals = re.sub(r'(^\d)', r'x.\1', after_equals)
+        after_arg = 'lambda x: {}'.format(after_equals)
         data = data.assign(**{before_arg: eval(after_arg)})
     return data
 
@@ -58,9 +63,14 @@ def transmute(data, *args):
         cols_to_keep.append(before_arg)
         after_equals = re.search(r'=(.*)', arg).group(0)
         after_equals = re.sub(r'(=|\s+)', r'', after_equals)
-        after_equals = re.sub(r'\b([a-zA-Z]+_)', r'x.\1', after_equals)  # Handles snake_case
-        after_arg = re.sub(r'\b([a-zA-Z]+)\b', r'x.\1', after_equals)  # Handles camelCase
-        after_arg = 'lambda x: {}'.format(after_arg)
+        after_equals = re.sub(r'\b([a-zA-Z]+)\b', r'x.\1', after_equals)  # Handles camelCase
+        if re.search(r'(_)', after_equals):  # Handles snake_case
+            after_equals = re.sub(r'\b([a-zA-Z]+_)', r'x.\1', after_equals)
+        if re.search(r'([a-zA-Z]+\d)', after_equals):  # Handles camelCase1
+            after_equals = re.sub(r'\b([a-zA-Z]+\d)\b', r'x.\1', after_equals)
+        if re.search(r'(^\d)', after_equals):  # Handles 18a
+            after_equals = re.sub(r'(^\d)', r'x.\1', after_equals)
+        after_arg = 'lambda x: {}'.format(after_equals)
         data = data.assign(**{before_arg: eval(after_arg)})
     data = data.drop(data.columns.difference(cols_to_keep), axis=1)
     return data
@@ -185,38 +195,32 @@ def select(data, *args):
             var_range = re.search(r'\d.*(\d)', arg).group(0)
             var_start_range = int(re.search(r'(^\d)', var_range).group(0))
             var_end_range = int(re.search(r'(\d$)', var_range).group(0))
-            for i in range(var_start_range, var_end_range+1):
+            for i in range(var_start_range, var_end_range + 1):
                 if re.search(r"(^-)", arg):
-                    if col not in cols_to_drop:
-                        cols_to_drop.append('{}{}'.format(var_name, i))
+                    cols_to_drop.append('{}{}'.format(var_name, i))
                 else:
-                    if col not in cols_to_keep:
-                        cols_to_keep.append('{}{}'.format(var_name, i))
-        elif "matches" in arg:
-            expression = re.search(r'\((.*)\)', arg).group(0)
-            expression = re.sub(r'(\(|\))', r'', expression)
-            for col in data.columns:
-                if re.search(expression, col):
-                    if re.search(r'(^-)', arg):
-                        if col not in cols_to_drop:
-                            cols_to_drop.append(col)
-                    else:
-                        if col not in cols_to_keep:
-                            cols_to_keep.append(col)
+                    cols_to_keep.append('{}{}'.format(var_name, i))
         elif "last_col" in arg:
             if re.search(r'\((\d+)\)', arg):
-                num_offset = re.search(r'\((\d+)\)', arg)
-                num_offset = int(re.sub(r'(\(|\))', r'', num_offset))
-                if num_offset + 1 > len(data.columns):
-                    raise Exception("Number of offsets is greater than number of columns")
+                num_offset = re.search(r'\((\d+)\)', arg).group(0)
+                num_offset = int(re.sub(r'(\(|\))', r'', num_offset)) + 1
+            elif re.search(r'\((offset?\s=?\s\d+)\)', arg):
+                num_offset = re.search(r'\((offset?\s=?\s\d+)\)', arg).group(0)
+                num_offset = int(re.search(r'\d+', re.sub(r'(\(|\)|\s+)', r'', num_offset)).group(0)) + 1
+            elif re.search(r'\((offset=\d+)\)', arg):
+                num_offset = re.search(r'\((offset=\d+)\)', arg).group(0)
+                num_offset = int(re.search(r'\d+', re.sub(r'(\(|\))', r'', num_offset)).group(0)) + 1
             else:
-                num_offset = 0
+                num_offset = 1
+            if num_offset > len(data.columns):
+                raise Exception("Number of offsets is greater than number of columns")
+            col = data.iloc[:, -num_offset].name
             if re.search(r"(^-)", arg):
                 if col not in cols_to_drop:
-                    cols_to_drop.append(data.iloc[:, -(1 + num_offset)])
+                    cols_to_drop.append(col)
             else:
                 if col not in cols_to_keep:
-                    cols_to_keep.append(data.iloc[:, -(1 + num_offset)])
+                    cols_to_keep.append(col)
         else:
             if re.search(r'(^-)', arg):
                 if "-" in re.sub(r'(-?\s+)', r'', arg):
