@@ -66,9 +66,9 @@ class TestDplyrToPandas(unittest.TestCase):
         self.assertRaises(Exception, dplyr_to_pandas.rename, data)
 
     def test_rename_DF_result(self):
-        df = pd.DataFrame(data = {'col1': [1, 2, 3 , 4]})
+        df = pd.DataFrame(data={'col1': [1, 2, 3 , 4]})
         actual = dplyr_to_pandas.rename(df, "col1 = col_1")
-        expected = pd.DataFrame(data = {'col_1': [1, 2, 3, 4]})
+        expected = pd.DataFrame(data={'col_1': [1, 2, 3, 4]})
         pd.testing.assert_frame_equal(actual, expected)
 
     def test_select_nonDF_exception(self):
@@ -132,6 +132,44 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'V2': [30, 50, 20, 25, 25],
                                  'V3': [1, 1, 0, 0, 1]})
         pd.testing.assert_frame_equal(actual, expected)
+
+    def test_select_lastColNoArgument_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.select(df, "last_col()")
+        expected = pd.DataFrame({'vs': [1, 1, 0, 0, 1]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_select_lastColNumericArgument_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.select(df, "last_col(1)")
+        expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_select_lastColOffsetSpaceArgument_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.select(df, "last_col(offset = 1)")
+        expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_select_LastColOffsetArgument_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.select(df, "last_col(offset=2)")
+        expected = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW']})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_select_TooManyOffsets_Exception(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        self.assertRaises(Exception, dplyr_to_pandas.select, df, "last_col(offset=3)")
 
 
 if __name__ == '__main__':
