@@ -52,7 +52,7 @@ def transmute(data, *args):
     Returns
     -------
     data: pandas DataFrame
-        The data frame, with only the new columns created using mutate
+        The data frame, with only the new columns created using transmute
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use transmute on a non-DataFrame")
@@ -245,3 +245,34 @@ def select(data, *args):
     return new_data
 
 # Filter Data
+
+
+# Sort data
+
+def arrange(data, *args):
+    """Sorts the data based on columns provided, as well as if they're in 'desc()'
+
+    Parameters
+    ---------
+    data: pandas DataFrame
+        The dataframe for which we are trying to sort the data on
+    *args: str  
+        The columns we are sorting the dataframe on
+    
+    Returns
+    -------
+    sorted_data: pandas DataFrame
+        The sorted data based on arguments provided in *args
+    """
+    if not isinstance(data, pd.DataFrame):
+        raise Exception("Cannot use arrange on a non-DataFrame")
+    sorting_cols = []
+    ascending_cols = []
+    for arg in args:
+        if re.search('desc()', arg):
+            sorting_cols.append(re.sub(r'desc|\(|\)|\s+', r'', arg))
+            ascending_cols.append(False)
+        else:
+            sorting_cols.append(arg)
+            ascending_cols.append(True)
+    return data.sort_values(sorting_cols, ascending=ascending_cols).reset_index().drop('index', axis=1)

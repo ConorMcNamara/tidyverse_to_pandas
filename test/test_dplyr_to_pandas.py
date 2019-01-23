@@ -157,7 +157,7 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25]})
         pd.testing.assert_frame_equal(actual, expected)
 
-    def test_select_LastColOffsetArgument_result(self):
+    def test_select_lastColOffsetArgument_result(self):
         df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
                            'mpg': [30, 50, 20, 25, 25],
                            'vs': [1, 1, 0, 0, 1]})
@@ -165,11 +165,45 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW']})
         pd.testing.assert_frame_equal(actual, expected)
 
-    def test_select_TooManyOffsets_Exception(self):
+    def test_select_tooManyOffsets_Exception(self):
         df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
                            'mpg': [30, 50, 20, 25, 25],
                            'vs': [1, 1, 0, 0, 1]})
         self.assertRaises(Exception, dplyr_to_pandas.select, df, "last_col(offset=3)")
+
+    def test_arrange_nonDF_Exception(self):
+        data = [1, 2, 3, 4]
+        self.assertRaises(Exception, dplyr_to_pandas.arrange, data, "portal")
+
+    def test_arrange_noDesc_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.arrange(df, "model")
+        expected = pd.DataFrame({'model': ['BMW', 'Ford', 'Lexus', 'Mazda', 'Toyota'],
+                                 'mpg': [25, 20, 25, 30, 50],
+                                 'vs': [1, 0, 0, 1, 1]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_arrange_desc_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.arrange(df, "desc(mpg)")
+        expected = pd.DataFrame({"model": ["Toyota", "Mazda", "Lexus", "BMW", "Ford"],
+                                 "mpg": [50, 30, 25, 25, 20],
+                                 "vs": [1, 1, 0, 1, 0]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_arrange_both_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.arrange(df, "mpg", "desc(vs)")
+        expected = pd.DataFrame({"model": ['Ford', 'BMW', 'Lexus', 'Mazda', 'Toyota'],
+                                 'mpg': [20, 25, 25, 30, 50],
+                                 'vs': [0, 1, 0, 1, 1]})
+        pd.testing.assert_frame_equal(actual, expected)
 
 
 if __name__ == '__main__':
