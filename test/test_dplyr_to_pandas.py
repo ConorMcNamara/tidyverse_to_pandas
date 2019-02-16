@@ -171,6 +171,108 @@ class TestDplyrToPandas(unittest.TestCase):
                            'vs': [1, 1, 0, 0, 1]})
         self.assertRaises(Exception, dplyr_to_pandas.select, df, "last_col(offset=3)")
 
+    def test_summarise_nonDF_Exception(self):
+        data = [1, 2, 3, 4]
+        self.assertRaises(Exception, dplyr_to_pandas.summarise, data, "mean(mpg)")
+
+    def test_summarise_mean_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "mean(mpg)")
+        expected = pd.DataFrame(pd.Series(30.0, name='mean(mpg)'))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_median_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "median = median(mpg)")
+        expected = pd.DataFrame(pd.Series(25.0, name='median'))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_sd_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "sd(mpg)")
+        expected = pd.DataFrame(pd.Series(df['mpg'].std(), name="sd(mpg)"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_mad_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "mad = mad(mpg)")
+        expected = pd.DataFrame(pd.Series(df['mpg'].mad(), name="mad"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_iqr_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "iqr(mpg)")
+        expected = pd.DataFrame(pd.Series(5.0, name="iqr(mpg)"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_min_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "min(vs)")
+        expected = pd.DataFrame(pd.Series(0, name="min(vs)"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_max_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "maximum = max(vs)")
+        expected = pd.DataFrame(pd.Series(1, name="maximum"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_quantile_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "quant = quantile(vs, 0.5)")
+        expected = pd.DataFrame(pd.Series(1, name="quant"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_first_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "first = first(model)")
+        expected = pd.DataFrame(pd.Series("Mazda", name="first"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_last_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "last = last(model)")
+        expected = pd.DataFrame(pd.Series("BMW", name="last"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    # def test_summarise_nth_result(self):
+
+    def test_summarise_n_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "n()")
+        expected = pd.DataFrame(pd.Series(5, name="n()"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_nDistinct_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "distinct = n_distinct(mpg)")
+        expected = pd.DataFrame(pd.Series(4, name="distinct"))
+        pd.testing.assert_frame_equal(actual, expected)
+
     def test_arrange_nonDF_Exception(self):
         data = [1, 2, 3, 4]
         self.assertRaises(Exception, dplyr_to_pandas.arrange, data, "portal")

@@ -129,7 +129,7 @@ def contains(column_name, match, ignore_case=True):
 
 
 def select(data, *args):
-    """Selects columns
+    """Selects columns based on criteria in args
 
     Parameter
     ---------
@@ -247,6 +247,83 @@ def select(data, *args):
 # Filter Data
 
 
+# Summarise Data
+
+def summarise(data, *args):
+    """Summarises data based on arguments from args
+
+    Parameters
+    ---------
+    data: pandas DataFrame
+        The dataframe for which we are trying to summarise the data on
+    *args: str
+        The columns we are performing summary calculations on, as well as type of summary calculations
+
+    Returns
+    -------
+    summarised_data: pandas DataFrame
+        The dataframe containing our summarised results
+    """
+    if not isinstance(data, pd.DataFrame):
+        raise Exception("Cannot use summarise on a non-DataFrame")
+    summarise_data = pd.DataFrame()
+    for arg in args:
+        if "mean(" in arg.casefold():
+            mean_col = re.search(r'(?<=mean\()[a-zA-Z]+', arg).group(0)
+            val = data[mean_col].mean()
+        elif "median(" in arg.casefold():
+            median_col = re.search(r'(?<=median\()[a-zA-Z]+', arg).group(0)
+            val = data[median_col].median()
+        elif "sd(" in arg.casefold():
+            sd_col = re.search(r'(?<=sd\()[a-zA-Z]+', arg).group(0)
+            val = data[sd_col].std()
+        elif "iqr(" in arg.casefold():
+            iqr_col = re.search(r'(?<=iqr\()[a-zA-Z]+', arg).group(0)
+            lower_25 = data[iqr_col].quantile(0.25)
+            upper_25 = data[iqr_col].quantile(0.75)
+            val = upper_25 - lower_25
+        elif "mad(" in arg.casefold():
+            mad_col = re.search(r'(?<=mad\()[a-zA-Z]+', arg).group(0)
+            val = data[mad_col].mad()
+        elif "min(" in arg.casefold():
+            min_col = re.search(r'(?<=min\()[a-zA-Z]+', arg).group(0)
+            val = data[min_col].min()
+        elif "max(" in arg.casefold():
+            max_col = re.search(r'(?<=max\()[a-zA-Z]+', arg).group(0)
+            val = data[max_col].max()
+        elif "quantile(" in arg.casefold():
+            quantile_col = re.search(r'(?<=quantile\()[a-zA-Z]+', arg).group(0)
+            if re.search('probs=', arg):
+                quantile_percent = float(re.search(r'(?<=probs\=)\s*?\d\.\d+', arg).group(0))
+            else:
+                quantile_percent = float(re.search(r'(<=,)\s*?\d\.\d+', arg).group(0))
+            val = data[quantile_col].quantile(quantile_percent)
+        elif "first(" in arg.casefold():
+            first_col = re.search(r'(?<=first\()[a-zA-Z]+', arg).group(0)
+            val = data.loc[0, first_col]
+        elif "last(" in arg.casefold():
+            last_col = re.search(r'(?<=last\()[a-zA-Z]+', arg).group(0)
+            val = data.loc[len(data) - 1, last_col]
+        elif "nth(" in arg.casefold():
+            nth_col = re.search(r'(?<=nth\()[a-zA-Z]+', arg).group(0)
+            if re.search('n=', arg):
+                n_number = int(float(re.search(r'(?<=n\=)\s*\d+', arg).group(0)))
+            else:
+                n_number = int(float(re.search(r'(?<=,)\s*\d+', arg).group(0)))
+            val = data.loc[n_number, nth_col]
+        elif "n()" in arg.casefold():
+            val = len(data.dropna(axis=1, how='all'))
+        elif 'n_distinct(' in arg.casefold():
+            n_distinct_col = re.search(r'(?<=n_distinct\()[a-zA-Z]+', arg).group(0)
+            val = data[n_distinct_col].nunique()
+        if re.search(r"^[a-zA-Z]+\s*=", arg):
+            name = re.search(r"^[a-zA-Z]+", arg).group(0)
+        else:
+            name = arg
+        summarise_data = pd.concat([summarise_data, pd.Series(val, name=name)], axis=1)
+    return summarise_data
+
+
 # Sort data
 
 def arrange(data, *args):
@@ -256,9 +333,9 @@ def arrange(data, *args):
     ---------
     data: pandas DataFrame
         The dataframe for which we are trying to sort the data on
-    *args: str  
+    *args: str
         The columns we are sorting the dataframe on
-    
+
     Returns
     -------
     sorted_data: pandas DataFrame
