@@ -231,12 +231,26 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame(pd.Series(1, name="maximum"))
         pd.testing.assert_frame_equal(actual, expected)
 
-    def test_summarise_quantile_result(self):
+    def test_summarise_quantile_greaterThanOne_Exception(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        self.assertRaises(Exception, dplyr_to_pandas.summarise, df, "quantile(vs, 2")
+
+    def test_summarise_quantile_fullDecimal_result(self):
         df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
                            'mpg': [30, 50, 20, 25, 25],
                            'vs': [1, 1, 0, 0, 1]})
         actual = dplyr_to_pandas.summarise(df, "quant = quantile(vs, 0.5)")
-        expected = pd.DataFrame(pd.Series(1, name="quant"))
+        expected = pd.DataFrame(pd.Series(1.0, name="quant"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_quantile_partialDecimal_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "quant = quantile(vs, .5)")
+        expected = pd.DataFrame(pd.Series(1.0, name="quant"))
         pd.testing.assert_frame_equal(actual, expected)
 
     def test_summarise_first_result(self):
@@ -255,7 +269,33 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame(pd.Series("BMW", name="last"))
         pd.testing.assert_frame_equal(actual, expected)
 
-    # def test_summarise_nth_result(self):
+    def test_summarise_nth_PositiveOutsideBounds_Exception(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        self.assertRaises(Exception, dplyr_to_pandas.summarise, df, "nth(mpg, 6)")
+
+    def test_summarise_nth_NegativeOutsideBounds_Exception(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        self.assertRaises(Exception, dplyr_to_pandas.summarise, df, "nth(mpg, -6)")
+
+    def test_summarise_nth_positiveInt_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "nth(model, 4)")
+        expected = pd.DataFrame(pd.Series("Lexus", name="nth(model, 4)"))
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_summarise_nth_negativeInt_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.summarise(df, "nth(model, -4)")
+        expected = pd.DataFrame(pd.Series("Toyota", name="nth(model, -4)"))
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_summarise_n_result(self):
         df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],

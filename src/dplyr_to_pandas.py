@@ -45,7 +45,7 @@ def transmute(data, *args):
     Parameters
     ----------
     data: pandas DataFrame
-        The data frame for which we are creating new variables using mutate()
+        The data frame for which we are creating new variables using transmute()
     *args: str
         The variable functions, for example "new_col = col_1 / col_2"
 
@@ -294,9 +294,11 @@ def summarise(data, *args):
         elif "quantile(" in arg.casefold():
             quantile_col = re.search(r'(?<=quantile\()[a-zA-Z]+', arg).group(0)
             if re.search('probs=', arg):
-                quantile_percent = float(re.search(r'(?<=probs\=)\s*?\d\.\d+', arg).group(0))
+                quantile_percent = float(re.search(r'(?<=probs\=)\s*\d*\.\d+', arg).group(0))
             else:
-                quantile_percent = float(re.search(r'(<=,)\s*?\d\.\d+', arg).group(0))
+                quantile_percent = float(re.search(r'(?<=,)\s*\d*\.\d+', arg).group(0))
+            if quantile_percent > 1:
+                raise Exception("Cannot have percentile greater than 1")
             val = data[quantile_col].quantile(quantile_percent)
         elif "first(" in arg.casefold():
             first_col = re.search(r'(?<=first\()[a-zA-Z]+', arg).group(0)
@@ -307,10 +309,25 @@ def summarise(data, *args):
         elif "nth(" in arg.casefold():
             nth_col = re.search(r'(?<=nth\()[a-zA-Z]+', arg).group(0)
             if re.search('n=', arg):
-                n_number = int(float(re.search(r'(?<=n\=)\s*\d+', arg).group(0)))
+                if re.search("-", arg):
+                    n_number = -int(float(re.search(r'(?<=-)\s*\d+', arg).group(0)))
+                else:
+                    n_number = int(float(re.search(r'(?<=n\=)\s*\d+', arg).group(0)))
             else:
-                n_number = int(float(re.search(r'(?<=,)\s*\d+', arg).group(0)))
-            val = data.loc[n_number, nth_col]
+                if re.search("-", arg):
+                    n_number = -int(float(re.search(r'(?<=-)\s*\d+', arg).group(0)))
+                else:
+                    n_number = int(float(re.search(r'(?<=,)\s*\d+', arg).group(0)))
+            if n_number == 0:
+                n_number = 1
+            if n_number > len(data):
+                raise Exception("Cannot access {} element of DataFrame with {} elements".format(n_number, len(data)))
+            if n_number < -len(data):
+                raise Exception("Cannot access {} element of DataFrame with {} elements").format(len(data) + n_number, len(data))
+            if n_number < 0:
+                val = data.iloc[n_number, :][nth_col]
+            else:
+                val = data.iloc[n_number - 1, :][nth_col]
         elif "n()" in arg.casefold():
             val = len(data.dropna(axis=1, how='all'))
         elif 'n_distinct(' in arg.casefold():
