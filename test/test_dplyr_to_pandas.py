@@ -171,6 +171,10 @@ class TestDplyrToPandas(unittest.TestCase):
                            'vs': [1, 1, 0, 0, 1]})
         self.assertRaises(Exception, dplyr_to_pandas.select, df, "last_col(offset=3)")
 
+    def test_filter_nonDF_Exception(self):
+        data = [1, 2, 3, 4]
+        self.assertRaises(Exception, dplyr_to_pandas.filter, data, "mpg > mean(mpg)")
+
     def test_summarise_nonDF_Exception(self):
         data = [1, 2, 3, 4]
         self.assertRaises(Exception, dplyr_to_pandas.summarise, data, "mean(mpg)")

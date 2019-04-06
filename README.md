@@ -9,4 +9,4 @@ There are currently two main source files for tidyverse_to_pandas: tidyr_to_pand
 Contains support for spread(), gather(), separate(), unite() and extract() from tidyr.
 
 ### dplyr_to_pandas
-Contains support for mutate(), transmute(), rename(), select(), summarise() and arrange(). 
+Contains support for mutate(), transmute(), rename(), select(), filter(), summarise() and arrange(). 

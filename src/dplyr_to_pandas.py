@@ -247,6 +247,56 @@ def select(data, *args):
 # Filter Data
 
 
+def filter(data, *args):
+    """Filters data based on arguments from args
+
+    Parameters
+    ----------
+    data: pandas DataFrame
+        The dataframe for which we filtering the data on
+    *args: str
+        The filter conditions we are applying on our dataframe
+
+    Returns
+    -------
+    filtered_data: pandas DataFrame
+        The dataframe, after we've applied all filtering conditions
+    """
+    if not isinstance(data, pd.DataFrame):
+        raise Exception("Cannot use filter on non-DataFrame")
+    query_result = []
+    counter = 1
+    args_length = len(args)
+    for arg in args:
+        if "mean(" in arg.casefold():
+            mean_col = re.search(r'(?<=mean\()[a-zA-Z]+', arg).group(0)
+            val = data[mean_col].mean()
+            comparison = re.search(r'([<>]=?|==)', arg).group(0)
+            result = '{} {} {}'.format(mean_col, comparison, val)
+        elif "median(" in arg.casefold():
+            median_col = re.search(r'(?<=median\()[a-zA-Z]+', arg).group(0)
+            val = data[median_col].median()
+            comparison = re.search(r'([<>]=?|==)', arg).group(0)
+            result = '{} {} {}'.format(median_col, comparison, val)
+        elif "min(" in arg.casefold():
+            min_col = re.search(r'(?<=min\()[a-zA-Z]+', arg).group(0)
+            val = data[min_col].min()
+            comparison = re.search(r'([<>]=?|==)', arg).group(0)
+            result = '{} {} {}'.format(min_col, comparison, val)
+        elif "max(" in arg.casefold():
+            max_col = re.search(r'(?<=max\()[a-zA-Z]+', arg).group(0)
+            val = data[max_col].max()
+            comparison = re.search(r'([<>]=?|==)', arg).group(0)
+            result = '{} {} {}'.format(max_col, comparison, val)
+        else:
+            result = arg
+        if counter < args_length:
+            result = result + ' & '
+        query_result.append(result)
+        counter += 1
+    return data.query(''.join(query_result))
+
+
 # Summarise Data
 
 def summarise(data, *args):
