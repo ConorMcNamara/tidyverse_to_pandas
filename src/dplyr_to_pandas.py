@@ -19,6 +19,18 @@ def mutate(data, *args):
     -------
     data: pandas DataFrame
         The data frame, with the new columns created using mutate
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running mutate(df, "c = a + b") will return
+    a b c
+    1 2 3
+    3 4 7
+    5 6 11
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use mutate on a non-DataFrame")
@@ -53,6 +65,18 @@ def transmute(data, *args):
     -------
     data: pandas DataFrame
         The data frame, with only the new columns created using transmute
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running transmute(df, "c = a + b") will return
+    c
+    3
+    7
+    11
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use transmute on a non-DataFrame")
@@ -93,6 +117,18 @@ def rename(data, *args):
     -------
     data: pandas DataFrame
         The DataFrame, but with the columns renamed
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running rename(df, "a = col_a") will return
+    col_a b
+    1     2
+    3     4
+    5     6
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use rename on a non-DataFrame")
@@ -141,7 +177,19 @@ def select(data, *args):
     Returns
     -------
     new_data: pandas DataFrame
-        A DataFrame with only the renamed columns
+        A DataFrame with only the selected columns
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running select(df, "a") will return
+    a
+    1
+    3
+    5
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use rename on a non-DataFrame")
@@ -261,6 +309,17 @@ def filter(data, *args):
     -------
     filtered_data: pandas DataFrame
         The dataframe, after we've applied all filtering conditions
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running filter(df, "a >= median(a)") will return
+    a
+    3
+    5
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use filter on non-DataFrame")
@@ -313,6 +372,15 @@ def summarise(data, *args):
     -------
     summarised_data: pandas DataFrame
         The dataframe containing our summarised results
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running summarise(df, "mean(a)") will return
+    4.5
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use summarise on a non-DataFrame")
@@ -407,6 +475,18 @@ def arrange(data, *args):
     -------
     sorted_data: pandas DataFrame
         The sorted data based on arguments provided in *args
+
+    For example, suppose we had a dataframe like
+    a b
+    1 2
+    3 4
+    5 6
+
+    Then running mutate(df, desc(a)) will return
+    a b
+    5 6
+    3 4
+    1 2
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use arrange on a non-DataFrame")

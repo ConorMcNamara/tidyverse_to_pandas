@@ -175,6 +175,56 @@ class TestDplyrToPandas(unittest.TestCase):
         data = [1, 2, 3, 4]
         self.assertRaises(Exception, dplyr_to_pandas.filter, data, "mpg > mean(mpg)")
 
+    def test_filter_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.filter(df, "model == 'Lexus'")
+        expected = pd.DataFrame({"model": ['Lexus'],
+                                 "mpg": [25],
+                                 "vs": [0]}, index=[3])
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_filter_mean_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.filter(df, "mpg == mean(mpg)")
+        expected = pd.DataFrame({"model": ['Mazda'],
+                                 "mpg": [30],
+                                 "vs": [1]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_filter_median_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.filter(df, "mpg > median(mpg)")
+        expected = pd.DataFrame({"model": ['Mazda', 'Toyota'],
+                                 "mpg": [30, 50],
+                                 "vs": [1, 1]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_filter_min_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.filter(df, "mpg == min(mpg)")
+        expected = pd.DataFrame({"model": ['Ford'],
+                                 "mpg": [20],
+                                 "vs": [0]}, index=[2])
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_filter_max_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.filter(df, "mpg == max(vs)")
+        expected = pd.DataFrame({"model": ['Mazda', 'Toyota', 'BMW'],
+                                 "mpg": [30, 50, 25],
+                                 "vs": [1, 1, 1]}, index=[0, 1, 4])
+        pd.testing.assert_frame_equal(actual, expected)
+
     def test_summarise_nonDF_Exception(self):
         data = [1, 2, 3, 4]
         self.assertRaises(Exception, dplyr_to_pandas.summarise, data, "mean(mpg)")
