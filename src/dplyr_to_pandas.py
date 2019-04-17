@@ -26,7 +26,7 @@ def mutate(data, *args):
     3 4
     5 6
 
-    Then running mutate(df, "c = a + b") will return
+    Then running arrange(df, "c = a + b") will return
     a b c
     1 2 3
     3 4 7
