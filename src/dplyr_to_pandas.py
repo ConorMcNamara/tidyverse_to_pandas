@@ -26,7 +26,7 @@ def mutate(data, *args):
     3 4
     5 6
 
-    Then running arrange(df, "c = a + b") will return
+    Then running mutate(df, "c = a + b") will return
     a b c
     1 2 3
     3 4 7
@@ -347,6 +347,17 @@ def filter(data, *args):
             val = data[max_col].max()
             comparison = re.search(r'([<>]=?|==)', arg).group(0)
             result = '{} {} {}'.format(max_col, comparison, val)
+        elif "quantile(" in arg.casefold():
+            quantile_col = re.search(r'(?<=quantile\()[a-zA-Z]+', arg).group(0)
+            if re.search('probs=', arg):
+                quantile_percent = float(re.search(r'(?<=probs\=)\s*\d*\.\d+', arg).group(0))
+            else:
+                quantile_percent = float(re.search(r'(?<=,)\s*\d*\.\d+', arg).group(0))
+            if quantile_percent > 1:
+                raise Exception("Cannot have percentile greater than 1")
+            comparison = re.search(r'([<>]=?|==)', arg).group(0)
+            val = data[quantile_col].quantile(quantile_percent)
+            result = '{} {} {}'.format(quantile_col, comparison, val)
         else:
             result = arg
         if counter < args_length:

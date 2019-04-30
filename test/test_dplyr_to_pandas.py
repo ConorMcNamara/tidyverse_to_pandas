@@ -225,6 +225,16 @@ class TestDplyrToPandas(unittest.TestCase):
                                  "vs": [1, 1, 1]}, index=[0, 1, 4])
         pd.testing.assert_frame_equal(actual, expected)
 
+    def test_filter_quantile_result(self):
+        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
+                           'mpg': [30, 50, 20, 25, 25],
+                           'vs': [1, 1, 0, 0, 1]})
+        actual = dplyr_to_pandas.filter(df, "mpg  > quantile(mpg, 0.5)")
+        expected = pd.DataFrame({"model": ['Mazda', 'Toyota'],
+                                 "mpg": [30, 50],
+                                 "vs": [1, 1]}, index=[0, 1])
+        pd.testing.assert_frame_equal(actual, expected)
+
     def test_summarise_nonDF_Exception(self):
         data = [1, 2, 3, 4]
         self.assertRaises(Exception, dplyr_to_pandas.summarise, data, "mean(mpg)")
