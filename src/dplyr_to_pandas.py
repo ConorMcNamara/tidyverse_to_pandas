@@ -493,7 +493,7 @@ def arrange(data, *args):
     3 4
     5 6
 
-    Then running mutate(df, desc(a)) will return
+    Then running arrange(df, desc(a)) will return
     a b
     5 6
     3 4
