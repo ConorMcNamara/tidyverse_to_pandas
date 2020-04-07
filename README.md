@@ -1,17 +1,7 @@
 # tidyverse_to_pandas
-Attempts to provide tidyverse syntax (such as gather() and spread()) using pandas DataFrames, however, this does not contain support for magrittr's piping functionality.
+Currently going through an entire re-write/re-base. 
 
-Instead, after importing either tidyr_to_pandas or dplyr_to_pandas, you call the function and provide arguments as strings.
+Essentially, back-end was a hodge-podge of spaghetti code that "worked" but not well. Additionally, recent changes to tidyr meant that creating new functions 
+to mimic functionality was more difficult than it needed to be, due to lack of common software principles such as Single Responsibility. 
 
-For example, given a dataframe df, I would then call 
-`` transmute(df, 'col_C = col_A + col_B')``
-
-
-## Basics
-There are currently two main source files for tidyverse_to_pandas: tidyr_to_pandas and dplyr_to_pandas.
-
-### tidyr_to_pandas
-Contains support for spread(), gather(), separate(), unite() and extract() from tidyr.
-
-### dplyr_to_pandas
-Contains support for mutate(), transmute(), rename(), select(), filter(), summarise() and arrange(). 
+So I'm currently re-writing the entire back-end to better mimic tidyr syntax, as well as make it much easier to create new functions.
