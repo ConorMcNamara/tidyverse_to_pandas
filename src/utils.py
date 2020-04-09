@@ -29,7 +29,7 @@ def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):
             cols = data.columns
     if ":" in str_arguments:
         start_col, end_col = str_arguments.split(':')
-        start_index, end_index = cols.index(start_col), cols.index(end_col)
+        start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
     elif "-" in str_arguments:
         col_to_remove = str_arguments[str_arguments.find("-") + 1:]

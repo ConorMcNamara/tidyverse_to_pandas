@@ -4,7 +4,6 @@ from pyspark.sql.functions import concat_ws
 from src.utils import _get_list_columns, _convert_numeric, _get_str_columns, _check_df_type
 import warnings
 import numpy as np
-from itertools import chain
 
 
 # Pivoting
@@ -33,180 +32,149 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
     names_pattern: list or str, default is None
         If names_to contains multiple values, these arguments control how the column name is broken up.
         names_pattern takes the same specification as extract(), a regular expression containing matching groups (()).
+    names_ptypes: list, default is None
+        A list of column name-prototype pairs. A prototype (or ptype for short) is a zero-length vector
+        (like integer() or numeric()) that defines the type, class, and attributes of a vector.
 
-        If these arguments do not give you enough control, use pivot_longer_spec() to create a spec object and process
-        manually as needed.
-    names_ptypes
-    names_repair
+        If not specified, the type of the columns generated from names_to will be character.
+    names_repair: str, default is "check_unique"
+        What happen if the output has invalid column names?
+        The default, "check_unique" is to error if the columns are duplicated.
+        Use "minimal" to allow duplicates in the output, or "unique" to de-duplicated by adding numeric suffixes.
     values_to: str, default is None
         A string specifying the name of the column to create from the data stored in cell values.
-        If names_to is None this value will be ignored, and the name of the value column will be derived from part of
-        the existing column names.
+        If names_to is None this value will be ignored, and the name of the value column will be "value".
     values_drop_na: bool, default is True
         If True, will drop rows that contain only NAs in the value_to column. This effectively converts explicit missing values
         to implicit missing values, and should generally be used only when missing values in data were created by its structure.
-    values_ptypes
+    values_ptypes: type, default is None
+        The type of data our values_to column will be. Examples include int, str, np.int16 or bool.
+
+        If not specified, the type of the variables generated from values_to will be the common type of the input columns
+        used to generate them.
 
     Returns
     -------
-
+    Our melted/longer pivoted data frame
     """
     is_pandas = _check_df_type(data, "pivot_longer")
-    # Here, we check to see which columns we are going to "pivot on". That is, we're going to see which columns
-    # are going to be used to create new, more compact variables; at the expense of more rows being created
-    if isinstance(cols, str):
-        cols = _get_str_columns(data, str_arguments=cols, is_pandas=is_pandas)
-    elif isinstance(cols, (list, tuple)):
-        cols = _get_list_columns(data, cols, is_pandas)
-    else:
-        raise TypeError("Cannot determine metod for determining column types")
-    # Here, we are testing if the user wishes to create multiple columns. If so, then we need to see how the columns are
-    # going to be created.
+    values_to = values_to if values_to is not None else "value"
+    names_to = names_to if names_to is not None else "variable"
     if is_pandas:
-        if isinstance(names_to, (list, tuple)):
-            # Here, we are using name_sep, which indicates a separation using either a string, for example, "_" would indicate
-            # that we split on underscores, or a numeric list, for example [1, 2, 3] would indicate that we split on indices
-            # 1, 2 and 3.
+        # Single column to pivot/melt on
+        if isinstance(cols, str):
+            cols = _get_str_columns(data, str_arguments=cols, is_pandas=is_pandas)
+            # We need to see which columns we are going to melt/pivot longer on, so we take the "difference" of our
+            # data frame's columns from the columns that we know we won't be pivoting on.
+            id_vars = data.columns.difference(cols)
+        # Multiple columns to pivot/melt on
+        elif isinstance(cols, (list, tuple)):
+            cols = _get_list_columns(data, cols, is_pandas)
+            id_vars = data.columns.difference(cols)
+        else:
+            raise TypeError("Cannot determine method for determining column types")
+        if isinstance(names_to, str):
+            # This is by far the easiest, where everything is specified for us. The names are strings, the values are
+            # strings, and everything is easy to calculate
+            melted_data = pd.melt(data, id_vars=id_vars, value_vars=cols, var_name=names_to, value_name=values_to)
+        else:
+            # Here, we need to figure out what to name our variables as, as well as how to separate them.
+            melted_data = pd.melt(data, id_vars=id_vars, value_vars=cols, value_name=values_to)
+            # Uses similar argumentation to separate (isn't it helpful to build those functions so we can re-use them?)
             if names_sep is not None:
-                if isinstance(names_sep, str):
-                    splits = data[cols].apply(lambda x: x.str.split(pat=names_sep, expand=True))
-                elif isinstance(names_sep, (tuple, list)):
-                    splits = pd.DataFrame()
-                    # str.slice() returns "" if there is no match, which will fail our covert condition, so we convert it to
-                    # NaN instead to represent that there was no match
-                    for index, name in enumerate(cols):
-                        if index == 0:
-                            splits[name] = data[cols].str.slice(stop=names_sep[index]).replace("", np.nan)
-                        elif index == len(cols) - 1:
-                            splits[name] = data[cols].str.slice(start=names_sep[index - 1]).replace("", np.nan)
-                        else:
-                            splits[name] = data[cols].str.slice(start=names_sep[index - 1], stop=names_sep[index]).replace("", np.nan)
-                else:
-                    raise TypeError("Cannot determine method of splitting DataFrame")
-                ...
+                melted_data = separate(melted_data, "variable", names_to, names_sep, remove=True, convert=False,
+                                       extra="drop", fill="right")
+            # Uses similar arguments to extract (again, isn't it helpful to build these functions ahead of time?)
             elif names_pattern is not None:
-                splits = data[cols].apply(lambda x: x.str.extract(names_pattern, expand=True))
-                ...
+                melted_data = extract(melted_data, 'variable', names_to, names_pattern, remove=True, convert=False)
             else:
-                raise AttributeError("Cannot determine method of breaking up data into multiple columns")
-        if values_to is None:
-            ...
+                raise ValueError("Cannot determine how to separate into multiple columns")
+        # Drop NA values
+        if values_drop_na:
+            melted_data = melted_data.dropna(how='any', axis=0)
+        # Remove prefixes from our names data
+        if names_prefix is not None:
+            melted_data[names_to] = melted_data[names_to].str.replace(names_prefix, "")
+        # Convert pytypes
+        if names_ptypes is not None:
+            conversion_type = {}
+            for index, column in enumerate(names_to):
+                conversion_type[column] = names_ptypes[index]
+            melted_data = melted_data.astype(conversion_type)
+        if values_ptypes is not None:
+            melted_data[values_to] = melted_data[values_to].astype(values_ptypes)
+    else:
+        ...
+    return melted_data
 
 
+def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_sep="_", names_repair="check_unique",
+                values_from="value", values_fill=None, values_fn=None):
+    """pivot_wider() "widens" data, increasing the number of columns and decreasing the number of rows.
+    The inverse transformation is pivot_longer().
 
-    def pivot_wider(data, id_cols, names_from=None, names_prefix="", names_sep="_", names_repair="check_unique",
-                    values_from=None, values_fill=None, values_fn=None):
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame to pivot.
+    id_cols: str or list, default is None
+        A set of columns that uniquely identifies each observation.
+        Defaults to all columns in data except for the columns specified in names_from and values_from.
+        Typically used when you have additional variables that is directly related.
+    names_from: str, default is "name"
+        Describes which column to get the name of the output column.
+    names_prefix: str, default is ""
+        String added to the start of every variable name. This is particularly useful if names_from is a numeric vector
+        and you want to create syntactic variable names.
+    names_sep: str, default is "_"
+        If names_from or values_from contains multiple variables, this will be used to join their values together
+        into a single string to use as a column name.
+    names_repair: str, default is "check_unique"
+        What happen if the output has invalid column names? The default, "check_unique" is to error if the columns are duplicated.
+        Use "minimal" to allow duplicates in the output, or "unique" to de-duplicated by adding numeric suffixes.
+    values_from: str or list, default is "name"
+        Describes which column (or columns) to get the cell values from.
+    values_fill: dict, default is None
+        Optionally, a dictionary specifying what each value should be filled in with when missing.
+    values_fn: list, default is None
+        Optionally, a named list providing a function that will be applied to the value in each cell in the output.
+        You will typically use this when the combination of id_cols and value column does not uniquely identify an observation.
+
+    Returns
+    -------
+    Our pivoted dataframe
+    """
+    is_pandas = _check_df_type(data, "pivot_wider")
+    if isinstance(names_from, str):
+        names_from = _get_str_columns(data, names_from, is_pandas=is_pandas)
+    elif isinstance(names_from, (tuple, list)):
+        names_from = _get_list_columns(data, names_from, is_pandas)
+    else:
+        raise TypeError("Cannot determine column names to be pivotted off of")
+    if isinstance(values_from, str):
+        values_from = _get_str_columns(data, values_from, is_pandas=is_pandas)
+    elif isinstance(values_from, (tuple, list)):
+        values_from = _get_list_columns(data, values_from, is_pandas=is_pandas)
+    else:
+        raise TypeError("Cannot determine value names to pivot off of")
+    if is_pandas:
+        if id_cols is None:
+            id_cols = data.columns.difference(list(names_from) + list(values_from))
+        if values_fill is not None:
+            data = data.fillna(values_fill, how='any', subset=list(values_from))
+        id_cols, names_from = id_cols[0], names_from[0]
+        pivoted_data = pd.pivot(data, index=id_cols, columns=names_from, values=values_from)
+        value_cols = [names_prefix + col for col in pivoted_data.columns.difference(list(id_cols))]
+        pivoted_data[pivoted_data.columns.difference(list(id_cols))].columns = value_cols
+    else:
+        ...
+    return pivoted_data
 
 
 # Rectangling
 
 
 # Nesting and Unnesting Data
-
-
-def nest(data, cols=None):
-    """Nesting creates a list-column of data frames
-
-    Parameters
-    ----------
-    data: pandas or pyspark DataFrame
-        Our data frame
-    cols: dictionary, default is None
-        Name-variable pairs of the form {new_col: [col1, col2, col3]} that describe how you wish to nest
-        existing columns into new columns.
-
-
-    Returns
-    -------
-    Our dataframe, but with nested columns
-    """
-    is_pandas = _check_df_type(data, "nest")
-    if not isinstance(cols, dict):
-        raise TypeError("cols must be in dictionary format")
-    keys = _get_list_columns(data, list(cols.keys()), is_pandas)
-    vals = _get_list_columns(data, list(chain.from_iterable(list(cols.values()))), is_pandas)
-    groupby_cols = data.columns.difference(keys + vals)
-    for key in cols.keys():
-        data[key] = data[cols[key]].values.tolist()
-
-
-def unnest(data, cols, into, keep_empty=False, ptype=None, names_sep=None, names_repair="check_unique"):
-    """
-
-    Parameters
-    ----------
-    data: pandas or pyspark DataFrame
-        Our data frame
-    cols: str or list
-        Names of columns to unnest
-    into: list or tuple
-        Names of our unnested columns
-    keep_empty: bool, default is False
-        By default, you get one row of output for each element of the list your unnesting.
-        This means that if there's a size-0 element (like np.nan or an empty data frame), that entire row will be dropped
-        from the output. If you want to preserve all rows, use keep_empty=True to replace size-0 elements with a
-        single row of missing values.
-    ptype: pandas or pyspark DataFrame, default is None
-        Optionally, supply a data frame prototype for the output cols, overriding the default that will be guessed
-        from the combination of individual values.
-    names_sep: str, default is None
-        If None, the default, the names of new columns will come directly from our cols
-        If a string, the names of the new columns will be formed by pasting together the outer column name with the
-        inner names, separated by names_sep.
-    names_repair: str, default is "check_unique"
-        Used to check that output data frame has valid names. Must be one of the following options:
-            "minimal": no name repair or checks, beyond basic existence,
-            "unique": make sure names are unique and not empty,
-            "check_unique": (the default), no name repair, but check they are unique,
-            "universal": make the names unique and syntactic
-
-    Returns
-    -------
-
-    """
-    is_pandas = _check_df_type(data, "unnest")
-    if is_pandas:
-        # Here, we replace all empty lists as NAs
-        data = data.mask(data.applymap(type).eq(list) & ~data.astype(bool))
-        # Here, we replace the NAs as a list of NAs, with our list length as determined by the maximum of each row
-        if keep_empty is True:
-            for col in cols:
-                max_val = data[col].map(len).max()
-                data[col] = data[col].fillna([np.nan] * max_val)
-        # If keep_empty = False, we instead drop the NAs from our analysis
-        else:
-            data = data.dropna(how='any', axis=0, subset=cols)
-        # Single new variable created
-        if isinstance(cols, str):
-            if names_sep is not None:
-                into = ['{}{}{}'.format(cols, names_sep, column) for column in into]
-            if len(data) < 500000:
-                # This is much faster, but has problems scaling to large data frames
-                temp_df = pd.DataFrame(data[cols].values.tolist(), columns=into)
-            else:
-                # This is much slower, but scales much better to large data frames
-                temp_df = data[cols].apply(pd.Series)
-                temp_df.columns = into
-        # Multiple new variables created
-        elif isinstance(cols, (tuple, list)):
-            if names_sep is not None:
-                into = ['{}{}{}'.format(cols, names_sep, column) for row in into for column in row]
-            temp_df = pd.DataFrame()
-            if len(data) < 500000:
-                for index, col in enumerate(cols):
-                    # Again, this is much faster, but scales poorly to large data frames
-                    cols_expand = pd.DataFrame(data[col].values.tolist(), columns=into[index])
-                    temp_df = pd.concat([temp_df, cols_expand], axis=0)
-            else:
-                for index, col in enumerate(cols):
-                    # Similarly, this is much slower but scales much better to large data frames
-                    cols_expand = data[col].apply(pd.Series)
-                    cols_expand.columns = into[index]
-                    temp_df = pd.concat([temp_df, cols_expand], axis=0)
-        else:
-            raise TypeError("Cannot determine method of unnesting columns")
-
-
 
 
 # Splitting and Combining Character Columns

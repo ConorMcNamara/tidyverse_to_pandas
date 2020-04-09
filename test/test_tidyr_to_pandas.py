@@ -1,10 +1,31 @@
 import pandas as pd
 import numpy as np
-from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate
+from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer
 import unittest
 
 
 class TestTidyrToPandas(unittest.TestCase):
+
+    # Pivot Longer
+    def test_pivotLonger_pandas(self):
+        religion = pd.read_csv("C:\\Users\\conor\\Documents\\religion.csv")
+        pivot_religion = pivot_longer(religion, "-religion", names_to='income', values_to="count")
+        assert pivot_religion.shape == (180, 3)
+
+    def test_pivotLonger_pandas_valuesDrop(self):
+        billboard = pd.read_csv("C:\\Users\\conor\\Documents\\billboard.csv")
+        pivot_billboard = pivot_longer(billboard, cols="wk1:wk76", names_to="week", names_prefix="wk",
+                                       values_to="rank", values_drop_na=True)
+        assert pivot_billboard.shape == (5307, 5)
+
+    def test_pivotLonger_pandas_namesPattern(self):
+        who = pd.read_csv("C:\\Users\\conor\\Documents\\who.csv")
+        pivot_who = pivot_longer(who, cols="new_sp_m014:newrel_f65", names_to=["diagnosis", "gender", "age"],
+                                 names_pattern="new_?(.*)_(.)(.*)", values_to="count", values_drop_na=False)
+        assert pivot_who.shape == (405440, 8)
+
+    # Pivot Wider
+
 
     # Replace NA
 
