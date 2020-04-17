@@ -1,6 +1,7 @@
 from more_itertools import unique_everseen
 import pandas as pd
 import pyspark.sql as ps
+import warnings
 
 
 def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):
@@ -63,3 +64,19 @@ def _check_df_type(data, argument):
         return False
     else:
         raise Exception("Cannot perform {} on non-DataFrame".format(argument))
+
+
+def _check_unique(data, how='unique'):
+    # Check for repeated names
+    if len(set(data.columns)) != len(data.columns):
+        if how.casefold() == 'check_uinque':
+            raise AttributeError("Not all columns have unique names")
+        elif how.casefold() == 'unique':
+            cols = pd.Series(data.columns)
+            for dup in cols[cols.duplicated()].unique():
+                cols[cols[cols == dup].index.values.tolist()] = [dup + '.' + str(i) if i != 0 else dup for i in
+                                                                 range(sum(cols == dup))]
+            data.columns = cols
+            return data
+        else:
+            warnings.warn("Not all columns have unique names")

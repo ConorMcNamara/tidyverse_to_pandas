@@ -1,7 +1,7 @@
 import pandas as pd
 import pyspark.sql as ps
 from pyspark.sql.functions import concat_ws
-from src.utils import _get_list_columns, _convert_numeric, _get_str_columns, _check_df_type
+from src.utils import _get_list_columns, _convert_numeric, _get_str_columns, _check_df_type, _check_unique
 import warnings
 import numpy as np
 
@@ -80,11 +80,11 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
         else:
             # Here, we need to figure out what to name our variables as, as well as how to separate them.
             melted_data = pd.melt(data, id_vars=id_vars, value_vars=cols, value_name=values_to)
-            # Uses similar argumentation to separate (isn't it helpful to build those functions so we can re-use them?)
+            # Uses similar argumentation to separate
             if names_sep is not None:
                 melted_data = separate(melted_data, "variable", names_to, names_sep, remove=True, convert=False,
                                        extra="drop", fill="right")
-            # Uses similar arguments to extract (again, isn't it helpful to build these functions ahead of time?)
+            # Uses similar arguments to extract
             elif names_pattern is not None:
                 melted_data = extract(melted_data, 'variable', names_to, names_pattern, remove=True, convert=False)
             else:
@@ -95,6 +95,8 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
         # Remove prefixes from our names data
         if names_prefix is not None:
             melted_data[names_to] = melted_data[names_to].str.replace(names_prefix, "")
+        # Check for repeated names
+        melted_data = _check_unique(melted_data, how=names_repair)
         # Convert pytypes
         if names_ptypes is not None:
             conversion_type = {}
@@ -160,12 +162,24 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
     if is_pandas:
         if id_cols is None:
             id_cols = data.columns.difference(list(names_from) + list(values_from))
-        if values_fill is not None:
-            data = data.fillna(values_fill, how='any', subset=list(values_from))
-        id_cols, names_from = id_cols[0], names_from[0]
-        pivoted_data = pd.pivot(data, index=id_cols, columns=names_from, values=values_from)
+        if names_sep is not None and len(names_from) > 1:
+            new_col = '{}'.format(names_sep).join([name for name in names_from])
+            data = unite(data, new_col, input_cols=names_from, sep=names_sep, remove=True, na_rm=False)
+            names_from = new_col
+        if names_sep is not None and len(values_from) > 1:
+            new_col = '{}'.format(names_sep).join([name for name in values_from])
+            data = unite(data, new_col, input_cols=values_from, sep=names_sep, remove=True, na_rm=False)
+            values_from = new_col
+        if len(id_cols) > 1:
+            pivoted_data = pd.pivot_table(data, index=id_cols, columns=names_from, values=values_from).reset_index()
+        else:
+            pivoted_data = pd.pivot(data, index=id_cols[0], columns=names_from[0], values=values_from)
+        # Handle adding prefixes to necessary columns
         value_cols = [names_prefix + col for col in pivoted_data.columns.difference(list(id_cols))]
         pivoted_data[pivoted_data.columns.difference(list(id_cols))].columns = value_cols
+        # Check for repeated names
+        pivoted_data = _check_unique(pivoted_data, how=names_repair)
+
     else:
         ...
     return pivoted_data

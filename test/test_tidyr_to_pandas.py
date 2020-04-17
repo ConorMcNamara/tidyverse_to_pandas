@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer
+from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider
 import unittest
 
 
@@ -25,7 +25,39 @@ class TestTidyrToPandas(unittest.TestCase):
         assert pivot_who.shape == (405440, 8)
 
     # Pivot Wider
+    def test_pivotWider_pandas(self):
+        fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\fish_encounters.csv")
+        pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen')
+        expected = pd.DataFrame({'fish': ['4842, 4843', '4844', '4845', '4847'],
+                                 'Release': [1] * 5,
+                                 'I80_1': [1] * 5,
+                                 'Lisbon': [1] * 5,
+                                 'Rstr': [1] * 4 + [np.nan],
+                                 'BaseTD': [1] * 4 + [np.nan],
+                                 'BCE': [1] * 3 + [np.nan] * 2,
+                                 'BCW': [1] * 3 + [np.nan] * 2,
+                                 'BCE2': [1] * 3 + [np.nan] * 2,
+                                 'BCW2': [1] * 3 + [np.nan] * 2,
+                                 'MAE': [1] * 3 + [np.nan] * 2,
+                                 'MAW': [1] * 3 + [np.nan] * 2})
+        pd.testing.assert_frame_equal(pivot_fish.head(), expected)
 
+    def test_pivotWider_fillNA_pandas(self):
+        fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\fish_encounters.csv")
+        pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen', values_fill={'seen': 0})
+        expected = pd.DataFrame({'fish': ['4842, 4843', '4844', '4845', '4847'],
+                                 'Release': [1] * 5,
+                                 'I80_1': [1] * 5,
+                                 'Lisbon': [1] * 5,
+                                 'Rstr': [1] * 4 + [0],
+                                 'BaseTD': [1] * 4 + [0],
+                                 'BCE': [1] * 3 + [0] * 2,
+                                 'BCW': [1] * 3 + [0] * 2,
+                                 'BCE2': [1] * 3 + [0] * 2,
+                                 'BCW2': [1] * 3 + [0] * 2,
+                                 'MAE': [1] * 3 + [0] * 2,
+                                 'MAW': [1] * 3 + [0] * 2})
+        pd.testing.assert_frame_equal(pivot_fish.head(), expected)
 
     # Replace NA
 
