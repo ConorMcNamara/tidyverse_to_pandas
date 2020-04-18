@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider
+from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
+complete
 import unittest
 
 
@@ -58,41 +59,6 @@ class TestTidyrToPandas(unittest.TestCase):
                                  'MAE': [1] * 3 + [0] * 2,
                                  'MAW': [1] * 3 + [0] * 2})
         pd.testing.assert_frame_equal(pivot_fish.head(), expected)
-
-    # Replace NA
-
-    def test_replaceNA_pandas(self):
-        data = pd.DataFrame({'x': [1, 2, np.nan],
-                             'y': ['a', np.nan, 'b'],
-                             'z': [[i for i in range(1, 6)], np.nan, [i for i in range(10, 21)]]})
-        expected = pd.DataFrame({'x': [1., 2., 0.],
-                                 'y': ['a', 'Unknown', 'b'],
-                                 'z': [[i for i in range(1, 6)], np.nan, [i for i in range(10, 21)]]})
-        pd.testing.assert_frame_equal(replace_na(data, {'x': 0, 'y': 'Unknown'}), expected)
-
-    # Drop NA
-
-    def test_dropNA_pandas(self):
-        data = pd.DataFrame({'x': [1, 2, np.nan],
-                             'y': ["a", np.nan, "b"]})
-        expected = pd.DataFrame({'x': [1.], 'y': ['a']})
-        pd.testing.assert_frame_equal(drop_na(data), expected)
-
-    def test_dropNA_pandasSpecification(self):
-        data = pd.DataFrame({'x': [1, 2, np.nan],
-                             'y': ["a", np.nan, "b"]})
-        expected = pd.DataFrame({'x': [1., 2.],
-                                 'y': ["a", np.nan]})
-        pd.testing.assert_frame_equal(drop_na(data, ['x']), expected)
-
-    # Fill
-
-    def test_fill_pandas(self):
-        data = pd.DataFrame({"Month": np.arange(1, 13),
-                             "Year": [2000] + [np.nan] * 11})
-        expected = pd.DataFrame({'Month': np.arange(1, 13),
-                                 'Year': [2000.] * 12})
-        pd.testing.assert_frame_equal(fill(data, "Year", direction='down'), expected)
 
     # Unite
 
@@ -162,6 +128,57 @@ class TestTidyrToPandas(unittest.TestCase):
                                  'B': [np.nan, 'b', 'b', np.nan],
                                  'C': [np.nan, np.nan, 'c', np.nan]})
         pd.testing.assert_frame_equal(separate(data, "x", ['A', 'B', 'C'], " "), expected)
+
+        # Replace NA
+
+    def test_replaceNA_pandas(self):
+        data = pd.DataFrame({'x': [1, 2, np.nan],
+                             'y': ['a', np.nan, 'b'],
+                             'z': [[i for i in range(1, 6)], np.nan, [i for i in range(10, 21)]]})
+        expected = pd.DataFrame({'x': [1., 2., 0.],
+                                 'y': ['a', 'Unknown', 'b'],
+                                 'z': [[i for i in range(1, 6)], np.nan, [i for i in range(10, 21)]]})
+        pd.testing.assert_frame_equal(replace_na(data, {'x': 0, 'y': 'Unknown'}), expected)
+
+        # Drop NA
+
+    def test_dropNA_pandas(self):
+        data = pd.DataFrame({'x': [1, 2, np.nan],
+                             'y': ["a", np.nan, "b"]})
+        expected = pd.DataFrame({'x': [1.], 'y': ['a']})
+        pd.testing.assert_frame_equal(drop_na(data), expected)
+
+    def test_dropNA_pandasSpecification(self):
+        data = pd.DataFrame({'x': [1, 2, np.nan],
+                             'y': ["a", np.nan, "b"]})
+        expected = pd.DataFrame({'x': [1., 2.],
+                                 'y': ["a", np.nan]})
+        pd.testing.assert_frame_equal(drop_na(data, ['x']), expected)
+
+        # Fill
+
+    def test_fill_pandas(self):
+        data = pd.DataFrame({"Month": np.arange(1, 13),
+                             "Year": [2000] + [np.nan] * 11})
+        expected = pd.DataFrame({'Month': np.arange(1, 13),
+                                 'Year': [2000.] * 12})
+        pd.testing.assert_frame_equal(fill(data, "Year", direction='down'), expected)
+
+    # Compete
+
+    def test_complete_pandas(self):
+        data = pd.DataFrame({'group': [1, 2, 1],
+                             'item_id': [1, 2, 2],
+                             'item_name': ['a', 'b', 'b'],
+                             'value1': [1, 2, 3],
+                             'value2': [4, 5, 6]})
+        expected = pd.DataFrame({'group': [1, 1, 2, 2],
+                                 'item_id': [1, 2, 1, 2],
+                                 'item_name': ['a', 'b', 'a', 'b'],
+                                 'value1': [1, 3, np.nan, 2],
+                                 'value2': [4, 6, np.nan, 5]})
+        actual = complete(data, ['item_id', 'item_name'])
+        pd.testing.assert_frame_equal(actual, expected)
 
 
 if __name__ == '__main__':

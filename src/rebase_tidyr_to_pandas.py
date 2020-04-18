@@ -4,6 +4,7 @@ from pyspark.sql.functions import concat_ws
 from src.utils import _get_list_columns, _convert_numeric, _get_str_columns, _check_df_type, _check_unique
 import warnings
 import numpy as np
+import re
 
 
 # Pivoting
@@ -47,7 +48,7 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
     values_drop_na: bool, default is True
         If True, will drop rows that contain only NAs in the value_to column. This effectively converts explicit missing values
         to implicit missing values, and should generally be used only when missing values in data were created by its structure.
-    values_ptypes: type, default is None
+    values_ptypes: list, default is None
         The type of data our values_to column will be. Examples include int, str, np.int16 or bool.
 
         If not specified, the type of the variables generated from values_to will be the common type of the input columns
@@ -297,6 +298,7 @@ def separate(data, col, into, sep="_", remove=True, convert=False, extra="warn",
         if remove:
             data = data.drop([col], axis=1)
     else:
+        ...
         # pyspark has no native ability to extract column names, so we'll need to do it ourselves
         if remove:
             data = data.drop(col)
@@ -347,6 +349,7 @@ def extract(data, col, into, regex="([a-zA-Z0-9]+)", remove=True, convert=False)
         if remove:
             data = data.drop([col], axis=1)
     else:
+        ...
         # use Pyspark regular expressions
         if remove:
             data = data.drop(col)
@@ -403,6 +406,7 @@ def unite(data, col, input_cols=None, sep='_', remove=True, na_rm=False):
             data = data.drop(input_cols, axis=1)
         data = data.replace("NA", np.nan)
     else:
+        ...
         if na_rm:
             data = data.dropna(how='any', subset=input_cols)
         data = data.withColumn(col, concat_ws(sep, *input_cols))
@@ -521,5 +525,41 @@ def fill(data, cols=None, direction='down'):
     return data
 
 
-def complete():
-    ...
+def complete(data, cols=None, fill=None):
+    """Turns implicit missing values into explicit missing values.
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame
+    cols: list, default is None
+        Specification of columns to expand
+    fill: dictionary, default is None
+        A dictionary that for each variable supplies a single value to use instead of NA for missing combinations.
+
+    Returns
+    -------
+
+    """
+    is_pandas = _check_df_type(data, "complete")
+    # For nesting, we need to compute the possible combinations within each group, as pandas default is to find
+    # every possible combination for every column, which isn't always the behavior we want (hence, nesting).
+    if "nesting(" in cols:
+        index_cols = [col for col in cols if 'nesting(' not in col]
+        index_cols = _get_list_columns(data, index_cols, is_pandas)
+        nesting_col = data.columns[data.columns.str.contains('nesting(')][0]
+        nested_cols = re.search(r'\((.*?)\)', nesting_col).group(1).split(',').replace(" ", "")
+    else:
+        index_cols = cols
+        nested_cols = None
+    if is_pandas:
+        data = data.set_index(index_cols)
+        mux = pd.MultiIndex.from_product([data.index.levels[i] for i in range(len(index_cols))], names=index_cols)
+        data = data.reindex(mux).reset_index()
+        if fill is not None:
+            data = data.fillna(fill)
+    else:
+        ...
+        if fill is not None:
+            data = data.fillna(fill)
+    return data
