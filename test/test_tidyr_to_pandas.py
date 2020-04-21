@@ -9,25 +9,25 @@ class TestTidyrToPandas(unittest.TestCase):
 
     # Pivot Longer
     def test_pivotLonger_pandas(self):
-        religion = pd.read_csv("C:\\Users\\conor\\Documents\\religion.csv")
+        religion = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\religion.csv")
         pivot_religion = pivot_longer(religion, "-religion", names_to='income', values_to="count")
         assert pivot_religion.shape == (180, 3)
 
     def test_pivotLonger_pandas_valuesDrop(self):
-        billboard = pd.read_csv("C:\\Users\\conor\\Documents\\billboard.csv")
+        billboard = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\billboard.csv")
         pivot_billboard = pivot_longer(billboard, cols="wk1:wk76", names_to="week", names_prefix="wk",
                                        values_to="rank", values_drop_na=True)
         assert pivot_billboard.shape == (5307, 5)
 
     def test_pivotLonger_pandas_namesPattern(self):
-        who = pd.read_csv("C:\\Users\\conor\\Documents\\who.csv")
+        who = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\who.csv")
         pivot_who = pivot_longer(who, cols="new_sp_m014:newrel_f65", names_to=["diagnosis", "gender", "age"],
                                  names_pattern="new_?(.*)_(.)(.*)", values_to="count", values_drop_na=False)
         assert pivot_who.shape == (405440, 8)
 
     # Pivot Wider
     def test_pivotWider_pandas(self):
-        fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\fish_encounters.csv")
+        fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen')
         expected = pd.DataFrame({'fish': ['4842, 4843', '4844', '4845', '4847'],
                                  'Release': [1] * 5,
@@ -44,7 +44,7 @@ class TestTidyrToPandas(unittest.TestCase):
         pd.testing.assert_frame_equal(pivot_fish.head(), expected)
 
     def test_pivotWider_fillNA_pandas(self):
-        fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\fish_encounters.csv")
+        fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen', values_fill={'seen': 0})
         expected = pd.DataFrame({'fish': ['4842, 4843', '4844', '4845', '4847'],
                                  'Release': [1] * 5,

@@ -69,7 +69,7 @@ def _check_df_type(data, argument):
 def _check_unique(data, how='unique'):
     # Check for repeated names
     if len(set(data.columns)) != len(data.columns):
-        if how.casefold() == 'check_unique':
+        if how.casefold() == 'check_uinque':
             raise AttributeError("Not all columns have unique names")
         elif how.casefold() == 'unique':
             cols = pd.Series(data.columns)
@@ -81,3 +81,5 @@ def _check_unique(data, how='unique'):
         else:
             warnings.warn("Not all columns have unique names")
             return data
+    else:
+        return data

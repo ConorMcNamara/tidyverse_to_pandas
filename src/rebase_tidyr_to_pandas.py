@@ -107,7 +107,7 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
         if values_ptypes is not None:
             melted_data[values_to] = melted_data[values_to].astype(values_ptypes)
     else:
-        ...
+        pass
     return melted_data
 
 
@@ -182,7 +182,7 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
         pivoted_data = _check_unique(pivoted_data, how=names_repair)
 
     else:
-        ...
+        pass
     return pivoted_data
 
 
