@@ -510,6 +510,9 @@ def fill(data, cols=None, direction='down'):
         cols_to_consider = _get_str_columns(data, cols, is_pandas=is_pandas)
     else:
         cols_to_consider = _get_list_columns(data, cols, is_pandas=is_pandas)
+    # For reference:
+    #  ffill: propagate last valid observation forward to next valid
+    #  bfill: use next valid observation to fill gap.
     if is_pandas:
         if direction == "down":
             data[cols_to_consider] = data[cols_to_consider].fillna(method='ffill')
@@ -539,25 +542,71 @@ def complete(data, cols=None, fill=None):
 
     Returns
     -------
-
+    Our dataframe, but with implicit missing values now made explicit
     """
     is_pandas = _check_df_type(data, "complete")
     # For nesting, we need to compute the possible combinations within each group, as pandas default is to find
     # every possible combination for every column, which isn't always the behavior we want (hence, nesting).
-    if "nesting(" in cols:
-        index_cols = [col for col in cols if 'nesting(' not in col]
-        index_cols = _get_list_columns(data, index_cols, is_pandas)
-        nesting_col = data.columns[data.columns.str.contains('nesting(')][0]
-        nested_cols = re.search(r'\((.*?)\)', nesting_col).group(1).split(',').replace(" ", "")
-    else:
-        index_cols = cols
-        nested_cols = None
+    # For example, if we have complete(data, "group, nesting(item_name, item_id)"), then we are interested in seeing
+    # all possible item_id and item_name permutations per group.
     if is_pandas:
-        data = data.set_index(index_cols)
-        mux = pd.MultiIndex.from_product([data.index.levels[i] for i in range(len(index_cols))], names=index_cols)
-        data = data.reindex(mux).reset_index()
+        ordered_cols = data.columns.tolist()
+        if any('nesting(' in mystring for mystring in cols):
+            # These are columns that we aren't interested in seeing all possible permutations of, but rather the ones
+            # that act as our consistent pivot. In the example above, it would be group.
+            index_cols = [col for col in cols if 'nesting(' not in col]
+            index_cols = _get_list_columns(data, index_cols, is_pandas)
+            # These are the columns that we are interested in seeing all possible permutations of. In the example above,
+            # it would be item_id and item_name
+            # Here, we take the column that has nesting in it. Unfortunately, we can't use list.index('nesting(') as it
+            # looks for exact matches and we are looking for a substring. We then turn it into a string so we can apply
+            # re.search on it.
+            nesting_col = [col for col in cols if 'nesting(' in col][0]
+            # We then split nesting_col into all of its components. In the example above, it would be 'item_id' and
+            # 'item_name'.
+            nested_cols = re.search(r'\((.*?)\)', nesting_col).group(1).split(',')
+            # Our splitting criteria can cause empty whitespace to occur between strings, so we replace it with
+            # non-whitespace.
+            nested_cols = [col.replace(' ', '') for col in nested_cols]
+            # We make sure that the columns follow our guidelines.
+            nested_cols = _get_list_columns(data, nested_cols, is_pandas)
+            # This is going to be our dataframe that contains all reindexed/explicit values.
+            nested_df = pd.DataFrame()
+            # These are the columns that will have missing values as we convert them from implicitly missing to
+            # explicitly missing
+            value_cols = data.columns.difference(index_cols + nested_cols).values.tolist()
+            # Here, we iteratively go through each nesting_col and reindex it. We then merge it with the previously
+            # created data frames to get our final result.
+            for col in nested_cols:
+                group_cols = [col] + index_cols
+                group_data = data.set_index(group_cols)
+                # We rely on MultiIndex.from_product() to get all possible permutations, and set the names equal to the
+                # columns we assigned
+                mux = pd.MultiIndex.from_product([group_data.index.levels[i] for i in range(len(group_cols))], names=group_cols)
+                # We reindex our data to turn the implicit values explicit, and then reset_index() so that our indexes
+                # become columns again
+                group_data = group_data.reindex(mux).reset_index()
+                # We remove any duplicated columns that aren't going to be used for left joins, because otherwise we
+                # are going to get a lot of columns like group_x, group_y, group_z and it becomes very difficult to
+                # know which one(s) to remove and which one(s) to keep.
+                group_data = group_data.drop([c for c in nested_cols if c != col], axis=1)
+                # If we haven't added anything to our nested_df, we can't merge on it (as it has no column to merge onto)
+                # so we add our existing data to it.
+                if len(nested_df) == 0:
+                    nested_df = pd.concat([nested_df, group_data], axis=1)
+                # We rely on left joins to add new columns to our dataset
+                else:
+                    nested_df = pd.merge(nested_df, group_data, on=index_cols + value_cols, how='left')
+            data = nested_df.sort_values(index_cols).reset_index()
+        # This one is much easier, as no nesting is required. Here, we apply everything as done above, but with no
+        # worry about grouping or nesting.
+        else:
+            data = data.set_index(cols)
+            mux = pd.MultiIndex.from_product([data.index.levels[i] for i in range(len(cols))], names=cols)
+            data = data.reindex(mux).reset_index()
         if fill is not None:
             data = data.fillna(fill)
+        data = data[ordered_cols]
     else:
         ...
         if fill is not None:

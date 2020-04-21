@@ -177,7 +177,21 @@ class TestTidyrToPandas(unittest.TestCase):
                                  'item_name': ['a', 'b', 'a', 'b'],
                                  'value1': [1, 3, np.nan, 2],
                                  'value2': [4, 6, np.nan, 5]})
-        actual = complete(data, ['item_id', 'item_name'])
+        actual = complete(data, ["group", "nesting(item_id, item_name)"])
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_compete_pandasFill(self):
+        data = pd.DataFrame({'group': [1, 2, 1],
+                             'item_id': [1, 2, 2],
+                             'item_name': ['a', 'b', 'b'],
+                             'value1': [1, 2, 3],
+                             'value2': [4, 5, 6]})
+        expected = pd.DataFrame({'group': [1, 1, 2, 2],
+                                 'item_id': [1, 2, 1, 2],
+                                 'item_name': ['a', 'b', 'a', 'b'],
+                                 'value1': [1., 3., 0., 2.],
+                                 'value2': [4, 6, np.nan, 5]})
+        actual = complete(data, ["group", "nesting(item_id, item_name)"], fill={'value1': 0})
         pd.testing.assert_frame_equal(actual, expected)
 
 

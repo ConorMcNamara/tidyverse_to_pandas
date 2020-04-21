@@ -20,7 +20,8 @@ Currently, I have support for the following tidyr functions:
 ### Handling Missing Data
 * [drop_na](https://tidyr.tidyverse.org/reference/drop_na.html): Makes explicit missing values implicit
 * [fill](https://tidyr.tidyverse.org/reference/fill.html): Replace missing values with next/previous value
-* [replace_na](https://tidyr.tidyverse.org/reference/replace_na.html): Replace missing values with a knonw value
+* [replace_na](https://tidyr.tidyverse.org/reference/replace_na.html): Replace missing values with a known value
+* [complete](https://tidyr.tidyverse.org/reference/complete.html): Turns implicit missing values into explicit missing values
 
 ### Splitting and Combining Character Columns
 * [separate](https://tidyr.tidyverse.org/reference/separate.html): Pulls a single character column into multiple columns using a known separator
@@ -38,3 +39,8 @@ To quote Hadley Wickham, "dplyr is a grammar of data manipulation, providing a c
 * [filter](https://dplyr.tidyverse.org/reference/filter.html): Picks cases based on their values
 * [summarise](https://dplyr.tidyverse.org/reference/summarise.html): Reduces multiple values down to a single summary
 * [arrange](https://dplyr.tidyverse.org/reference/arrange.html): Changes the ordering of the rows
+
+## stringr
+
+
+## lubridate
