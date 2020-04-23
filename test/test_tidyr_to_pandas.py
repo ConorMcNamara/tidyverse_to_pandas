@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-from src.rebase_tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
-complete
+from src.tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
+complete, unnest_longer
 import unittest
 
 
@@ -29,36 +29,55 @@ class TestTidyrToPandas(unittest.TestCase):
     def test_pivotWider_pandas(self):
         fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen')
-        expected = pd.DataFrame({'fish': ['4842, 4843', '4844', '4845', '4847'],
-                                 'Release': [1] * 5,
-                                 'I80_1': [1] * 5,
-                                 'Lisbon': [1] * 5,
-                                 'Rstr': [1] * 4 + [np.nan],
-                                 'BaseTD': [1] * 4 + [np.nan],
-                                 'BCE': [1] * 3 + [np.nan] * 2,
-                                 'BCW': [1] * 3 + [np.nan] * 2,
-                                 'BCE2': [1] * 3 + [np.nan] * 2,
-                                 'BCW2': [1] * 3 + [np.nan] * 2,
-                                 'MAE': [1] * 3 + [np.nan] * 2,
-                                 'MAW': [1] * 3 + [np.nan] * 2})
+        expected = pd.DataFrame({'fish': ['4842', '4843', '4844', '4845', '4847'],
+                                 'Release': [1.] * 5,
+                                 'I80_1': [1.] * 5,
+                                 'Lisbon': [1.] * 5,
+                                 'Rstr': [1.] * 4 + [np.nan],
+                                 'BaseTD': [1.] * 4 + [np.nan],
+                                 'BCE': [1.] * 3 + [np.nan] * 2,
+                                 'BCW': [1.] * 3 + [np.nan] * 2,
+                                 'BCE2': [1.] * 3 + [np.nan] * 2,
+                                 'BCW2': [1.] * 3 + [np.nan] * 2,
+                                 'MAE': [1.] * 3 + [np.nan] * 2,
+                                 'MAW': [1.] * 3 + [np.nan] * 2})
         pd.testing.assert_frame_equal(pivot_fish.head(), expected)
 
     def test_pivotWider_fillNA_pandas(self):
         fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen', values_fill={'seen': 0})
-        expected = pd.DataFrame({'fish': ['4842, 4843', '4844', '4845', '4847'],
-                                 'Release': [1] * 5,
-                                 'I80_1': [1] * 5,
-                                 'Lisbon': [1] * 5,
-                                 'Rstr': [1] * 4 + [0],
-                                 'BaseTD': [1] * 4 + [0],
-                                 'BCE': [1] * 3 + [0] * 2,
-                                 'BCW': [1] * 3 + [0] * 2,
-                                 'BCE2': [1] * 3 + [0] * 2,
-                                 'BCW2': [1] * 3 + [0] * 2,
-                                 'MAE': [1] * 3 + [0] * 2,
-                                 'MAW': [1] * 3 + [0] * 2})
+        expected = pd.DataFrame({'fish': ['4842', '4843', '4844', '4845', '4847'],
+                                 'Release': [1.] * 5,
+                                 'I80_1': [1.] * 5,
+                                 'Lisbon': [1.] * 5,
+                                 'Rstr': [1.] * 4 + [0.],
+                                 'BaseTD': [1.] * 4 + [0.],
+                                 'BCE': [1.] * 3 + [0.] * 2,
+                                 'BCW': [1.] * 3 + [0.] * 2,
+                                 'BCE2': [1.] * 3 + [0.] * 2,
+                                 'BCW2': [1.] * 3 + [0.] * 2,
+                                 'MAE': [1.] * 3 + [0.] * 2,
+                                 'MAW': [1.] * 3 + [0.] * 2})
         pd.testing.assert_frame_equal(pivot_fish.head(), expected)
+
+    # Unnest Longer
+
+    def test_unnestLonger_pandas(self):
+        data = pd.DataFrame({'x': [1, 2],
+                             'y': [{'a': 1, 'b': 2}, {'a': 10, 'b': 11, 'c': 12}]})
+        expected = pd.DataFrame({'x': [1, 1, 2, 2, 2],
+                                 'y': [1., 2., 10., 11., 12.],
+                                 'y_id': ['a', 'b', 'a', 'b', 'c']})
+        actual = unnest_longer(data, 'y')
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_unnestLonger_pandasAgain(self):
+        df = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, [1, 2, 3], [4, 5]]})
+        expected = pd.DataFrame({'x': [1, 2, 2, 2, 3, 3],
+                                 'y': [np.nan, 1, 2, 3, 4, 5]})
+        actual = unnest_longer(df, 'y', simplify=True)
+        pd.testing.assert_frame_equal(actual, expected)
+
 
     # Unite
 
