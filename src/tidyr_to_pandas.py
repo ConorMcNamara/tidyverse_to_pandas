@@ -219,8 +219,8 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
     names_repair: str, default is check_unique
         "minimal": no name repair or checks, beyond basic existence,
         "unique": make sure names are unique and not empty,
-        "check_unique": (the default), no name repair, but check they are unique,
-    simplify: bool, default is True
+        "check_unique": (the default), no name repair, but check they are unique
+    simplify: bool, default is False
         If True, will attempt to simplify lists of length-1 vectors to an atomic vector
     ptype: dict, default is None
         Optionally, supply a dictionary for the output cols, overriding the default that will be guessed from
@@ -228,7 +228,7 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
 
     Returns
     -------
-
+    Our dataset, but with the nested columns expanded row-wise.
     """
     is_pandas = _check_df_type(data, "unnest_longer")
     if is_pandas:
@@ -242,8 +242,7 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
                 unnest_data = unnest_data.reset_index()
             unnest_data = unnest_data.join(data.drop(col, axis=1), how='left')
             if simplify:
-                for c in col:
-                    unnest_data[c] = pd.to_numeric(unnest_data[c])
+                unnest_data[col] = unnest_data[col].apply(pd.to_numeric, errors='coerce')
         elif isinstance(col, str):
             # Our column is in list format
             if (data[col].apply(type) == list).any():
@@ -262,7 +261,7 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
             if indices_include:
                 unnest_data = unnest_data.reset_index()
             if simplify:
-                unnest_data[col] = pd.to_numeric(unnest_data[col])
+                unnest_data[col] = pd.to_numeric(unnest_data[col], errors='coerce')
         else:
             raise TypeError("Cannot determine columns to unnest dataframe")
         if values_to is not None:
@@ -281,17 +280,71 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
     return unnest_data
 
 
-def unnest_wider(data, col, names_sep=None, indices_to=None, names_repair='check_unique', ptype=None):
+def unnest_wider(data, col, names_sep=None, simplify=False, names_repair='check_unique', ptype=None):
+    """Turns each element of a list-column into a column
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame.
+    col: str or list
+        List-column to extract components from.
+    names_sep: str, default is None
+        If None, the default, the names of new columns will come directly from the inner json.
+        If a string, the names of the new columns will be formed by pasting together the outer column name with the
+         inner names, separated by names_sep.
+    simplify: bool, default is False
+        If True, will attempt to simplify lists of length-1 vectors to an atomic vector
+    names_repair: str, default is check_unique
+        "minimal": no name repair or checks, beyond basic existence,
+        "unique": make sure names are unique and not empty,
+        "check_unique": (the default), no name repair, but check they are unique
+    ptype: dict, default is None
+        Optionally, supply a dictionary for the output cols, overriding the default that will be guessed from
+        the combination of individual values.
+
+    Returns
+    -------
+    Our dataset, but with our nested columns expanded column-wise
+    """
     is_pandas = _check_df_type(data, "unnest_wider")
+    names_sep = names_sep if names_sep is not None else ''
     if is_pandas:
         if isinstance(col, list):
-            ...
-        elif isinstance(col, str):
-            if (data[col].apply(type) == list).all():
-                ...
+            # Here, we are checking if all the columns contain the same length of lists. If they do, we can speed things
+            # up by using data[col].tolist(). If they don't, we use data[col].apply(pd.Series).
+            is_equal = True
+            for c in col:
+                if (data[c].str.len()[0] == data[c].str.len()[1:]).all():
+                    continue
+                else:
+                    is_equal = False
+                    break
+            if is_equal:
+                unnested_data = pd.concat([pd.DataFrame(data[x].tolist(), index=data.index).add_prefix('{}{}'.format(x, names_sep)) for x in col], axis=1)
+                unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
             else:
-                unnest_data = pd.json_normalize(data[col])
-                unnest_data = data.drop(col, axis=1).join(unnest_data, how='left')
+                unnested_data = pd.concat([pd.DataFrame(data[x].apply(pd.Series), index=data.index).add_prefix('{}{}'.format(x, names_sep)) for x in col], axis=1)
+                unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
+        elif isinstance(col, str):
+            # data is in list format
+            if (data[col].apply(type) == list).any():
+                # Similarly, we are checking if all the lists within the column are the same length. If they are, we can
+                # speed things up using data[col].tolist(). Else, we use data[col].apply(pd.Series).
+                if (data[col].str.len()[0] == data[col].str.len()[1:]).all():
+                    unnested_data = pd.DataFrame(data[col].tolist()).add_prefix('{}{}'.format(col, names_sep))
+                    unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
+                else:
+                    unnested_data = data[col].apply(pd.Series).add_prefix('{}{}'.format(col, names_sep))
+                    unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
+            # data is in dictionary format
+            else:
+                unnested_data = pd.json_normalize(data[col])
+                unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
+        unnested_data = _check_unique(unnested_data, how=names_repair)
+        if ptype is not None:
+            unnested_data = unnested_data.astype(ptype)
+    return unnested_data
 
 
 
