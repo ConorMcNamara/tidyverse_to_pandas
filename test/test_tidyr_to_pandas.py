@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from src.tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
-complete, unnest_longer
+complete, unnest_longer, unnest_wider
 import unittest
 
 
@@ -78,7 +78,37 @@ class TestTidyrToPandas(unittest.TestCase):
         actual = unnest_longer(df, 'y', simplify=True)
         pd.testing.assert_frame_equal(actual, expected)
 
+    # Unnest Wider
 
+    def test_unnestWider_pandasDict(self):
+        df = pd.DataFrame({'character': ["Toothless", "Dory"],
+                           'metadata': [{
+                               'species': "dragon",
+                               'color': "black",
+                               'films': ["How to Train Your Dragon", "How to Train Your Dragon 2",
+                                         "How to Train Your Dragon: The Hidden World"]
+                           }, {
+                               'species': "clownfish",
+                               'color': "blue",
+                               'films': ["Finding Nemo", "Finding Dory"]}]})
+        expected = pd.DataFrame({'character': ['Toothless', 'Dory'],
+                                 'species': ['dragon', 'clownfish'],
+                                 'color': ['black', 'blue'],
+                                 'films': [["How to Train Your Dragon", "How to Train Your Dragon 2",
+                                            "How to Train Your Dragon: The Hidden World"],
+                                           ["Finding Nemo", "Finding Dory"]]
+                                 })
+        actual = unnest_wider(df, 'metadata')
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_unnestWider_pandasList(self):
+        df = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, [1, 2, 3], [4, 5]]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y0': [np.nan, 1.0, 4.0],
+                                 'y1': [np.nan, 2.0, 5.0],
+                                 'y2': [np.nan, 3.0, np.nan]})
+        actual = unnest_wider(df, ['y'])
+        pd.testing.assert_frame_equal(actual, expected)
     # Unite
 
     def test_unite_pandas(self):
