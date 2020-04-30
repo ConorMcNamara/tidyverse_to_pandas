@@ -113,6 +113,22 @@ class TestTidyrToPandas(unittest.TestCase):
 
     # Nest
 
+    def test_nest_pandas(self):
+        data = pd.DataFrame({'x': [1, 1, 1, 2, 2, 3], 'y': np.arange(1, 7), 'z': np.arange(6, 0, -1)})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'data': [{'y': {0: 1, 1: 2, 2: 3},
+                                           'z': {0: 6, 1: 5, 2: 4}},
+                                          {'y': {3: 4, 4: 5},
+                                           'z': {3: 3, 4: 2}},
+                                          {'y': {5: 6},
+                                           'z': {5: 1}}]})
+        actual = nest(data, ['y', 'z'])
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_nest_pandasIris(self):
+        data = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\iris.csv")
+        actual = nest(data, '-Species')
+        assert actual.shape == (3, 2)
 
     # Unite
 

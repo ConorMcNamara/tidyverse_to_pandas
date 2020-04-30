@@ -197,7 +197,7 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
         pass
     return pivoted_data
 
-# Rectangling
+# Rectangling Data
 
 
 def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=False, names_repair="check_unique", simplify=False, ptype=None):
@@ -234,7 +234,7 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
     if is_pandas:
         # We have multiple columns to explode. Note that this assumes that these columns are all columns of lists
         # and that each list contains the same number of elements
-        if isinstance(col, list):
+        if isinstance(col, (tuple, list)):
             unnest_data = pd.concat([pd.DataFrame({x: np.concatenate(data[x].values)}) for x in col], axis=1)
             if indices_include:
                 idx = data.index.repeat(data[col[0]].str.len())
@@ -310,7 +310,7 @@ def unnest_wider(data, col, names_sep=None, simplify=False, names_repair='check_
     is_pandas = _check_df_type(data, "unnest_wider")
     names_sep = names_sep if names_sep is not None else ''
     if is_pandas:
-        if isinstance(col, list):
+        if isinstance(col, (list, tuple)):
             # Here, we are checking if all the columns contain the same length of lists. If they do, we can speed things
             # up by using data[col].tolist(). If they don't, we use data[col].apply(pd.Series).
             is_equal = True
@@ -371,18 +371,18 @@ def nest(data, cols):
     is_pandas = _check_df_type(data, "nest")
     if isinstance(cols, str):
         cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
+    elif isinstance(cols, (list, tuple)):
         cols = _get_list_columns(data, cols, is_pandas=is_pandas)
     elif isinstance(cols, dict):
         nested_cols = []
         for key, value in cols.items():
-            cols[key] = _get_str_columns(data, value, is_pandas=is_pandas)[0]
+            cols[key] = _get_list_columns(data, value, is_pandas=is_pandas)
             nested_cols += cols[key]
     else:
         raise TypeError("Cannot determine columns to nest")
     if is_pandas:
         # Cols is in string or list format
-        if isinstance(cols, (str, list)):
+        if isinstance(cols, (str, list, tuple)):
             non_nested_cols = data.columns.difference(cols).tolist()
             # If every group in non_nested_cols has the same number of observations, then we can run our groupby and
             # lambda functions
@@ -411,12 +411,85 @@ def nest(data, cols):
                     nested_col = data.groupby(non_nested_cols)[col_select].apply(lambda x: x.to_dict()).reset_index()
                     nested_col.columns = non_nested_cols + [col_name]
                     nested_df[col_name] = nested_col[col_name]
+            # Similar as before, we need to iteratively add the values to account for uneven group sizes
             else:
                 for col_name, col_select in cols.items():
-                        filtered_data = data()
+                    nested_df[col_name] = 0
+                    for index, row in nested_df.iterrows():
+                        group = row[non_nested_cols].values
+                        filtered_data = data[(data[non_nested_cols] == group).values]
+                        nested_df.loc[index, col_name] = [filtered_data[col_select].to_dict()]
+        nested_df.index = np.arange(len(nested_df))
     else:
         pass
     return nested_df
+
+
+def unnest(data, cols, keep_empty=False, ptype=None, names_sep=None, names_repair="check_unique"):
+    """Unnesting flattens a column of dicts back out into regular columns
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame
+    cols: str or list
+        Names of columns to unnest. If you unnest() multiple columns, parallel entries must be of compatible sizes, i.e.
+        they're either equal or length 1 (following the standard tidyverse recycling rules).
+    keep_empty: bool, default is False
+        By default, you get one row of output for each element of the list you're nnesting. This means that
+        if there's a size-0 element (like NA or an empty dictionary), that entire row will be dropped from the output.
+        If you want to preserve all rows, use keep_empty=True to replace size-0 elements with a single row of missing
+        values.
+    ptype: dict, default is None
+        Optionally, supply a dict for the output cols, overriding the default that will be guessed from the combination
+        of individual values.
+    names_sep: str, default is None
+        If None, the default, the names of new columns will come directly from the inner data frame.
+        If a string, the names of the new columns will be formed by pasting together the outer column name with the
+        inner names, separated by names_sep.
+    names_repair: str, default is "check_unique"
+        Used to check that output data frame has valid names. Must be one of the following options:
+            "minimal": no name repair or checks, beyond basic existence,
+            "unique": make sure names are unique and not empty,
+            "check_unique": (the default), no name repair, but check they are unique,
+
+    Returns
+    -------
+    Our dataframe, but with unnested columns
+    """
+    is_pandas = _check_df_type(data, "unnest")
+    if isinstance(cols, str):
+        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, (tuple, list)):
+        cols = _get_list_columns(data, cols, is_pandas)
+    else:
+        raise TypeError("Cannot determine columns for unnesting")
+    if is_pandas:
+        unnested_df = pd.DataFrame()
+        non_nested_cols = data.columns.difference(cols).values
+        for col in cols:
+            exploded_df = pd.DataFrame()
+            for index, row in data.iterrows():
+                temp_df = pd.DataFrame(data[col][index])
+                if names_sep is not None:
+                    temp_df.columns = ['{}{}{}'.format(col, names_sep, val) for val in temp_df.columns]
+                if len(unnested_df) == 0:
+                    for nest_col in non_nested_cols:
+                        temp_df[nest_col] = data.loc[index, nest_col]
+                    temp_df = temp_df[non_nested_cols.tolist() + list(temp_df.columns.difference(non_nested_cols))]
+                exploded_df = pd.concat([exploded_df, temp_df], axis=0)
+            unnested_df = pd.concat([unnested_df, exploded_df], axis=1)
+        unnested_df = _check_unique(unnested_df, names_repair)
+        if ptype is not None:
+            unnested_df = unnested_df.astype(ptype)
+        if keep_empty is False:
+            unnested_df = unnested_df.dropna()
+    else:
+        ...
+    return unnested_df
+
+
+# Chopping and Unchopping Data
 
 
 # Splitting and Combining Character Columns
@@ -666,8 +739,10 @@ def drop_na(data, cols=None):
     else:  # Drop any row that contains an NA within certain columns
         if isinstance(cols, str):
             cols_to_consider = _get_str_columns(data, cols, is_pandas=is_pandas)
-        else:
+        elif isinstance(cols, (tuple, list)):
             cols_to_consider = _get_list_columns(data, cols, is_pandas)
+        else:
+            raise ValueError("Cannot determine which columns to unite")
         if is_pandas:
             data = data.dropna(axis=0, how='any', subset=cols_to_consider)
         else:
@@ -729,8 +804,10 @@ def fill(data, cols=None, direction='down'):
     is_pandas = _check_df_type(data, "fill")
     if isinstance(cols, str):
         cols_to_consider = _get_str_columns(data, cols, is_pandas=is_pandas)
-    else:
+    elif isinstance(cols, (tuple, list)):
         cols_to_consider = _get_list_columns(data, cols, is_pandas=is_pandas)
+    else:
+        raise ValueError("Cannot determine which columns to fill")
     # For reference:
     #  ffill: propagate last valid observation forward to next valid
     #  bfill: use next valid observation to fill gap.
