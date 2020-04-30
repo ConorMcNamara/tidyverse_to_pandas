@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from src.tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
-complete, unnest_longer, unnest_wider
+complete, unnest_longer, unnest_wider, nest
 import unittest
 
 
@@ -109,6 +109,11 @@ class TestTidyrToPandas(unittest.TestCase):
                                  'y2': [np.nan, 3.0, np.nan]})
         actual = unnest_wider(df, ['y'])
         pd.testing.assert_frame_equal(actual, expected)
+
+
+    # Nest
+
+
     # Unite
 
     def test_unite_pandas(self):

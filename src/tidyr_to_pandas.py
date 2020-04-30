@@ -322,10 +322,8 @@ def unnest_wider(data, col, names_sep=None, simplify=False, names_repair='check_
                     break
             if is_equal:
                 unnested_data = pd.concat([pd.DataFrame(data[x].tolist(), index=data.index).add_prefix('{}{}'.format(x, names_sep)) for x in col], axis=1)
-                unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
             else:
                 unnested_data = pd.concat([pd.DataFrame(data[x].apply(pd.Series), index=data.index).add_prefix('{}{}'.format(x, names_sep)) for x in col], axis=1)
-                unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
         elif isinstance(col, str):
             # data is in list format
             if (data[col].apply(type) == list).any():
@@ -333,23 +331,92 @@ def unnest_wider(data, col, names_sep=None, simplify=False, names_repair='check_
                 # speed things up using data[col].tolist(). Else, we use data[col].apply(pd.Series).
                 if (data[col].str.len()[0] == data[col].str.len()[1:]).all():
                     unnested_data = pd.DataFrame(data[col].tolist()).add_prefix('{}{}'.format(col, names_sep))
-                    unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
                 else:
                     unnested_data = data[col].apply(pd.Series).add_prefix('{}{}'.format(col, names_sep))
-                    unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
             # data is in dictionary format
             else:
                 unnested_data = pd.json_normalize(data[col])
-                unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
+        else:
+            raise TypeError("Cannot determine which columns to unnest on")
+        if simplify:
+            unnested_data = unnested_data.apply(pd.to_numeric, errors='coerce')
+        # Merge our regular data with our unnested data, but with the regular data first
+        unnested_data = data.drop(col, axis=1).join(unnested_data, how='left')
+        # Check that the names for the columns follow our conventions
         unnested_data = _check_unique(unnested_data, how=names_repair)
+        # Change pytypes if necessary
         if ptype is not None:
             unnested_data = unnested_data.astype(ptype)
+    else:
+        ...
     return unnested_data
 
 
-
-
 # Nesting and Unnesting Data
+
+def nest(data, cols):
+    """Nesting transforms multiple rows and columns into nested dictionaries
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame
+    cols: str or list or dict
+        Names of columns to nest. If dict, also specifies what the new column names will be.
+
+    Returns
+    -------
+    Our dataframe, but with nested columns
+    """
+    is_pandas = _check_df_type(data, "nest")
+    if isinstance(cols, str):
+        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, list):
+        cols = _get_list_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, dict):
+        nested_cols = []
+        for key, value in cols.items():
+            cols[key] = _get_str_columns(data, value, is_pandas=is_pandas)[0]
+            nested_cols += cols[key]
+    else:
+        raise TypeError("Cannot determine columns to nest")
+    if is_pandas:
+        # Cols is in string or list format
+        if isinstance(cols, (str, list)):
+            non_nested_cols = data.columns.difference(cols).tolist()
+            # If every group in non_nested_cols has the same number of observations, then we can run our groupby and
+            # lambda functions
+            if (data.groupby(non_nested_cols).agg('count').iloc[0, 0] == data.groupby(non_nested_cols).agg('count').iloc[1:, 0]).all():
+                nested_df = data.groupby(non_nested_cols).apply(lambda x: x.to_dict()).reset_index()
+                nested_df = nested_df.rename({0: 'data'}, axis=1)
+            # If our groups have different number of observations, then we need to iteratively add their dictionary
+            # values as groupby and lambda will only select one value instead of all of them
+            else:
+                # Ensures that we don't have any unnecesary copies
+                nested_df = data[non_nested_cols].drop_duplicates()
+                nested_df['data'] = 0
+                for index, row in nested_df.iterrows():
+                    group = row[non_nested_cols].values
+                    filtered_data = data[(data[non_nested_cols] == group).values]
+                    nested_df.loc[index, 'data'] = [filtered_data[cols].to_dict()]
+        # Cols in dictionary format
+        else:
+            non_nested_cols = data.columns.difference(nested_cols).tolist()
+            nested_df = data[non_nested_cols].drop_duplicates()
+            nested_df.index = np.arange(len(nested_df))
+            # Similar to above, we are checking if every group in non_nested_cols has the same number of observations to
+            # run our groupby and lambda expression successfully
+            if (data.groupby(non_nested_cols).agg('count').iloc[0, 0] == data.groupby(non_nested_cols).agg('count').iloc[1:, 0]).all():
+                for col_name, col_select in cols.items():
+                    nested_col = data.groupby(non_nested_cols)[col_select].apply(lambda x: x.to_dict()).reset_index()
+                    nested_col.columns = non_nested_cols + [col_name]
+                    nested_df[col_name] = nested_col[col_name]
+            else:
+                for col_name, col_select in cols.items():
+                        filtered_data = data()
+    else:
+        pass
+    return nested_df
 
 
 # Splitting and Combining Character Columns
