@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from src.tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
-complete, unnest_longer, unnest_wider, nest
+complete, unnest_longer, unnest_wider, nest, unnest
 import unittest
 
 
@@ -29,12 +29,12 @@ class TestTidyrToPandas(unittest.TestCase):
     def test_pivotWider_pandas(self):
         fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen')
-        expected = pd.DataFrame({'fish': ['4842', '4843', '4844', '4845', '4847'],
+        expected = pd.DataFrame({'fish': [4842, 4843, 4844, 4845, 4847],
                                  'Release': [1.] * 5,
                                  'I80_1': [1.] * 5,
                                  'Lisbon': [1.] * 5,
                                  'Rstr': [1.] * 4 + [np.nan],
-                                 'BaseTD': [1.] * 4 + [np.nan],
+                                 'Base_TD': [1.] * 4 + [np.nan],
                                  'BCE': [1.] * 3 + [np.nan] * 2,
                                  'BCW': [1.] * 3 + [np.nan] * 2,
                                  'BCE2': [1.] * 3 + [np.nan] * 2,
@@ -46,12 +46,12 @@ class TestTidyrToPandas(unittest.TestCase):
     def test_pivotWider_fillNA_pandas(self):
         fish_encounters = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from='station', values_from='seen', values_fill={'seen': 0})
-        expected = pd.DataFrame({'fish': ['4842', '4843', '4844', '4845', '4847'],
+        expected = pd.DataFrame({'fish': [4842, 4843, 4844, 4845, 4847],
                                  'Release': [1.] * 5,
                                  'I80_1': [1.] * 5,
                                  'Lisbon': [1.] * 5,
                                  'Rstr': [1.] * 4 + [0.],
-                                 'BaseTD': [1.] * 4 + [0.],
+                                 'Base_TD': [1.] * 4 + [0.],
                                  'BCE': [1.] * 3 + [0.] * 2,
                                  'BCW': [1.] * 3 + [0.] * 2,
                                  'BCE2': [1.] * 3 + [0.] * 2,
@@ -110,7 +110,6 @@ class TestTidyrToPandas(unittest.TestCase):
         actual = unnest_wider(df, ['y'])
         pd.testing.assert_frame_equal(actual, expected)
 
-
     # Nest
 
     def test_nest_pandas(self):
@@ -129,6 +128,22 @@ class TestTidyrToPandas(unittest.TestCase):
         data = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\iris.csv")
         actual = nest(data, '-Species')
         assert actual.shape == (3, 2)
+
+    # Unnest
+
+    def test_unnest_pandasIris(self):
+        data = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\iris.csv")
+        nested_data = nest(data, '-Species')
+        actual = unnest(nested_data, 'data')
+        data = data[['Species'] + list(data.columns.difference(['Species']))]
+        pd.testing.assert_frame_equal(actual, data)
+
+    def test_unnest_multipleColumnsPandasIris(self):
+        data = pd.read_csv("C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\iris.csv")
+        nested_data = nest(data, {'petal': ['Petal.Length', 'Petal.Width'], 'sepal': ['Sepal.Length', 'Sepal.Width']})
+        actual = unnest(nested_data, ['petal', 'sepal'])
+        data = data[['Species', 'Petal.Length', 'Petal.Width', 'Sepal.Length', 'Sepal.Width']]
+        pd.testing.assert_frame_equal(actual, data)
 
     # Unite
 

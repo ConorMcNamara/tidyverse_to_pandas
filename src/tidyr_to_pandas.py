@@ -162,17 +162,21 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
         raise TypeError("Cannot determine value names to pivot off of")
     if is_pandas:
         if id_cols is None:
-            id_cols = data.columns.difference(list(names_from) + list(values_from))
+            id_cols = data.columns.difference(list(names_from) + list(values_from)).tolist()
+        elif isinstance(id_cols, str):
+            id_cols = _get_str_columns(data, id_cols, is_pandas=is_pandas)
+        else:
+            id_cols = _get_list_columns(data, id_cols, is_pandas)
         # Unites all naming columns into one larger column
         if names_sep is not None and len(names_from) > 1:
             new_col = '{}'.format(names_sep).join([name for name in names_from])
             data = unite(data, new_col, input_cols=names_from, sep=names_sep, remove=True, na_rm=False)
-            names_from = new_col
+            names_from = [new_col]
         # Unites all value columns into one larger column
         if names_sep is not None and len(values_from) > 1:
             new_col = '{}'.format(names_sep).join([name for name in values_from])
             data = unite(data, new_col, input_cols=values_from, sep=names_sep, remove=True, na_rm=False)
-            values_from = new_col
+            values_from = [new_col]
         if len(id_cols) > 1:
             pivoted_data = pd.pivot_table(data, index=id_cols, columns=names_from, values=values_from)
         else:
@@ -188,9 +192,11 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
         # Adding our id_cols back as variables instead of indexes, and resetting the index name to None
         pivoted_data = pivoted_data.reset_index()
         pivoted_data.columns.name = None
+        # Re-order our dataframe so that the values are in the order first seen in our names_from column
+        pivoted_data = pivoted_data[id_cols + data[names_from[0]].unique().tolist()]
         # Adding prefixes to names
-        value_cols = [names_prefix + col for col in pivoted_data.columns.difference(list(id_cols))]
-        pivoted_data[pivoted_data.columns.difference(list(id_cols))].columns = value_cols
+        value_cols = [names_prefix + col for col in pivoted_data.columns.difference(id_cols)]
+        pivoted_data[pivoted_data.columns.difference(id_cols)].columns = value_cols
         # Check for repeated names
         pivoted_data = _check_unique(pivoted_data, how=names_repair)
     else:
@@ -471,13 +477,19 @@ def unnest(data, cols, keep_empty=False, ptype=None, names_sep=None, names_repai
             exploded_df = pd.DataFrame()
             for index, row in data.iterrows():
                 temp_df = pd.DataFrame(data[col][index])
+                # Rename the columns based on the outer columns, the separator and the inner column
                 if names_sep is not None:
                     temp_df.columns = ['{}{}{}'.format(col, names_sep, val) for val in temp_df.columns]
+                # If we haven't concatenated any data yet, we want to include our non_nested_columns at the beginning
+                # then we only need to concatenate regular values.
                 if len(unnested_df) == 0:
                     for nest_col in non_nested_cols:
                         temp_df[nest_col] = data.loc[index, nest_col]
+                    # Re-order the dataset so that the non-nested columns appear first rather than last (or the middle)
                     temp_df = temp_df[non_nested_cols.tolist() + list(temp_df.columns.difference(non_nested_cols))]
+                # Add all the temporary datasets row-wise
                 exploded_df = pd.concat([exploded_df, temp_df], axis=0)
+            # Add all the exploded datasets column wise
             unnested_df = pd.concat([unnested_df, exploded_df], axis=1)
         unnested_df = _check_unique(unnested_df, names_repair)
         if ptype is not None:
