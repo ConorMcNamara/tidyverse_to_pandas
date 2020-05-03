@@ -1,10 +1,12 @@
 # tidyverse_to_pandas
-Currently going through an entire re-write/re-base. 
+The goal here is simple: the tidyverse provides a nice opinionated way of manipulating data. And while pandas and pyspark do a good 
+job for the most part, the area that they struggle in is simplicity. These packages are very powerful, but they lack the ability
+to easily translate thought processes into actionable code quickly.
 
-Essentially, back-end was a hodge-podge of spaghetti code that "worked" but not well. Additionally, recent changes to tidyr meant that creating new functions 
-to mimic functionality was more difficult than it needed to be, due to lack of common software principles such as Single Responsibility. 
-
-So I'm currently re-writing the entire back-end to better mimic tidyr syntax, as well as make it much easier to create new functions, and include support for pyspark as well as pandas DataFrames.
+This package is designed to address those concerns by mimicking tidyverse functions to provide ease of use. While it does
+not have any kind of support for magrittr's pipe function, it still supports using the main functions of tidyverse as is.
+Thus, the user gets to spend more time writing scripts for feature engineering, data manipulation and exploratory data analysis
+than they do scouring StackOverflow or pandas/pyspark documentation, which is a win for everyone.
 
 ## tidyr
 To quote Hadley Wickham, "The goal of tidyr is to help you create tidy data. Tidy data is data where:
