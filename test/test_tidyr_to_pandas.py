@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from src.tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
-complete, unnest_longer, unnest_wider, nest, unnest
+complete, unnest_longer, unnest_wider, nest, unnest, chop, unchop
 import unittest
 
 
@@ -145,6 +145,26 @@ class TestTidyrToPandas(unittest.TestCase):
         data = data[['Species', 'Petal.Length', 'Petal.Width', 'Sepal.Length', 'Sepal.Width']]
         pd.testing.assert_frame_equal(actual, data)
 
+    # Chop
+
+    def test_chop_pandas(self):
+        data = pd.DataFrame({'x': [1, 1, 1, 2, 2, 3], 'y': np.arange(1, 7), 'z': np.arange(6, 0, -1)})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [[1, 2, 3], [4, 5], [6]],
+                                 'z': [[6, 5, 4], [3, 2], [1]]})
+        actual = chop(data, ['y', 'z'])
+        pd.testing.assert_frame_equal(actual, expected)
+
+    # Unchop
+
+    def test_unchop_pandas(self):
+        data = pd.DataFrame({'x': [1, 2, 3, 4],
+                             'y': [[], [1], [1, 2], [1, 2, 3]]})
+        actual = unchop(data, 'y')
+        expected = pd.DataFrame({'x': [2, 3, 3, 4, 4, 4],
+                                 'y': [1, 1, 2, 1, 2, 3]})
+        pd.testing.assert_frame_equal(actual, expected)
+
     # Unite
 
     def test_unite_pandas(self):
@@ -153,7 +173,8 @@ class TestTidyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'x': ['a', 'a', np.nan, np.nan],
                                  'y': ['b', np.nan, 'b', np.nan],
                                  'z': ['a_b', 'a_NA', 'NA_b', 'NA_NA']})
-        pd.testing.assert_frame_equal(unite(data, "z", ['x', 'y'], remove=False), expected)
+        actual = unite(data, "z", ['x', 'y'], remove=False)
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_unite_pandasNARM(self):
         data = pd.DataFrame({'x': ['a', 'a', np.nan, np.nan],
@@ -161,26 +182,30 @@ class TestTidyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'x': ['a', 'a', np.nan, np.nan],
                                  'y': ['b', np.nan, 'b', np.nan],
                                  'z': ['a_b', 'a', 'b', '']})
-        pd.testing.assert_frame_equal(unite(data, 'z', ['x', 'y'], na_rm=True, remove=False), expected)
+        actual = unite(data, 'z', ['x', 'y'], na_rm=True, remove=False)
+        pd.testing.assert_frame_equal(actual, expected)
 
     # Extract
 
     def test_extract_pandasMatch(self):
         data = pd.DataFrame({'x': [np.nan, "a-b", "a-d", "b-c", "d-e"]})
         expected = pd.DataFrame({'A': [np.nan, "a", "a", "b", "d"]})
-        pd.testing.assert_frame_equal(extract(data, "x", ["A"]), expected)
+        actual = extract(data, "x", ["A"])
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_extract_pandasMultipleMatch(self):
         data = pd.DataFrame({'x': [np.nan, "a-b", "a-d", "b-c", "d-e"]})
         expected = pd.DataFrame({'A': [np.nan, "a", "a", "b", "d"],
                                  'B': [np.nan, "b", "d", "c", "e"]})
-        pd.testing.assert_frame_equal(extract(data, "x", ['A', 'B'], "([a-zA-Z0-9]+)-([a-zA-Z0-9]+)"), expected)
+        actual = extract(data, "x", ['A', 'B'], "([a-zA-Z0-9]+)-([a-zA-Z0-9]+)")
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_extract_pandasNoMatchNA(self):
         data = pd.DataFrame({'x': [np.nan, "a-b", "a-d", "b-c", "d-e"]})
         expected = pd.DataFrame({'A': [np.nan, "a", "a", "b", np.nan],
                                  'B': [np.nan, "b", "d", "c", np.nan]})
-        pd.testing.assert_frame_equal(extract(data, "x", ['A', 'B'], "([a-d]+)-([a-d]+)"), expected)
+        actual = extract(data, "x", ['A', 'B'], "([a-d]+)-([a-d]+)")
+        pd.testing.assert_frame_equal(actual, expected)
 
     # Separate
 
@@ -188,31 +213,36 @@ class TestTidyrToPandas(unittest.TestCase):
         data = pd.DataFrame({'x': [np.nan, 'a.b', 'a.d', "b.c"]})
         expected = pd.DataFrame({'A': [np.nan, 'a', 'a', 'b'],
                                  'B': [np.nan, 'b', 'd', 'c']})
-        pd.testing.assert_frame_equal(separate(data, "x", ['A', "B"], ".", remove=True), expected)
+        actual = separate(data, "x", ['A', "B"], ".", remove=True)
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_separate_pandasNA(self):
         data = pd.DataFrame({'x': [np.nan, 'a.b', 'a.d', "b.c"]})
         expected = pd.DataFrame({'B': [np.nan, 'b', 'd', 'c']})
-        pd.testing.assert_frame_equal(separate(data, "x", ["NA", "B"], ".", remove=True), expected)
+        actual = separate(data, "x", ["NA", "B"], ".", remove=True)
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_separate_fill(self):
         data = pd.DataFrame({'x': ['a', 'a b', 'a b c', np.nan]})
         expected = pd.DataFrame({'A': ['a', 'a', 'a', np.nan],
                                  'B': [np.nan, 'b', 'b', np.nan]})
-        pd.testing.assert_frame_equal(separate(data, "x", ['A', "B"], " "), expected)
+        actual = separate(data, "x", ['A', "B"], " ")
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_separate_fillLeft(self):
         data = pd.DataFrame({'x': ['a', 'a b', 'a b c', np.nan]})
         expected = pd.DataFrame({'A': [np.nan, 'a', 'a', np.nan],
                                  'B': ['a', 'b', 'b c', np.nan]})
-        pd.testing.assert_frame_equal(separate(data, "x", ['A', 'B'], " ", fill='left', extra='merge'), expected)
+        actual = separate(data, "x", ['A', 'B'], " ", fill='left', extra='merge')
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_separate_allThree(self):
         data = pd.DataFrame({'x': ['a', 'a b', 'a b c', np.nan]})
         expected = pd.DataFrame({'A': ['a', 'a', 'a', np.nan],
                                  'B': [np.nan, 'b', 'b', np.nan],
                                  'C': [np.nan, np.nan, 'c', np.nan]})
-        pd.testing.assert_frame_equal(separate(data, "x", ['A', 'B', 'C'], " "), expected)
+        actual = separate(data, "x", ['A', 'B', 'C'], " ")
+        pd.testing.assert_frame_equal(actual, expected)
 
         # Replace NA
 
@@ -223,7 +253,8 @@ class TestTidyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'x': [1., 2., 0.],
                                  'y': ['a', 'Unknown', 'b'],
                                  'z': [[i for i in range(1, 6)], np.nan, [i for i in range(10, 21)]]})
-        pd.testing.assert_frame_equal(replace_na(data, {'x': 0, 'y': 'Unknown'}), expected)
+        actual = replace_na(data, {'x': 0, 'y': 'Unknown'})
+        pd.testing.assert_frame_equal(actual, expected)
 
         # Drop NA
 
@@ -231,14 +262,16 @@ class TestTidyrToPandas(unittest.TestCase):
         data = pd.DataFrame({'x': [1, 2, np.nan],
                              'y': ["a", np.nan, "b"]})
         expected = pd.DataFrame({'x': [1.], 'y': ['a']})
-        pd.testing.assert_frame_equal(drop_na(data), expected)
+        actual = drop_na(data)
+        pd.testing.assert_frame_equal(actual, expected)
 
     def test_dropNA_pandasSpecification(self):
         data = pd.DataFrame({'x': [1, 2, np.nan],
                              'y': ["a", np.nan, "b"]})
         expected = pd.DataFrame({'x': [1., 2.],
                                  'y': ["a", np.nan]})
-        pd.testing.assert_frame_equal(drop_na(data, ['x']), expected)
+        actual = drop_na(data, ['x'])
+        pd.testing.assert_frame_equal(actual, expected)
 
         # Fill
 
@@ -247,7 +280,8 @@ class TestTidyrToPandas(unittest.TestCase):
                              "Year": [2000] + [np.nan] * 11})
         expected = pd.DataFrame({'Month': np.arange(1, 13),
                                  'Year': [2000.] * 12})
-        pd.testing.assert_frame_equal(fill(data, "Year", direction='down'), expected)
+        actual = fill(data, "Year", direction='down')
+        pd.testing.assert_frame_equal(actual, expected)
 
     # Compete
 

@@ -69,7 +69,7 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
             # data frame's columns from the columns that we know we won't be pivoting on.
             id_vars = data.columns.difference(cols)
         # Multiple columns to pivot/melt on
-        elif isinstance(cols, (list, tuple)):
+        elif isinstance(cols, (list, tuple, (np.ndarray, np.generic))):
             cols = _get_list_columns(data, cols, is_pandas)
             id_vars = data.columns.difference(cols)
         else:
@@ -150,13 +150,13 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
     is_pandas = _check_df_type(data, "pivot_wider")
     if isinstance(names_from, str):
         names_from = _get_str_columns(data, names_from, is_pandas=is_pandas)
-    elif isinstance(names_from, (tuple, list)):
+    elif isinstance(names_from, (tuple, list, (np.ndarray, np.generic))):
         names_from = _get_list_columns(data, names_from, is_pandas)
     else:
         raise TypeError("Cannot determine column names to be pivotted off of")
     if isinstance(values_from, str):
         values_from = _get_str_columns(data, values_from, is_pandas=is_pandas)
-    elif isinstance(values_from, (tuple, list)):
+    elif isinstance(values_from, (tuple, list, (np.ndarray, np.generic))):
         values_from = _get_list_columns(data, values_from, is_pandas=is_pandas)
     else:
         raise TypeError("Cannot determine value names to pivot off of")
@@ -240,7 +240,7 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
     if is_pandas:
         # We have multiple columns to explode. Note that this assumes that these columns are all columns of lists
         # and that each list contains the same number of elements
-        if isinstance(col, (tuple, list)):
+        if isinstance(col, (tuple, list, (np.ndarray, np.generic))):
             unnest_data = pd.concat([pd.DataFrame({x: np.concatenate(data[x].values)}) for x in col], axis=1)
             if indices_include:
                 idx = data.index.repeat(data[col[0]].str.len())
@@ -316,7 +316,7 @@ def unnest_wider(data, col, names_sep=None, simplify=False, names_repair='check_
     is_pandas = _check_df_type(data, "unnest_wider")
     names_sep = names_sep if names_sep is not None else ''
     if is_pandas:
-        if isinstance(col, (list, tuple)):
+        if isinstance(col, (list, tuple, (np.ndarray, np.generic))):
             # Here, we are checking if all the columns contain the same length of lists. If they do, we can speed things
             # up by using data[col].tolist(). If they don't, we use data[col].apply(pd.Series).
             is_equal = True
@@ -377,7 +377,7 @@ def nest(data, cols):
     is_pandas = _check_df_type(data, "nest")
     if isinstance(cols, str):
         cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, (list, tuple)):
+    elif isinstance(cols, (list, tuple, (np.ndarray, np.generic))):
         cols = _get_list_columns(data, cols, is_pandas=is_pandas)
     elif isinstance(cols, dict):
         nested_cols = []
@@ -388,7 +388,7 @@ def nest(data, cols):
         raise TypeError("Cannot determine columns to nest")
     if is_pandas:
         # Cols is in string or list format
-        if isinstance(cols, (str, list, tuple)):
+        if isinstance(cols, (str, list, tuple, (np.ndarray, np.generic))):
             non_nested_cols = data.columns.difference(cols).tolist()
             # If every group in non_nested_cols has the same number of observations, then we can run our groupby and
             # lambda functions
@@ -466,7 +466,7 @@ def unnest(data, cols, keep_empty=False, ptype=None, names_sep=None, names_repai
     is_pandas = _check_df_type(data, "unnest")
     if isinstance(cols, str):
         cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, (tuple, list)):
+    elif isinstance(cols, (tuple, list, (np.ndarray, np.generic))):
         cols = _get_list_columns(data, cols, is_pandas)
     else:
         raise TypeError("Cannot determine columns for unnesting")
@@ -502,6 +502,102 @@ def unnest(data, cols, keep_empty=False, ptype=None, names_sep=None, names_repai
 
 
 # Chopping and Unchopping Data
+
+def chop(data, cols):
+    """Makes dataframes shorter by converting rows within each group into lists
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame.
+    cols: str or list
+        Column to chop. This should be a list-column containing generalised vectors (e.g. any mix of list, numpy array,
+        a tuple, or data frames).
+
+    Returns
+    -------
+    Our dataframe, but with "chopped" rows
+    """
+    is_pandas = _check_df_type(data, "chop")
+    if isinstance(cols, str):
+        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, (tuple, list, (np.ndarray, np.generic))):
+        cols = _get_list_columns(data, cols, is_pandas)
+    else:
+        raise ValueError("Cannot determine columns names for chopping")
+    if is_pandas:
+        # Get all columns that won't be "chopped"
+        unchopped_cols = data.columns.difference(cols).values.tolist()
+        # Get all unique unchopped_cols combinations
+        chopped_df = data[unchopped_cols].drop_duplicates()
+        # Reset the index for concatenation
+        chopped_df.index = np.arange(len(chopped_df))
+        for col in cols:
+            # Here, we transform all the values into a list, reset the index so that they match for concatenation, and
+            # then remove the unchopped columns to prevent duplicate column names
+            list_cols = data.groupby(unchopped_cols)[col].apply(lambda x: x.values.tolist()).reset_index().drop(unchopped_cols, axis=1)
+            # We concatenate every dataframe by column axis
+            chopped_df = pd.concat([chopped_df, list_cols], axis=1)
+    else:
+        ...
+    return chopped_df
+
+
+def unchop(data, cols, keep_empty=False, ptype=None):
+    """unchop() makes df longer by expanding list-columns so that each element of the list-column gets its own row in
+    the output.
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A data frame
+    cols: str or list
+        Column to unchop.This should be a list-column containing generalised vectors (e.g. any mix of list, numpy array,
+        a tuple, or data frames).
+    keep_empty: bool, default is False
+        By default, you get one row of output for each element of the list you're unchopping.
+        This means that if there's a size-0 element (like NA or an empty data frame), that entire row will be dropped
+        from the output. If you want to preserve all rows, use keep_empty=True to replace size-0 elements with a single
+        row of missing values.
+    ptype: dict, default is None
+        Optionally, supply a dictionary for the output cols, overriding the default that will be guessed from
+        the combination of individual values.
+
+    Returns
+    -------
+    Our dataframe, but with the values unchopped
+    """
+    is_pandas = _check_df_type(data, "unchop")
+    if isinstance(cols, str):
+        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, (tuple, list, (np.ndarray, np.generic))):
+        cols = _get_list_columns(data, cols, is_pandas)
+    else:
+        raise ValueError("Cannot determine columns names for unchopping")
+    if is_pandas:
+        if len(cols) == 1:
+            # Explode only works if the columns are in string or tuple format, so we convert the list format to string
+            unchopped_df = data.explode(cols[0])
+        else:
+            unchopped_cols = data.columns.difference(cols).values
+            # This method is supposedly faster than others out for exploding multiple columns, need to see it in action
+            # to verify
+            unchopped_df = data.set_index(unchopped_cols).apply(pd.Series.explode).reset_index()
+        if not keep_empty:
+            unchopped_df = unchopped_df.dropna(axis=0)
+            # The issue with using dropna() is that any column with NA gets automatically converted to object type.
+            # However, that means that any columns that are integer or float also get converted to object, even after
+            # the NAs have been removed. So we peek ahead, see if it's possible to convert the column to numeric, and
+            # if so, convert it.
+            for c in cols:
+                if pd.to_numeric(unchopped_df[c], errors='coerce').notnull().all():
+                    unchopped_df[c] = pd.to_numeric(unchopped_df[c], errors='coerce')
+        if ptype is not None:
+            unchopped_df = unchopped_df.astype(ptype)
+        unchopped_df.index = np.arange(len(unchopped_df))
+    else:
+        ...
+    return unchopped_df
 
 
 # Splitting and Combining Character Columns
@@ -554,7 +650,7 @@ def separate(data, col, into, sep="_", remove=True, convert=False, extra="warn",
             splits = data[col].str.split(pat=sep, n=num_times, expand=False)
             # Here, one issue is that str.split() returns NaN for splits with no result. However, NaN returns an error
             # when trying to calculate its length. So we are converting all instances of NaN to an empty list
-            splits = splits.apply(lambda d: d if isinstance(d, list) else [])
+            splits = splits.apply(lambda d: d if isinstance(d, (list, tuple, (np.ndarray, np.generic))) else [])
             # For str.split(), if we specify that expand=False, our results are returned as a Series of lists instead
             # of a pandas DataFrame. Thus, we check if the length of each list in our Series is equal to the number
             # of column names we want to create. If it's less, we add NAs to the list until the lengths are equivalent,
@@ -579,7 +675,7 @@ def separate(data, col, into, sep="_", remove=True, convert=False, extra="warn",
             # removed within into() by calling them "NA"
             if 'NA' in splits.columns:
                 splits = splits.drop(["NA"], axis=1)
-        elif isinstance(sep, (list, tuple)):
+        elif isinstance(sep, (list, tuple, (np.ndarray, np.generic))):
             # Unlike using character separators, numeric ones do not allow for filling or other error handling, so
             # we need the number of column names to exactly match how many separations we are going to create
             if len(sep) != len(into) - 1:
@@ -691,7 +787,7 @@ def unite(data, col, input_cols=None, sep='_', remove=True, na_rm=False):
             input_cols = data.columns.tolist()
         else:
             input_cols = data.columns
-    if not isinstance(input_cols, (list, tuple)):
+    if not isinstance(input_cols, (list, tuple, (np.ndarray, np.generic))):
         raise ValueError("Cannot determine which columns to unite")
     input_cols = _get_list_columns(data, list_cols=input_cols, is_pandas=is_pandas)
     if is_pandas:
@@ -751,7 +847,7 @@ def drop_na(data, cols=None):
     else:  # Drop any row that contains an NA within certain columns
         if isinstance(cols, str):
             cols_to_consider = _get_str_columns(data, cols, is_pandas=is_pandas)
-        elif isinstance(cols, (tuple, list)):
+        elif isinstance(cols, (tuple, list, (np.ndarray, np.generic))):
             cols_to_consider = _get_list_columns(data, cols, is_pandas)
         else:
             raise ValueError("Cannot determine which columns to unite")
@@ -816,7 +912,7 @@ def fill(data, cols=None, direction='down'):
     is_pandas = _check_df_type(data, "fill")
     if isinstance(cols, str):
         cols_to_consider = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, (tuple, list)):
+    elif isinstance(cols, (tuple, list, (np.ndarray, np.generic))):
         cols_to_consider = _get_list_columns(data, cols, is_pandas=is_pandas)
     else:
         raise ValueError("Cannot determine which columns to fill")

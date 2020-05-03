@@ -41,6 +41,22 @@ def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):
 
 
 def _get_list_columns(data, list_cols, is_pandas=True):
+    """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        Our data frame for determining applicable column names
+    list_cls: list, tuple or numpy array
+        The arguments for selecting columns. Currently supported are the name itself, "x", everything but the column
+        listed, "-x", and every column in-between, "x:y".
+    is_pandas: bool, default is True
+        Whether our DataFrame is in pandas or pyspark format
+
+    Returns
+    -------
+    All applicable columns
+    """
     if is_pandas:
         cols = data.columns.tolist()
     else:
