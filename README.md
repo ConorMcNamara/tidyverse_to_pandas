@@ -17,20 +17,28 @@ Tidy data describes a standard way of storing data that is used wherever possibl
 
 Currently, I have support for the following tidyr functions:
 
-### Handling Missing Data
-* [drop_na](https://tidyr.tidyverse.org/reference/drop_na.html): Makes explicit missing values implicit
-* [fill](https://tidyr.tidyverse.org/reference/fill.html): Replace missing values with next/previous value
-* [replace_na](https://tidyr.tidyverse.org/reference/replace_na.html): Replace missing values with a known value
-* [complete](https://tidyr.tidyverse.org/reference/complete.html): Turns implicit missing values into explicit missing values
+### Pivoting Data
+* [pivot_longer](https://tidyr.tidyverse.org/reference/pivot_longer.html): Converts wide data into long data
+* [pivot_wider](https://tidyr.tidyverse.org/reference/pivot_wider.html): Converts long data into wide data
+
+### Rectangling Data
+* [unnest_longer](https://tidyr.tidyverse.org/reference/unnest_longer.html): Converts deeply nested jsons into long data
+* [unnest_wider](https://tidyr.tidyverse.org/reference/unnest_wider.html): Converts deeply nested jsons into wide data
+
+### Nesting
+* [nest](https://tidyr.tidyverse.org/reference/nest.html): Converts each row into a nested dictionary/JSON
+* [unnest](https://tidyr.tidyverse.org/reference/unnest.html): Expands each nested row into new rows and columns
 
 ### Splitting and Combining Character Columns
 * [separate](https://tidyr.tidyverse.org/reference/separate.html): Pulls a single character column into multiple columns using a known separator
 * [extract](https://tidyr.tidyverse.org/reference/extract.html): Pulls a single character column into multiple columns using regular expressions
 * [unite](https://tidyr.tidyverse.org/reference/unite.html): Combine multiple columns into a single character column
 
-### Pivoting Data
-* [pivot_longer](https://tidyr.tidyverse.org/reference/pivot_longer.html): Converts wide data into long data
-* [pivot_wider](https://tidyr.tidyverse.org/reference/pivot_wider.html): Converts long data into wide data
+### Handling Missing Data
+* [drop_na](https://tidyr.tidyverse.org/reference/drop_na.html): Makes explicit missing values implicit
+* [fill](https://tidyr.tidyverse.org/reference/fill.html): Replace missing values with next/previous value
+* [replace_na](https://tidyr.tidyverse.org/reference/replace_na.html): Replace missing values with a known value
+* [complete](https://tidyr.tidyverse.org/reference/complete.html): Turns implicit missing values into explicit missing values
 
 ## dplyr
 To quote Hadley Wickham, "dplyr is a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges:"
