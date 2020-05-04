@@ -3,6 +3,7 @@ import numpy as np
 from src.tidyr_to_pandas import replace_na, drop_na, unite, extract, fill, separate, pivot_longer, pivot_wider,\
 complete, unnest_longer, unnest_wider, nest, unnest, chop, unchop
 import unittest
+import pytest
 
 
 class TestTidyrToPandas(unittest.TestCase):
