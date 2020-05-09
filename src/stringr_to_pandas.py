@@ -7,7 +7,7 @@ import re
 # Character Manipulation
 
 def str_length(string):
-    """
+    """Calculates the length of each string
 
     Parameters
     ----------
@@ -83,7 +83,7 @@ def str_sub(string, start, end=None):
 
 
 def str_dup(string, num_dupes):
-    """
+    """Changes our string by duplicating it
 
     Parameters
     ----------
@@ -135,7 +135,7 @@ def str_dup(string, num_dupes):
 # String Pattern Matching
 
 def str_detect(string, pattern, negate=False):
-    """
+    """Determines if each string contains the regular expression
 
     Parameters
     ----------
@@ -155,15 +155,156 @@ def str_detect(string, pattern, negate=False):
 
     """
     if isinstance(string, str):
-        match = re.search(string, pattern)
+        if negate:
+            match = re.search(pattern, string) is None
+        else:
+            match = re.search(pattern, string) is not None
     elif isinstance(string, (list, tuple)):
-        match = [re.search(s, pattern) for s in string]
+        if negate:
+            match = [re.search(pattern, s) is None for s in string]
+        else:
+            match = [re.search(pattern, s) is not None for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
-        ...
+        # Unfortunately, numpy has no native methods for doing re.search, so you'll need to rely on either list
+        # comprehension or pandas Series in order to get it to run properly
+        if negate:
+            match = (~pd.Series(string).str.contains(pattern, regex=True)).to_numpy()
+        else:
+            match = pd.Series(string).str.contains(pattern, regex=True).to_numpy()
     elif isinstance(string, pd.Series):
         match = string.str.contains(pattern, regex=True)
+        if negate:
+            match = ~match
     elif isinstance(string, ps.DataFrame):
         ...
     else:
         raise TypeError("Cannot determine how to do string detection")
+    return match
 
+
+def str_count(string, pattern):
+    """Count instances of pattern occurring within string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        string_counts = len(re.findall(pattern, string))
+    elif isinstance(string, (list, tuple)):
+        if isinstance(pattern, str):
+            string_counts = [len(re.findall(pattern, s)) for s in string]
+        else:
+            string_counts = [len(re.findall(pattern[i], string[i])) for i in range(len(pattern))]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if isinstance(pattern, str):
+            string_counts = np.char.count(string, pattern)
+        else:
+            string_counts = np.array([len(re.findall(pattern[i], string[i])) for i in range(len(pattern))])
+    elif isinstance(string, pd.Series):
+        if isinstance(pattern, str):
+            string_counts = string.str.count(pattern)
+        else:
+            string_counts = pd.Series([0] * len(pattern))
+            string.index = np.arange(len(string))
+            for i in range(len(pattern)):
+                string_counts[i] = len(re.findall(pattern[i], string[i]))
+    elif isinstance(string, ps.DataFrame):
+        ...
+    else:
+        raise TypeError("Cannot determine how to do string count")
+    return string_counts
+
+
+def str_subset(string, pattern, negate=True):
+    """Filters our string based on str_detect
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    negate: bool, default is False
+        If True, return non-matching elements.
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        if str_detect(string, pattern, negate):
+            return string
+        else:
+            return ""
+    else:
+        return string[str_detect(string, pattern, negate)]
+
+def str_which(string, pattern, negate):
+    """Returns the index of the first index of the filtered string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    negate: bool, default is False
+        If True, return non-matching elements.
+
+    Returns
+    -------
+
+    """
+    filtered_string = str_subset(string, pattern, negate)
+    if len(filtered_string) == 0:
+        return filtered_string
+    else:
+        if isinstance(filtered_string, str):
+            ...
+
+
+def str_replace(string, pattern, replacement):
+    """
+
+    Parameters
+    ----------
+    string
+    pattern
+    replacement
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        return re.sub(pattern, replacement, string)
+    elif isinstance(string, (list, tuple)):
+        return [re.sub(pattern, replacement, s) for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        ...
+    elif isinstance(string, pd.Series):
+        return string.str.replace(pattern, replacement, regex=True)
+    elif isinstance(string, ps.DataFrame):
+        return np.array(list(map(lambda v: re.sub(pattern, replacement, v), string)))
+    else:
+        raise TypeError("Cannot determine how to do string replace")
