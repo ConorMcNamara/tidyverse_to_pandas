@@ -51,6 +51,30 @@ To quote Hadley Wickham, "dplyr is a grammar of data manipulation, providing a c
 * [arrange](https://dplyr.tidyverse.org/reference/arrange.html): Changes the ordering of the rows
 
 ## stringr
+To quote Hadley Wickham, "Strings are not glamorous, high-profile components of R, but they do play a big role in many data cleaning and preparation tasks. 
+The stringr package provide a cohesive set of functions designed to make working with strings as easy as possible. If you’re not familiar with strings, 
+the best place to start is the chapter on strings in R for Data Science."
+
+### Character Manipulation
+* [str_length](https://stringr.tidyverse.org/reference/str_length.html): Returns the number of characters in a string
+* [str_sub](https://stringr.tidyverse.org/reference/str_sub.html): Extracts substrings from a string
+* [str_dup](https://stringr.tidyverse.org/reference/str_dup.html): Duplicates a string
+
+### Case Transformation
+* [str_to_upper](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to uppercase
+* [str_to_lower](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to lowercase
+* [str_to_title](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to title format
+* [str_to_sentence](https://stringr.tidyverse.org/reference/case.html): Converst the entire string to sentence format
+
+### Order
+* [str_order](https://stringr.tidyverse.org/reference/str_order.html): Orders a string
+* [str_sort](https://stringr.tidyverse.org/reference/str_order.html): Sorts a string
+
+### Pattern Matching
+* [str_detect](https://stringr.tidyverse.org/reference/str_detect.html): Determines a string contains the regular expression
+* [str_count](https://stringr.tidyverse.org/reference/str_count.html): Counts the number of matches in a string
+* [str_subset](https://stringr.tidyverse.org/reference/str_subset.html): Keeps strings matching a pattern
+* [str_replace](https://stringr.tidyverse.org/reference/str_replace.html): Replace matched patterns in a string
 
 
 ## lubridate

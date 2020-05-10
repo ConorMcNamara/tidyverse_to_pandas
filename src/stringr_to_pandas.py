@@ -2,16 +2,18 @@ import pandas as pd
 import numpy as np
 import pyspark.sql as ps
 import re
-
+from itertools import compress
+from string import capwords
 
 # Character Manipulation
+
 
 def str_length(string):
     """Calculates the length of each string
 
     Parameters
     ----------
-    string: str or list or numpy array or pandas Series or pyspark DataFrame
+    string: str or list or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
 
     Returns
@@ -26,7 +28,7 @@ def str_length(string):
         return string.str.len()
     elif isinstance(string, (np.ndarray, np.generic)):
         return np.char.str_len(string)
-    elif isinstance(string, ps.DataFrame):
+    elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to calculate string length")
@@ -42,7 +44,7 @@ def str_sub(string, start, end=None):
 
     Parameters
     ----------
-    string: str or list or numpy array or pandas Series or pyspark DataFrame
+    string: str or list or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one
     start: int
         Our starting point
@@ -76,25 +78,26 @@ def str_sub(string, start, end=None):
             return string.str.slice(start)
         else:
             return string.str.slice(start, end)
-    elif isinstance(string, ps.DataFrame):
+    elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to do string subset")
 
 
 def str_dup(string, num_dupes):
-    """Changes our string by duplicating it
+    """Duplicates our string
 
     Parameters
     ----------
-    string: str or list or numpy array or pandas Series or pyspark DataFrame
+    string: str or list or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one
     num_dupes: int or list/tuple or numpy array
         Number of duplications. An integer implies equal number of duplications while a list/tuple or array specifies
         the number of duplications per entry
+
     Returns
     -------
-
+    A duplicate of our string
     """
     if isinstance(string, str):
         if not isinstance(num_dupes, int):
@@ -126,10 +129,230 @@ def str_dup(string, num_dupes):
             return np.array([''.join(row) for row in split_repeat])
     elif isinstance(string, pd.Series):
         return string.str.repeat(repeats=num_dupes)
-    elif isinstance(string, ps.DataFrame):
+    elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to do string duplication")
+
+
+def str_c():
+    ...
+
+
+# Case Transformations
+
+def str_to_upper(string):
+    """Converts all string to UPPERCASE
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        return string.upper()
+    elif isinstance(string, (list, tuple)):
+        return [s.upper() for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        return np.char.upper(string)
+    elif isinstance(string, pd.Series):
+        return string.str.upper()
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine how to do string uppercase")
+
+
+def str_to_title(string):
+    """
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        return capwords(string)
+    elif isinstance(string, (list, tuple)):
+        return [s.title() for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        return np.char.title(string)
+    elif isinstance(string, pd.Series):
+        return string.str.title()
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine to how titalize strings")
+
+
+def str_to_lower(string, locale='us'):
+    """
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    locale
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        if locale == 'us':
+            return string.casefold()
+        else:
+            return string.lower()
+    elif isinstance(string, (list, tuple)):
+        if locale == 'us':
+            return [s.casefold() for s in string]
+        else:
+            return [s.lower() for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if locale == 'us':
+            return np.array(list(map(lambda v: v.casefold(), string)))
+        else:
+            return np.char.lower(string)
+    elif isinstance(string, pd.Series):
+        if locale == 'us':
+            return string.str.casefold()
+        else:
+            return string.str.lower()
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine how to lower strings")
+
+
+def str_to_sentence(string):
+    """
+
+    Parameters
+    ----------
+    string
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        return string.capitalize()
+    elif isinstance(string, (tuple, list)):
+        return [s.capitalize() for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        return np.char.capitalize(string)
+    elif isinstance(string, pd.Series):
+        return string.str.capitalize()
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine how to capitalize string")
+
+
+# String Ordering
+def str_order(string, decreasing=False, na_last=True, numeric=False):
+    """Returns the
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    decreasing: bool, default is False
+        If False, sorts from lowest to highest; if TRUE sorts from highest to lowest.
+    na_last: bool, default is True
+        Where should NA go? True at the end, False at the beginning, None dropped.
+    numeric: bool, default is False
+        If True, will sort digits numerically, instead of as strings.
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        return 0
+    elif isinstance(string, (list, tuple)):
+        if numeric:
+            string = [int(s) for s in string]
+        return sorted(range(len(string)), key=string.__getitem__)
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if numeric:
+            string = string.astype(int)
+        return np.argsort(string)
+    elif isinstance(string, pd.Series):
+        if numeric:
+            string = string.astype(int)
+        return string.argsort()
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine how to order string")
+
+
+def str_sort(string, decreasing=False, na_last=True, numeric=False):
+    """
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    decreasing: bool, default is False
+        If False, sorts from lowest to highest; if True sorts from highest to lowest.
+    na_last: bool, default is True
+        Where should NA go? True at the end, False at the beginning, None dropped.
+    numeric: bool, default is False
+        If True, will sort digits numerically, instead of as strings.
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        return string
+    elif isinstance(string, (list, tuple)):
+        if numeric:
+            string = [int(s) for s in string]
+        if decreasing:
+            sorted_string = reversed(sorted(string))
+        else:
+            sorted_string = sorted(string)
+        if na_last is None:
+            sorted_string = [x for x in sorted_string if x == x]
+        elif na_last is True:
+            sorted_string = [x for x in sorted_string if x == x] + [x for x in sorted_string if x != x]
+        else:
+            sorted_string = [x for x in sorted_string if x != x] + [x for x in sorted_string if x == x]
+    elif isinstance(string, (np.array, np.generic)):
+        if numeric:
+            string = string.astype(int)
+        if decreasing:
+            sorted_string = -np.sort(-string)
+        else:
+            sorted_string = np.sort(string)
+        if na_last is None:
+            sorted_string = sorted_string[~np.isnan(sorted_string)]
+        elif na_last is True:
+            ...
+    elif isinstance(string, pd.Series):
+        if numeric:
+            string = string.astype(int)
+        sorted_string = string.sort_values(ascending=not decreasing)
+        if na_last is None:
+            sorted_string = sorted_string.dropna()
+        elif na_last is True:
+            ...
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise ValueError("Cannot determine how to sort string")
+    return sorted_string
 
 
 # String Pattern Matching
@@ -139,7 +362,7 @@ def str_detect(string, pattern, negate=False):
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
     pattern: str
         Pattern to look for. The default interpretation is a regular expression, as described in
@@ -152,7 +375,7 @@ def str_detect(string, pattern, negate=False):
 
     Returns
     -------
-
+    Whether our pattern could be found within the string
     """
     if isinstance(string, str):
         if negate:
@@ -175,7 +398,7 @@ def str_detect(string, pattern, negate=False):
         match = string.str.contains(pattern, regex=True)
         if negate:
             match = ~match
-    elif isinstance(string, ps.DataFrame):
+    elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to do string detection")
@@ -187,7 +410,7 @@ def str_count(string, pattern):
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
     pattern: str
         Pattern to look for. The default interpretation is a regular expression, as described in
@@ -198,7 +421,7 @@ def str_count(string, pattern):
 
     Returns
     -------
-
+    The number of non-overlapping instances our pattern was found within the string
     """
     if isinstance(string, str):
         string_counts = len(re.findall(pattern, string))
@@ -220,19 +443,19 @@ def str_count(string, pattern):
             string.index = np.arange(len(string))
             for i in range(len(pattern)):
                 string_counts[i] = len(re.findall(pattern[i], string[i]))
-    elif isinstance(string, ps.DataFrame):
+    elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to do string count")
     return string_counts
 
 
-def str_subset(string, pattern, negate=True):
+def str_subset(string, pattern, negate=False):
     """Filters our string based on str_detect
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
     pattern: str
         Pattern to look for. The default interpretation is a regular expression, as described in
@@ -252,15 +475,18 @@ def str_subset(string, pattern, negate=True):
             return string
         else:
             return ""
+    elif isinstance(string, list):
+        return list(compress(string, str_detect(string, pattern, negate)))
     else:
         return string[str_detect(string, pattern, negate)]
+
 
 def str_which(string, pattern, negate):
     """Returns the index of the first index of the filtered string
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark dataframe
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
     pattern: str
         Pattern to look for. The default interpretation is a regular expression, as described in
@@ -288,9 +514,21 @@ def str_replace(string, pattern, replacement):
 
     Parameters
     ----------
-    string
-    pattern
-    replacement
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    replacement: str or list
+        A character vector of replacements. Should be either length one, or the same length as string or pattern.
+        References of the form \1, \2, etc will be replaced with the contents of the respective matched group (created by ()).
+        To perform multiple replacements in each element of string, pass a named vector (c(pattern1 = replacement1)) to
+        str_replace_all. Alternatively, pass a function to replacement: it will be called once for each match and its
+        return value will be used to replace the match. To replace the complete string with NA, use
+        replacement = None.
 
     Returns
     -------
@@ -299,12 +537,26 @@ def str_replace(string, pattern, replacement):
     if isinstance(string, str):
         return re.sub(pattern, replacement, string)
     elif isinstance(string, (list, tuple)):
-        return [re.sub(pattern, replacement, s) for s in string]
+        if isinstance(replacement, str):
+            return [re.sub(pattern, replacement, s) for s in string]
+        else:
+            return [re.sub(pattern, replacement[i], string[i]) for i in range(len(string))]
     elif isinstance(string, (np.ndarray, np.generic)):
-        ...
+        if isinstance(replacement, str):
+            return np.array(list(map(lambda v: re.sub(pattern, replacement, v), string)))
+        else:
+            return np.array([re.sub(pattern, replacement[i], string[i]) for i in range(len(string))])
     elif isinstance(string, pd.Series):
-        return string.str.replace(pattern, replacement, regex=True)
-    elif isinstance(string, ps.DataFrame):
-        return np.array(list(map(lambda v: re.sub(pattern, replacement, v), string)))
+        if isinstance(replacement, str):
+            return string.str.replace(pattern, replacement, regex=True)
+        else:
+            replacement_series = pd.Series([''] * len(string))
+            replacement_series.index = np.arange(len(string))
+            for i in range(len(pattern)):
+                replacement_series[i] = re.sub(pattern, replacement[i], string[i])
+            return replacement_series
+
+    elif isinstance(string, ps.Column):
+        ...
     else:
         raise TypeError("Cannot determine how to do string replace")

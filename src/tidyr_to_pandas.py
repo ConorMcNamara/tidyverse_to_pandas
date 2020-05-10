@@ -17,7 +17,7 @@ def pivot_longer(data, cols, names_to="name", names_prefix=None, names_sep=None,
 
     Parameters
     ----------
-    data: pandas or pyspark dataframe
+    data: pandas or pyspark column
         A data frame to pivot.
     cols: str or list
         Columns to pivot into longer format.
@@ -118,7 +118,7 @@ def pivot_wider(data, id_cols=None, names_from="name", names_prefix="", names_se
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame to pivot.
     id_cols: str or list, default is None
         A set of columns that uniquely identifies each observation.
@@ -211,7 +211,7 @@ def unnest_longer(data, col, values_to=None, indices_to=None, indices_include=Fa
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     col: str or list
         Column to extract components from
@@ -291,7 +291,7 @@ def unnest_wider(data, col, names_sep=None, simplify=False, names_repair='check_
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame.
     col: str or list
         List-column to extract components from.
@@ -365,7 +365,7 @@ def nest(data, cols):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     cols: str or list or dict
         Names of columns to nest. If dict, also specifies what the new column names will be.
@@ -436,7 +436,7 @@ def unnest(data, cols, keep_empty=False, ptype=None, names_sep=None, names_repai
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     cols: str or list
         Names of columns to unnest. If you unnest() multiple columns, parallel entries must be of compatible sizes, i.e.
@@ -508,7 +508,7 @@ def chop(data, cols):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame.
     cols: str or list
         Column to chop. This should be a list-column containing generalised vectors (e.g. any mix of list, numpy array,
@@ -549,7 +549,7 @@ def unchop(data, cols, keep_empty=False, ptype=None):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     cols: str or list
         Column to unchop.This should be a list-column containing generalised vectors (e.g. any mix of list, numpy array,
@@ -609,7 +609,7 @@ def separate(data, col, into, sep="_", remove=True, convert=False, extra="warn",
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     col: str
         Column name or position.
@@ -713,7 +713,7 @@ def extract(data, col, into, regex="([a-zA-Z0-9]+)", remove=True, convert=False)
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame.
     col: str
         Column name or position
@@ -763,7 +763,7 @@ def unite(data, col, input_cols=None, sep='_', remove=True, na_rm=False):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame.
     col: str
         The name of our new column
@@ -825,7 +825,7 @@ def drop_na(data, cols=None):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame.
     cols: list of str or str, default is None
         A selection of columns. If None, all variables are selected.
@@ -863,7 +863,7 @@ def replace_na(data, replace):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     replace: str or int or dict
         If str or int, then replacing every instance of a NA with given value
@@ -875,7 +875,7 @@ def replace_na(data, replace):
     """
     if isinstance(data, pd.DataFrame):
         data = data.fillna(replace, axis=0)
-    elif isinstance(data, ps.DataFrame):
+    elif isinstance(data, ps.Column):
         data = data.fillna(replace)
     else:
         raise Exception("Cannot fill NAs on a non-DataFrame")
@@ -888,7 +888,7 @@ def fill(data, cols=None, direction='down'):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     cols: str or list, default is None
         A selection of columns. If None, nothing happens.
@@ -939,7 +939,7 @@ def complete(data, cols=None, fill=None):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         A data frame
     cols: list, default is None
         Specification of columns to expand

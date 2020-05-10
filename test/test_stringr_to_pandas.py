@@ -2,7 +2,7 @@ import unittest
 import pytest
 import pandas as pd
 import numpy as np
-from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count
+from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -41,6 +41,23 @@ class TestStringrToPandas(unittest.TestCase):
         string = pd.Series(["abcdef", "ghifjk"])
         pd.testing.assert_series_equal(str_sub(string, 2, -1), pd.Series(['cde', 'ifj']))
 
+    # String Duplicate
+    def test_strDup_string(self):
+        string = 'abcd'
+        assert str_dup(string, 2) == 'abcdabcd'
+
+    def test_strDup_list(self):
+        string = ['aa', 'bb']
+        assert str_dup(string, 2) == ['aaaa', 'bbbb']
+
+    def test_strDup_array(self):
+        string = np.array(['zz', 'yy'])
+        np.testing.assert_array_equal(str_dup(string, [2, 3]), np.array(['zzzz', 'yyyyyy']))
+
+    def test_strDup_series(self):
+        string = pd.Series(['abc', 'xyz'])
+        pd.testing.assert_series_equal(str_dup(string, 3), pd.Series(['abcabcabc', 'xyzxyzxyz']))
+
     # String Detect
     def test_strDetect_string(self):
         string = 'video'
@@ -74,3 +91,22 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strCount_series(self):
         fruit = pd.Series(["apple", "banana", "pear", "pineapple"])
         pd.testing.assert_series_equal(str_count(fruit, ['a', 'b', 'p', 'p']), pd.Series([1, 1, 1, 3]))
+
+    # String Subset
+    def test_strSubset_string(self):
+        string = 'video'
+        assert str_subset(string, '[aeiou]') == 'video'
+
+    def test_strSubset_list(self):
+        string = ["why", "video", "cross", "extra", "deal", "authority"]
+        assert str_subset(string, '[aeiou]') == ['video', 'cross', 'extra', 'deal', 'authority']
+
+    def test_strSubset_array(self):
+        string = ["why", "video", "cross", "extra", "deal", "authority"]
+        np.testing.assert_array_equal(str_subset(string, '[aeiou]', negate=True), np.array(['why']))
+
+    def test_strSubset_series(self):
+        string = pd.Series(["why", "video", "cross", "extra", "deal", "authority"])
+        expected = pd.Series(['video', 'cross', 'authority'])
+        expected.index = [1, 2, 5]
+        pd.testing.assert_series_equal(str_subset(string, 'o'), expected)

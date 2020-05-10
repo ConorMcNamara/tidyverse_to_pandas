@@ -9,7 +9,7 @@ def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         Our data frame for determining applicable column names
     str_arguments: str
         The arguments for selecting columns. Currently supported are the name itself, "x", everything but the column
@@ -45,7 +45,7 @@ def _get_list_columns(data, list_cols, is_pandas=True):
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data: pandas or pyspark column
         Our data frame for determining applicable column names
     list_cls: list, tuple or numpy array
         The arguments for selecting columns. Currently supported are the name itself, "x", everything but the column
@@ -76,7 +76,7 @@ def _convert_numeric(data):
 def _check_df_type(data, argument):
     if isinstance(data, pd.DataFrame):
         return True
-    elif isinstance(data, ps.DataFrame):
+    elif isinstance(data, ps.Column):
         return False
     else:
         raise Exception("Cannot perform {} on non-DataFrame".format(argument))
