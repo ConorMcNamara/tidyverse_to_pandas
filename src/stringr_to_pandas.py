@@ -151,7 +151,7 @@ def str_to_upper(string):
 
     Returns
     -------
-
+    All of our strings in uppercase
     """
     if isinstance(string, str):
         return string.upper()
@@ -168,7 +168,7 @@ def str_to_upper(string):
 
 
 def str_to_title(string):
-    """
+    """Converts all strings to title form
 
     Parameters
     ----------
@@ -177,7 +177,7 @@ def str_to_title(string):
 
     Returns
     -------
-
+    All of our strings in title form
     """
     if isinstance(string, str):
         return capwords(string)
@@ -194,17 +194,18 @@ def str_to_title(string):
 
 
 def str_to_lower(string, locale='us'):
-    """
+    """Converts all of our strings into lowercase
 
     Parameters
     ----------
     string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    locale
+    locale: str, default is us
+        Used to distinguish if we're dealing with non-English strings, such as Greek or Chinese
 
     Returns
     -------
-
+    All of our strings in lowercase
     """
     if isinstance(string, str):
         if locale == 'us':
@@ -233,15 +234,16 @@ def str_to_lower(string, locale='us'):
 
 
 def str_to_sentence(string):
-    """
+    """Convert all of our strings into sentence format
 
     Parameters
     ----------
-    string
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
 
     Returns
     -------
-
+    All of our strings in sentence format
     """
     if isinstance(string, str):
         return string.capitalize()

@@ -2,7 +2,8 @@ import unittest
 import pytest
 import pandas as pd
 import numpy as np
-from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset
+from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
+    str_to_lower, str_to_sentence, str_to_title, str_replace
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -58,6 +59,74 @@ class TestStringrToPandas(unittest.TestCase):
         string = pd.Series(['abc', 'xyz'])
         pd.testing.assert_series_equal(str_dup(string, 3), pd.Series(['abcabcabc', 'xyzxyzxyz']))
 
+    # String Uppercase
+    def test_strToUpper_string(self):
+        string = 'aabb'
+        assert str_to_upper(string) == 'AABB'
+
+    def test_strToUpper_list(self):
+        string = ['a', 'ab', 'abc']
+        assert str_to_upper(string) == ['A', 'AB', 'ABC']
+
+    def test_strToUpper_array(self):
+        string = np.array(['video', 'killed', 'radio', 'star'])
+        np.testing.assert_array_equal(str_to_upper(string), np.array(['VIDEO', 'KILLED', 'RADIO', 'STAR']))
+
+    def test_strToUpper_series(self):
+        string = pd.Series(['green', 'lantern', 'first', 'flight'])
+        pd.testing.assert_series_equal(str_to_upper(string), pd.Series(['GREEN', 'LANTERN', 'FIRST', 'FLIGHT']))
+
+    # String Lowercase
+    def test_strToLower_string(self):
+        string = 'ABBA'
+        assert str_to_lower(string) == 'abba'
+
+    def test_strToLower_list(self):
+        string = ['DANCING', 'QUEEN']
+        assert str_to_lower(string) == ['dancing', 'queen']
+
+    def test_strToLower_array(self):
+        string = np.array(['I', 'AM', 'THE', 'LAW'])
+        np.testing.assert_array_equal(str_to_lower(string), np.array(['i', 'am', 'the', 'law']))
+
+    def test_strToLower_series(self):
+        string = pd.Series(['WHY', 'IS', 'THIS', 'HAPPENING'])
+        pd.testing.assert_series_equal(str_to_lower(string), pd.Series(['why', 'is', 'this', 'happening']))
+
+    # String To Title
+    def test_strToTitle_string(self):
+        string = 'what is going on here?'
+        assert str_to_title(string) == 'What Is Going On Here?'
+
+    def test_strToTitle_list(self):
+        string = ['i hate this', 'so much']
+        assert str_to_title(string) == ['I Hate This', 'So Much']
+
+    def test_strToTitle_array(self):
+        string = np.array(['the', 'flight', 'of', 'fear'])
+        np.testing.assert_array_equal(str_to_title(string), np.array(['The', 'Flight', 'Of', 'Fear']))
+
+    def test_strToTitle_series(self):
+        string = pd.Series(['guinea pigs', 'and farts'])
+        pd.testing.assert_series_equal(str_to_title(string), pd.Series(['Guinea Pigs', 'And Farts']))
+
+    # String To Sentence
+    def test_strToSentence_string(self):
+        string = 'this is a sentence'
+        assert str_to_sentence(string) == 'This is a sentence'
+
+    def test_strToSentence_list(self):
+        string = ['michael eisner', 'roy disney']
+        assert str_to_sentence(string) == ['Michael eisner', 'Roy disney']
+
+    def test_strToSentence_array(self):
+        string = np.array(['what is love', "baby don't hurt me"])
+        np.testing.assert_array_equal(str_to_sentence(string), np.array(['What is love', "Baby don't hurt me"]))
+
+    def test_strToSentence_series(self):
+        string = pd.Series(["that's the sound your mother made", "lasht night"])
+        pd.testing.assert_series_equal(str_to_sentence(string), pd.Series(["That's the sound your mother made", "Lasht night"]))
+
     # String Detect
     def test_strDetect_string(self):
         string = 'video'
@@ -110,3 +179,7 @@ class TestStringrToPandas(unittest.TestCase):
         expected = pd.Series(['video', 'cross', 'authority'])
         expected.index = [1, 2, 5]
         pd.testing.assert_series_equal(str_subset(string, 'o'), expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
