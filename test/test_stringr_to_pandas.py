@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
-    str_to_lower, str_to_sentence, str_to_title, str_replace
+    str_to_lower, str_to_sentence, str_to_title, str_replace, str_order, str_sort
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -126,6 +126,31 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strToSentence_series(self):
         string = pd.Series(["that's the sound your mother made", "lasht night"])
         pd.testing.assert_series_equal(str_to_sentence(string), pd.Series(["That's the sound your mother made", "Lasht night"]))
+
+    # String Order
+    def test_strOrder_string(self):
+        string = 'string'
+        assert str_order(string) == 0
+
+    def test_strOrder_list(self):
+        string = ['i', 'am', 'a', 'string']
+        assert str_order(string) == [2, 1, 0, 3]
+
+    def test_strOrder_array(self):
+        string = np.array(['this', 'is', 'happening'])
+        np.testing.assert_array_equal(str_order(string, decreasing=True), np.array([0, 1, 2]))
+
+    def test_strOrder_series(self):
+        string = pd.Series(["100a10", "100a5", "2b", "2a"])
+        pd.testing.assert_series_equal(str_order(string), pd.Series([0, 1, 3, 2]))
+
+    def test_strOrder_natural(self):
+        string = pd.Series(["100a10", "100a5", "2b", "2a"])
+        pd.testing.assert_series_equal(str_order(string, numeric=True), pd.Series([3, 2, 1, 0]))
+
+    def test_strOrder_none(self):
+        string = ['a', 'b', 'c', None]
+        assert str_order(string, na_last=False) == [0, 3, 1, 2]
 
     # String Detect
     def test_strDetect_string(self):

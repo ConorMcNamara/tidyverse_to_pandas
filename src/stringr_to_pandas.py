@@ -4,6 +4,7 @@ import pyspark.sql as ps
 import re
 from itertools import compress
 from string import capwords
+from natsort import index_natsorted
 
 # Character Manipulation
 
@@ -135,6 +136,35 @@ def str_dup(string, num_dupes):
         raise TypeError("Cannot determine how to do string duplication")
 
 
+def str_flatten(string, collapse=""):
+    """Turns a collection of strings into a single, flattened string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    collapse: str
+        String to insert between each piece
+
+    Returns
+    -------
+    A flattened string
+    """
+    if isinstance(string, str):
+        return string
+    elif isinstance(string, (list, tuple)):
+        return '{}'.format(collapse).join([char for char in string])
+    elif isinstance(string, (np.ndarray, np.generic)):
+        return '{}'.format(collapse).join(string)
+    elif isinstance(string, pd.Series):
+        return '{}'.format(collapse).join(string.values.flatten())
+
+
+def str_trunc(string, width, side="right", ellipsis="..."):
+        ...
+
+
+
 def str_c():
     ...
 
@@ -261,45 +291,7 @@ def str_to_sentence(string):
 
 # String Ordering
 def str_order(string, decreasing=False, na_last=True, numeric=False):
-    """Returns the
-
-    Parameters
-    ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
-        Input vector. Either a character vector, or something coercible to one.
-    decreasing: bool, default is False
-        If False, sorts from lowest to highest; if TRUE sorts from highest to lowest.
-    na_last: bool, default is True
-        Where should NA go? True at the end, False at the beginning, None dropped.
-    numeric: bool, default is False
-        If True, will sort digits numerically, instead of as strings.
-
-    Returns
-    -------
-
-    """
-    if isinstance(string, str):
-        return 0
-    elif isinstance(string, (list, tuple)):
-        if numeric:
-            string = [int(s) for s in string]
-        return sorted(range(len(string)), key=string.__getitem__)
-    elif isinstance(string, (np.ndarray, np.generic)):
-        if numeric:
-            string = string.astype(int)
-        return np.argsort(string)
-    elif isinstance(string, pd.Series):
-        if numeric:
-            string = string.astype(int)
-        return string.argsort()
-    elif isinstance(string, ps.Column):
-        ...
-    else:
-        raise TypeError("Cannot determine how to order string")
-
-
-def str_sort(string, decreasing=False, na_last=True, numeric=False):
-    """
+    """Returns the string(s) with the indices marking the order of the string
 
     Parameters
     ----------
@@ -314,47 +306,94 @@ def str_sort(string, decreasing=False, na_last=True, numeric=False):
 
     Returns
     -------
-
+    The indexes of our string in the order we desire
     """
+    max_str_length = max([len(str(val)) for val in string]) + 1
     if isinstance(string, str):
-        return string
+        return 0
     elif isinstance(string, (list, tuple)):
-        if numeric:
-            string = [int(s) for s in string]
-        if decreasing:
-            sorted_string = reversed(sorted(string))
-        else:
-            sorted_string = sorted(string)
         if na_last is None:
-            sorted_string = [x for x in sorted_string if x == x]
-        elif na_last is True:
-            sorted_string = [x for x in sorted_string if x == x] + [x for x in sorted_string if x != x]
-        else:
-            sorted_string = [x for x in sorted_string if x != x] + [x for x in sorted_string if x == x]
-    elif isinstance(string, (np.array, np.generic)):
+            string = [val for val in string if val not in [np.nan, None]]
         if numeric:
-            string = string.astype(int)
-        if decreasing:
-            sorted_string = -np.sort(-string)
+            if na_last is True:
+                string = [val if val not in [np.nan, None] else '9' * max_str_length for val in string]
+            elif na_last is False:
+                string = [val if val not in [np.nan, None] else '0' for val in string]
+            sorted_strings = index_natsorted(string)
         else:
-            sorted_string = np.sort(string)
+            if na_last is True:
+                string = [val if val not in [np.nan, None] else 'z' * max_str_length for val in string]
+            elif na_last is False:
+                string = [val if val not in [np.nan, None] else 'a' for val in string]
+            sorted_strings = sorted(range(len(string)), key=string.__getitem__)
+    elif isinstance(string, (np.ndarray, np.generic)):
         if na_last is None:
-            sorted_string = sorted_string[~np.isnan(sorted_string)]
-        elif na_last is True:
-            ...
+            string = string[~np.isnan(string)]
+            string = string[string != None]
+        if numeric:
+            if na_last is True:
+                string = np.where(np.isin(string, [np.nan, None]), '9' * max_str_length, string)
+            elif na_last is False:
+                string = np.where(np.isin(string, [np.nan, None]), '0', string)
+            sorted_strings = np.array(index_natsorted(string))
+        else:
+            if na_last is True:
+                string = np.where(np.isin(string, [np.nan, None]), 'z' * max_str_length, string)
+            elif na_last is False:
+                string = np.where(np.isin(string, [np.nan, None]), 'a', string)
+            sorted_strings = np.argsort(string)
     elif isinstance(string, pd.Series):
-        if numeric:
-            string = string.astype(int)
-        sorted_string = string.sort_values(ascending=not decreasing)
         if na_last is None:
-            sorted_string = sorted_string.dropna()
-        elif na_last is True:
-            ...
+            string = string.dropna()
+        if numeric:
+            if na_last is True:
+                string = string.fillna('9' * max_str_length)
+            elif na_last is False:
+                string = string.fillna('0')
+            sorted_strings = pd.Series(index_natsorted(string))
+        else:
+            if na_last is True:
+                string = string.fillna('z' * max_str_length)
+            elif na_last is False:
+                string = string.fillna('a')
+            sorted_strings = string.argsort()
     elif isinstance(string, ps.Column):
         ...
     else:
-        raise ValueError("Cannot determine how to sort string")
-    return sorted_string
+        raise TypeError("Cannot determine how to order string")
+    if decreasing:
+        sorted_strings = sorted_strings[::-1]
+    return sorted_strings
+
+
+def str_sort(string, decreasing=False, na_last=True, numeric=False):
+    """Sorts our strings based off the results of str_order
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    decreasing: bool, default is False
+        If False, sorts from lowest to highest; if True sorts from highest to lowest.
+    na_last: bool, default is True
+        Where should NA go? True at the end, False at the beginning, None dropped.
+    numeric: bool, default is False
+        If True, will sort digits numerically, instead of as strings.
+
+    Returns
+    -------
+    Our sorted string
+    """
+    if isinstance(string, str):
+        return string
+    else:
+        indices = str_order(string, decreasing, na_last, numeric)
+        if isinstance(string, (list, tuple)):
+            return list((map(string.__getitem__, indices)))
+        elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
+            return string[indices]
+        elif isinstance(ps.Column):
+            ...
 
 
 # String Pattern Matching
@@ -509,6 +548,7 @@ def str_which(string, pattern, negate):
     else:
         if isinstance(filtered_string, str):
             ...
+
 
 
 def str_replace(string, pattern, replacement):
