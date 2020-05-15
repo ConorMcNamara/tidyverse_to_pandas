@@ -161,7 +161,58 @@ def str_flatten(string, collapse=""):
 
 
 def str_trunc(string, width, side="right", ellipsis="..."):
+    """Truncate a character string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    width: int
+        Maximum width of string. In this case, the number of elements we want to display
+    side: str, {right, left, center}, default is right
+        Location of ellipsis that indicates content has been removed.
+    ellipsis: str, default is ...
+        Content of ellipsis that indicates content has been removed.
+
+    Returns
+    -------
+    Our truncated string
+    """
+    if side.casefold() not in ['right', 'left', 'center']:
+        raise ValueError("Cannot determine location of ellipsis.")
+    if isinstance(string, str):
+        if side.casefold() == 'right':
+            return string[:width] + str(ellipsis)
+        elif side.casefold() == 'left':
+            return str(ellipsis) + string[-width:]
+        else:
+            return string[:width//2] + ellipsis + string[-width//2:]
+    elif isinstance(string, (list, tuple)):
+        if side.casefold() == 'right':
+            return [s[:width] + str(ellipsis) for s in string]
+        elif side.casefold() == 'left':
+            return [str(ellipsis) + s[-width:] for s in string]
+        else:
+            return [s[:width//2] + str(ellipsis) + s[-width//2:] for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if side.casefold() == 'right':
+            return np.frompyfunc(lambda s: s[:width] + str(ellipsis), 1, 1)(string)
+        elif side.casefold() == 'left':
+            return np.frompyfunc(lambda s: str(ellipsis) + s[-width:], 1, 1)(string)
+        else:
+            return np.frompyfunc(lambda s: s[:width//2] + str(ellipsis) + s[-width//2], 1, 1)(string)
+    elif isinstance(string, pd.Series):
+        if side.casefold() == 'right':
+            return string.str.slice(stop=width) + str(ellipsis)
+        elif side.casefold() == 'left':
+            return string.str.slice(start=width) + str(ellipsis)
+        else:
+            return string.str.slice(stop=width//2) + str(ellipsis) + string.str.slice(start=width//2)
+    elif isinstance(string, ps.Column):
         ...
+    else:
+        raise TypeError("Cannot determine how to perform string truncation")
+
 
 
 
@@ -548,7 +599,6 @@ def str_which(string, pattern, negate):
     else:
         if isinstance(filtered_string, str):
             ...
-
 
 
 def str_replace(string, pattern, replacement):

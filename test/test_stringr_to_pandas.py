@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
-    str_to_lower, str_to_sentence, str_to_title, str_replace, str_order, str_sort
+    str_to_lower, str_to_sentence, str_to_title, str_replace, str_order, str_sort, str_flatten, str_trunc
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -58,6 +58,42 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strDup_series(self):
         string = pd.Series(['abc', 'xyz'])
         pd.testing.assert_series_equal(str_dup(string, 3), pd.Series(['abcabcabc', 'xyzxyzxyz']))
+
+    # String Flatten
+    def test_strFlatten_string(self):
+        string = 'Mass Effect: Andromeda'
+        assert str_flatten(string, ",") == string
+
+    def test_strFlatten_list(self):
+        string = ['This', 'is', 'a', 'test']
+        assert str_flatten(string, " ") == 'This is a test'
+
+    def test_strFlatten_array(self):
+        string = np.array(["The", 'only', 'thing', 'they', 'fear', 'is', 'you'])
+        assert str_flatten(string, ".") == "The.only.thing.they.fear.is.you"
+
+    def test_strFlatten_series(self):
+        string = pd.Series(["A", "B", "B", "A"])
+        assert str_flatten(string) == "ABBA"
+
+    # String Truncate
+    def test_strTrunc_string(self):
+        string = "Mass Effect: Andromeda"
+        assert str_trunc(string, 11, "right") == "Mass Effect..."
+
+    def test_strTrunc_list(self):
+        string = ["This  string  is  moderately  long", "Guinea  pigs  and  farts"]
+        assert str_trunc(string, 20, "center") == ['This  stri...tely  long', 'Guinea  pi...and  farts']
+
+    def test_strTrunc_array(self):
+        string = np.array(["This  string  is  moderately  long", "Guinea  pigs  and  farts"])
+        expected = np.array(['...is  moderately  long', '...ea  pigs  and  farts'])
+        np.testing.assert_array_equal(str_trunc(string, 20, "left"), expected)
+
+    def test_strTrunc_series(self):
+        string = pd.Series(["This  string  is  moderately  long", "Guinea  pigs  and  farts"])
+        expected = pd.Series(["This  string  is  mo...", "Guinea  pigs  and  f..."])
+        pd.testing.assert_series_equal(str_trunc(string, 20), expected)
 
     # String Uppercase
     def test_strToUpper_string(self):
