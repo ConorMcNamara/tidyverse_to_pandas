@@ -59,6 +59,9 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_length](https://stringr.tidyverse.org/reference/str_length.html): Returns the number of characters in a string
 * [str_sub](https://stringr.tidyverse.org/reference/str_sub.html): Extracts substrings from a string
 * [str_dup](https://stringr.tidyverse.org/reference/str_dup.html): Duplicates a string
+* [str_flatten](https://stringr.tidyverse.org/reference/str_flatten.html): Flattens a string
+* [str_trunc](https://stringr.tidyverse.org/reference/str_trunc.html): Truncates a string
+* [str_replace_na](https://stringr.tidyverse.org/reference/str_replace_na.html): Replaces NaN/None with a string
 
 ### Case Transformation
 * [str_to_upper](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to uppercase

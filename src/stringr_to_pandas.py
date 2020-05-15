@@ -155,6 +155,8 @@ def str_flatten(string, collapse=""):
     elif isinstance(string, (list, tuple)):
         return '{}'.format(collapse).join([char for char in string])
     elif isinstance(string, (np.ndarray, np.generic)):
+        # Ironically, we can call this for both pandas and lists, but I wanted to show the various ways of doing it
+        # rather than simply calling the iterable.
         return '{}'.format(collapse).join(string)
     elif isinstance(string, pd.Series):
         return '{}'.format(collapse).join(string.values.flatten())
@@ -195,6 +197,9 @@ def str_trunc(string, width, side="right", ellipsis="..."):
         else:
             return [s[:width//2] + str(ellipsis) + s[-width//2:] for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
+        # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
+        # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
+        # to all elements of the array
         if side.casefold() == 'right':
             return np.frompyfunc(lambda s: s[:width] + str(ellipsis), 1, 1)(string)
         elif side.casefold() == 'left':
@@ -214,10 +219,38 @@ def str_trunc(string, width, side="right", ellipsis="..."):
         raise TypeError("Cannot determine how to perform string truncation")
 
 
+def str_replace_na(string, replacement="NA"):
+    """Converts NaNs and None into strings
 
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    replacement: str
+        A single string.
 
-def str_c():
-    ...
+    Returns
+    -------
+    Our string, but with NaNs and None replaced as strings
+    """
+    if isinstance(string, str):
+        if string is None or string is np.nan:
+            string = replacement
+        else:
+            pass
+    elif isinstance(string, (list, tuple)):
+        string = [s.replace(np.nan, replacement).replace(None, replacement) for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        string[np.isnan(string)] = replacement
+        # numpy has no native way of detecting None except by using the == operator
+        string[string == None] = replacement
+    elif isinstance(string, pd.Series):
+        string = string.fillna(replacement)
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine how to convert NAs/None to string")
+    return string
 
 
 # Case Transformations
@@ -274,14 +307,14 @@ def str_to_title(string):
         raise TypeError("Cannot determine to how titalize strings")
 
 
-def str_to_lower(string, locale='us'):
+def str_to_lower(string, locale='en'):
     """Converts all of our strings into lowercase
 
     Parameters
     ----------
     string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    locale: str, default is us
+    locale: str, default is en
         Used to distinguish if we're dealing with non-English strings, such as Greek or Chinese
 
     Returns
@@ -289,22 +322,22 @@ def str_to_lower(string, locale='us'):
     All of our strings in lowercase
     """
     if isinstance(string, str):
-        if locale == 'us':
+        if locale == 'en':
             return string.casefold()
         else:
             return string.lower()
     elif isinstance(string, (list, tuple)):
-        if locale == 'us':
+        if locale == 'en':
             return [s.casefold() for s in string]
         else:
             return [s.lower() for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
-        if locale == 'us':
+        if locale == 'en':
             return np.array(list(map(lambda v: v.casefold(), string)))
         else:
             return np.char.lower(string)
     elif isinstance(string, pd.Series):
-        if locale == 'us':
+        if locale == 'en':
             return string.str.casefold()
         else:
             return string.str.lower()
@@ -367,14 +400,18 @@ def str_order(string, decreasing=False, na_last=True, numeric=False):
             string = [val for val in string if val not in [np.nan, None]]
         if numeric:
             if na_last is True:
+                # For Python string comparisons, 9 is considered the highest for numbers
                 string = [val if val not in [np.nan, None] else '9' * max_str_length for val in string]
             elif na_last is False:
+                # Similarly, for Python string comparisons, 0 is considered the lowest for numbers
                 string = [val if val not in [np.nan, None] else '0' for val in string]
             sorted_strings = index_natsorted(string)
         else:
             if na_last is True:
+                # For Python string comparisons, 'z' is considered the highest for letters
                 string = [val if val not in [np.nan, None] else 'z' * max_str_length for val in string]
             elif na_last is False:
+                # For Python string comparisons, 'a' is considered the lowest for letters
                 string = [val if val not in [np.nan, None] else 'a' for val in string]
             sorted_strings = sorted(range(len(string)), key=string.__getitem__)
     elif isinstance(string, (np.ndarray, np.generic)):
