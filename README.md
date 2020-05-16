@@ -77,7 +77,9 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_detect](https://stringr.tidyverse.org/reference/str_detect.html): Determines a string contains the regular expression
 * [str_count](https://stringr.tidyverse.org/reference/str_count.html): Counts the number of matches in a string
 * [str_subset](https://stringr.tidyverse.org/reference/str_subset.html): Keeps strings matching a pattern
+* [str_replace](https://stringr.tidyverse.org/reference/str_replace.html): Replace the first matched pattern in a string
 * [str_replace_all](https://stringr.tidyverse.org/reference/str_replace.html): Replace all matched patterns in a string
+* [str_remove](https://stringr.tidyverse.org/reference/str_remove.html): Removes the first matched pattern in a string
 * [str_remove_all](https://stringr.tidyverse.org/reference/str_remove.html): Removes all matched patterns in a string
 
 

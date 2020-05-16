@@ -607,36 +607,8 @@ def str_subset(string, pattern, negate=False):
         return string[str_detect(string, pattern, negate)]
 
 
-def str_which(string, pattern, negate):
-    """Returns the index of the first index of the filtered string
-
-    Parameters
-    ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
-        Input vector. Either a character vector, or something coercible to one.
-    pattern: str
-        Pattern to look for. The default interpretation is a regular expression, as described in
-        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
-        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
-        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
-        with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    negate: bool, default is False
-        If True, return non-matching elements.
-
-    Returns
-    -------
-
-    """
-    filtered_string = str_subset(string, pattern, negate)
-    if len(filtered_string) == 0:
-        return filtered_string
-    else:
-        if isinstance(filtered_string, str):
-            ...
-
-
-def str_replace_all(string, pattern, replacement):
-    """Replaces all instances of pattern in string with replacement
+def _str_replace(string, pattern, replacement, how='all'):
+    """Replaces either the first or all instance(s) of pattern in string with replacement
 
     Parameters
     ----------
@@ -655,53 +627,89 @@ def str_replace_all(string, pattern, replacement):
         str_replace_all. Alternatively, pass a function to replacement: it will be called once for each match and its
         return value will be used to replace the match. To replace the complete string with NA, use
         replacement = None.
+    how: str, default is 'all'
+        Whether we are replacing all matches or only the first
 
     Returns
     -------
-
+    The string, but with either the first or all matched patterns removed
     """
+    if how.casefold() == 'all':
+        count = 0
+    else:
+        count = 1
     if isinstance(string, str):
         if replacement is None or replacement is np.nan:
             return replacement if pattern in string else string
         else:
-            return re.sub(pattern, replacement, string)
+            return re.sub(pattern, replacement, string, count=count)
     elif isinstance(string, (list, tuple)):
         if isinstance(replacement, str):
-            return [re.sub(pattern, replacement, s) for s in string]
+            return [re.sub(pattern, replacement, s, count=count) for s in string]
         elif replacement is None or replacement is np.nan:
             return [replacement if pattern in s else s for s in string]
         else:
             if isinstance(pattern, str):
-                return [re.sub(pattern, replacement[i], string[i]) for i in range(len(string))]
+                return [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
             else:
-                return [re.sub(pattern[i], replacement[i], string[i]) for i in range(len(string))]
+                return [re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))]
     elif isinstance(string, (np.ndarray, np.generic)):
         if isinstance(replacement, str):
-            return np.array(list(map(lambda v: re.sub(pattern, replacement, v), string)))
+            return np.array(list(map(lambda v: re.sub(pattern, replacement, v, count=count), string)))
         elif replacement is None or replacement is np.nan:
             return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
         else:
             if isinstance(pattern, str):
-                return np.array([re.sub(pattern, replacement[i], string[i]) for i in range(len(string))])
+                return np.array([re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))])
             else:
-                return np.array([re.sub(pattern[i], replacement[i], string[i]) for i in range(len(string))])
+                return np.array([re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))])
     elif isinstance(string, pd.Series):
         if isinstance(replacement, str) or replacement is None or replacement is np.nan:
-            return string.str.replace(pattern, replacement, regex=True)
+            return string.str.replace(pattern, replacement, regex=True, n=-1)
         else:
             replacement_series = pd.Series([''] * len(string))
             replacement_series.index = np.arange(len(string))
             for i in range(len(pattern)):
                 if isinstance(pattern, str):
-                    replacement_series[i] = re.sub(pattern, replacement[i], string[i])
+                    replacement_series[i] = re.sub(pattern, replacement[i], string[i], count=count)
                 else:
-                    replacement_series[i] = re.sub(pattern[i], replacement[i], string[i])
+                    replacement_series[i] = re.sub(pattern[i], replacement[i], string[i], count=count)
             return replacement_series
-
     elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to do string replace")
+
+
+def str_replace(string, pattern, replacement):
+    """Replaces the first instance of pattern in string with replacement"""
+    return _str_replace(string, pattern, replacement, how='first')
+
+
+def str_replace_all(string, pattern, replacement):
+    """Replaces all instances of pattern in string with replacement"""
+    return _str_replace(string, pattern, replacement, how='all')
+
+
+def str_remove(string, pattern):
+    """Remove the first pattern in our string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+
+    Returns
+    -------
+    Our string, but with the first pattern removed
+    """
+    return str_replace(string, pattern, "")
 
 
 def str_remove_all(string, pattern):
@@ -720,6 +728,6 @@ def str_remove_all(string, pattern):
 
     Returns
     -------
-    Our string, but with the pattern removed
+    Our string, but with all patterns removed
     """
     return str_replace_all(string, pattern, "")

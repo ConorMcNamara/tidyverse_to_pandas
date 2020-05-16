@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
-    str_remove_all, str_replace_na
+    str_remove_all, str_replace_na, str_replace, str_remove
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -286,6 +286,24 @@ class TestStringrToPandas(unittest.TestCase):
         expected.index = [1, 2, 5]
         pd.testing.assert_series_equal(str_subset(string, 'o'), expected)
 
+    # String Replace
+    def test_strReplace_string(self):
+        fruits = "one apple"
+        assert str_replace(fruits, "[aeiou]", "-") == '-ne apple'
+
+    def test_strReplace_list(self):
+        fruits = ["one apple", "two pears", "three bananas"]
+        assert str_replace(fruits, "[aeiou]", "-") == ["-ne apple", "tw- pears", "thr-e bananas"]
+
+    def test_strReplace_array(self):
+        fruits = np.array(["one apple", "two pears", "three bananas"])
+        np.testing.assert_array_equal(str_replace(fruits, "b", np.nan), np.array(["one apple", "two pears", np.nan]))
+
+    def test_strReplace_series(self):
+        fruits = pd.Series(["one apple", "two pears", "three bananas"])
+        expected = pd.Series(['1 apple', '2 pears', '3 bananas'])
+        pd.testing.assert_series_equal(str_replace(fruits, ['one', 'two', 'three'], ['1', '2', '3']), expected)
+
     # String Replace All
     def test_strReplaceAll_string(self):
         fruits ="one apple"
@@ -303,6 +321,25 @@ class TestStringrToPandas(unittest.TestCase):
         fruits = pd.Series(["one apple", "two pears", "three bananas"])
         expected = pd.Series(['1 apple', '2 pears', '3 bananas'])
         pd.testing.assert_series_equal(str_replace_all(fruits, ['one', 'two', 'three'], ['1', '2', '3']), expected)
+
+    # String Remove
+    def test_strRemove_string(self):
+        fruits = "one apple"
+        assert str_remove(fruits, '[aeiou]') == "ne apple"
+
+    def test_strRemove_list(self):
+        fruits = ["one apple", "two pears", "three bananas"]
+        assert str_remove(fruits, "[aeiou]") == ["ne apple", "tw pears", "thre bananas"]
+
+    def test_strRemove_array(self):
+        relient_k = np.array(['Devastation and Reform', 'I Need You', 'The Best Thing'])
+        expected = np.array(['Devastation Reform', 'I Need You', 'The Best Thing'])
+        np.testing.assert_array_equal(str_remove(relient_k, "and "), expected)
+
+    def test_strRemove_series(self):
+        lyrics = pd.Series(['Come', 'Right', 'Out', 'and', 'Say', 'It'])
+        expected = pd.Series(['Come', 'Rght', 'Out', 'and', 'Say', 't'])
+        pd.testing.assert_series_equal(str_remove(lyrics, '[iI]'), expected)
 
     # String Remove All
     def test_strRemoveAll_string(self):
