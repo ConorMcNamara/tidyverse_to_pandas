@@ -27,6 +27,10 @@ Currently, I have support for the following tidyr functions:
 * [unnest_longer](https://tidyr.tidyverse.org/reference/hoist.html): Converts deeply nested jsons into long data
 * [unnest_wider](https://tidyr.tidyverse.org/reference/hoist.html): Converts deeply nested jsons into wide data
 
+### Chopping Data
+* [chop](https://tidyr.tidyverse.org/reference/chop.html): Converts rows within each group into a list of lists
+* [unchop](https://tidyr.tidyverse.org/reference/chop.html): Expands a list of lists into new rows and columns
+
 ### Nesting
 * [nest](https://tidyr.tidyverse.org/reference/nest.html): Converts each row into a nested dictionary/JSON
 * [unnest](https://tidyr.tidyverse.org/reference/nest.html): Expands each nested row into new rows and columns

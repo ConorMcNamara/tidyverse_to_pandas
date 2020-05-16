@@ -580,7 +580,7 @@ def unchop(data, cols, keep_empty=False, ptype=None):
             unchopped_df = data.explode(cols[0])
         else:
             unchopped_cols = data.columns.difference(cols).values
-            # This method is supposedly faster than others out for exploding multiple columns, need to see it in action
+            # This method is supposedly faster than others for exploding multiple columns, need to see it in action
             # to verify
             unchopped_df = data.set_index(unchopped_cols).apply(pd.Series.explode).reset_index()
         if not keep_empty:
