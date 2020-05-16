@@ -233,17 +233,14 @@ def str_replace_na(string, replacement="NA"):
     -------
     Our string, but with NaNs and None replaced as strings
     """
-    if isinstance(string, str):
-        if string is None or string is np.nan:
-            string = replacement
-        else:
-            pass
+    if string is None or string is np.nan:
+        string = replacement
     elif isinstance(string, (list, tuple)):
-        string = [s.replace(np.nan, replacement).replace(None, replacement) for s in string]
+        string = [replacement if s in [None, np.nan] else s for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
-        string[np.isnan(string)] = replacement
         # numpy has no native way of detecting None except by using the == operator
         string[string == None] = replacement
+        string[string != string] = replacement
     elif isinstance(string, pd.Series):
         string = string.fillna(replacement)
     elif isinstance(string, ps.Column):
@@ -541,7 +538,7 @@ def str_count(string, pattern):
     ----------
     string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern: str or list
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -638,14 +635,14 @@ def str_which(string, pattern, negate):
             ...
 
 
-def str_replace(string, pattern, replacement):
-    """
+def str_replace_all(string, pattern, replacement):
+    """Replaces all instances of pattern in string with replacement
 
     Parameters
     ----------
     string: str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern: str or list
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -664,28 +661,65 @@ def str_replace(string, pattern, replacement):
 
     """
     if isinstance(string, str):
-        return re.sub(pattern, replacement, string)
+        if replacement is None or replacement is np.nan:
+            return replacement if pattern in string else string
+        else:
+            return re.sub(pattern, replacement, string)
     elif isinstance(string, (list, tuple)):
         if isinstance(replacement, str):
             return [re.sub(pattern, replacement, s) for s in string]
+        elif replacement is None or replacement is np.nan:
+            return [replacement if pattern in s else s for s in string]
         else:
-            return [re.sub(pattern, replacement[i], string[i]) for i in range(len(string))]
+            if isinstance(pattern, str):
+                return [re.sub(pattern, replacement[i], string[i]) for i in range(len(string))]
+            else:
+                return [re.sub(pattern[i], replacement[i], string[i]) for i in range(len(string))]
     elif isinstance(string, (np.ndarray, np.generic)):
         if isinstance(replacement, str):
             return np.array(list(map(lambda v: re.sub(pattern, replacement, v), string)))
+        elif replacement is None or replacement is np.nan:
+            return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
         else:
-            return np.array([re.sub(pattern, replacement[i], string[i]) for i in range(len(string))])
+            if isinstance(pattern, str):
+                return np.array([re.sub(pattern, replacement[i], string[i]) for i in range(len(string))])
+            else:
+                return np.array([re.sub(pattern[i], replacement[i], string[i]) for i in range(len(string))])
     elif isinstance(string, pd.Series):
-        if isinstance(replacement, str):
+        if isinstance(replacement, str) or replacement is None or replacement is np.nan:
             return string.str.replace(pattern, replacement, regex=True)
         else:
             replacement_series = pd.Series([''] * len(string))
             replacement_series.index = np.arange(len(string))
             for i in range(len(pattern)):
-                replacement_series[i] = re.sub(pattern, replacement[i], string[i])
+                if isinstance(pattern, str):
+                    replacement_series[i] = re.sub(pattern, replacement[i], string[i])
+                else:
+                    replacement_series[i] = re.sub(pattern[i], replacement[i], string[i])
             return replacement_series
 
     elif isinstance(string, ps.Column):
         ...
     else:
         raise TypeError("Cannot determine how to do string replace")
+
+
+def str_remove_all(string, pattern):
+    """Remove all patterns in our string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+
+    Returns
+    -------
+    Our string, but with the pattern removed
+    """
+    return str_replace_all(string, pattern, "")

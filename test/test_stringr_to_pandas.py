@@ -3,7 +3,8 @@ import pytest
 import pandas as pd
 import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
-    str_to_lower, str_to_sentence, str_to_title, str_replace, str_order, str_sort, str_flatten, str_trunc
+    str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
+    str_remove_all, str_replace_na
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -94,6 +95,25 @@ class TestStringrToPandas(unittest.TestCase):
         string = pd.Series(["This  string  is  moderately  long", "Guinea  pigs  and  farts"])
         expected = pd.Series(["This  string  is  mo...", "Guinea  pigs  and  f..."])
         pd.testing.assert_series_equal(str_trunc(string, 20), expected)
+
+    # String Replace NA
+    def test_strReplaceNA_string(self):
+        string = np.nan
+        assert str_replace_na(string) == 'NA'
+
+    def test_strReplaceNA_list(self):
+        string = [np.nan, None, 'poop']
+        assert str_replace_na(string) == ['NA', 'NA', 'poop']
+
+    def test_strReplaceNA_array(self):
+        string = np.array(['foo', 'bar', None, np.nan])
+        np.testing.assert_array_equal(str_replace_na(string), ['foo', 'bar', 'NA', 'NA'])
+
+    def test_strReplaceNA_series(self):
+        string = pd.Series(['Mass', None, 'Effect', np.nan])
+        pd.testing.assert_series_equal(str_replace_na(string), pd.Series(['Mass', 'NA', 'Effect', 'NA']))
+
+    #def test_strReplaceNA_array(self):
 
     # String Uppercase
     def test_strToUpper_string(self):
@@ -188,6 +208,31 @@ class TestStringrToPandas(unittest.TestCase):
         string = ['a', 'b', 'c', None]
         assert str_order(string, na_last=False) == [0, 3, 1, 2]
 
+    # String Sort
+    def test_strSort_string(self):
+        string = 'string'
+        assert str_sort(string) == string
+
+    def test_strSort_list(self):
+        string = ['i', 'am', 'a', 'string']
+        assert str_sort(string) == ['a', 'am', 'i', 'string']
+
+    def test_strSort_array(self):
+        string = np.array(['this', 'is', 'happening'])
+        np.testing.assert_array_equal(str_sort(string, decreasing=True), np.array(["this", 'is', 'happening']))
+
+    def test_strSort_series(self):
+        string = pd.Series(["100a10", "100a5", "2b", "2a"])
+        pd.testing.assert_series_equal(str_sort(string), pd.Series(["100a10", "100a5", "2a", "2b"], index=[0, 1, 3, 2]))
+
+    def test_strSort_natural(self):
+        string = pd.Series(["100a10", "100a5", "2b", "2a"])
+        pd.testing.assert_series_equal(str_sort(string, numeric=True), pd.Series(["2a", '2b', '100a5', '100a10'], index=[3, 2, 1, 0]))
+
+    def test_strSort_none(self):
+        string = ['a', 'b', 'c', None]
+        assert str_sort(string, na_last=False) == ['a', None, 'b', 'c']
+
     # String Detect
     def test_strDetect_string(self):
         string = 'video'
@@ -240,6 +285,43 @@ class TestStringrToPandas(unittest.TestCase):
         expected = pd.Series(['video', 'cross', 'authority'])
         expected.index = [1, 2, 5]
         pd.testing.assert_series_equal(str_subset(string, 'o'), expected)
+
+    # String Replace All
+    def test_strReplaceAll_string(self):
+        fruits ="one apple"
+        assert str_replace_all(fruits, "[aeiou]", "-") == '-n- -ppl-'
+
+    def test_strReplaceAll_list(self):
+        fruits = ["one apple", "two pears", "three bananas"]
+        assert str_replace_all(fruits, "[aeiou]", "-") == ["-n- -ppl-", "tw- p--rs", "thr-- b-n-n-s"]
+
+    def test_strReplaceAll_array(self):
+        fruits = np.array(["one apple", "two pears", "three bananas"])
+        np.testing.assert_array_equal(str_replace_all(fruits, "b", np.nan), np.array(["one apple", "two pears", np.nan]))
+
+    def test_strReplaceAll_series(self):
+        fruits = pd.Series(["one apple", "two pears", "three bananas"])
+        expected = pd.Series(['1 apple', '2 pears', '3 bananas'])
+        pd.testing.assert_series_equal(str_replace_all(fruits, ['one', 'two', 'three'], ['1', '2', '3']), expected)
+
+    # String Remove All
+    def test_strRemoveAll_string(self):
+        fruits = "one apple"
+        assert str_remove_all(fruits, '[aeiou]') == "n ppl"
+
+    def test_strRemoveAll_list(self):
+        fruits = ["one apple", "two pears", "three bananas"]
+        assert str_remove_all(fruits, "[aeiou]") == ["n ppl", "tw prs", "thr bnns"]
+
+    def test_strRemoveAll_array(self):
+        relient_k = np.array(['Devastation and Reform', 'I Need You', 'The Best Thing'])
+        expected = np.array(['Devastation Reform', 'I Need You', 'The Best Thing'])
+        np.testing.assert_array_equal(str_remove_all(relient_k, "and "), expected)
+
+    def test_strRemoveAll_series(self):
+        lyrics = pd.Series(['Come', 'Right', 'Out', 'and', 'Say', 'It'])
+        expected = pd.Series(['Come', 'Rght', 'Out', 'and', 'Say', 't'])
+        pd.testing.assert_series_equal(str_remove_all(lyrics, '[iI]'), expected)
 
 
 if __name__ == '__main__':
