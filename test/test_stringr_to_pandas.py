@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
-    str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n
+    str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
+    str_squish, str_trim
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -112,8 +113,6 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strReplaceNA_series(self):
         string = pd.Series(['Mass', None, 'Effect', np.nan])
         pd.testing.assert_series_equal(str_replace_na(string), pd.Series(['Mass', 'NA', 'Effect', 'NA']))
-
-    #def test_strReplaceNA_array(self):
 
     # String Uppercase
     def test_strToUpper_string(self):
@@ -232,6 +231,56 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strSort_none(self):
         string = ['a', 'b', 'c', None]
         assert str_sort(string, na_last=False) == ['a', None, 'b', 'c']
+
+    # String Pad
+    def test_strPad_string(self):
+        assert str_pad("halsey", 30, "left") == "                        halsey"
+
+    def test_strPad_list(self):
+        string = ["a", "abc", "abcdef"]
+        assert str_pad(string, 10) == ["a         ", "abc       ", "abcdef    "]
+
+    def test_strPad_array(self):
+        string = np.array(["a", "a", "a"])
+        np.testing.assert_array_equal(str_pad(string, [5, 10, 20], 'left'), np.array(["    a", "         a", "                   a"]))
+
+    def test_strPad_series(self):
+        string = pd.Series(["a", "a", "a"])
+        pd.testing.assert_series_equal(str_pad(string, 10, 'left', pad=["-", "_", " "]), pd.Series(["---------a", "_________a", "         a"]))
+
+    # String Trim
+    def test_strTrim_string(self):
+        string = "  String with trailing and leading white space\t"
+        assert str_trim(string, "both") == "String with trailing and leading white space"
+
+    def test_strTrim_list(self):
+        string = ["\n\nString with trailing and leading white space\n\n", "  String with trailing and leading white space\t"]
+        assert str_trim(string, "both") == ["String with trailing and leading white space", "String with trailing and leading white space"]
+
+    def test_strTrim_array(self):
+        string = np.array(['\n\nString with trailing and leading white space\n\n', "  String with trailing and leading white space\t"])
+        np.testing.assert_array_equal(str_trim(string, "right"), np.array(["String with trailing and leading white space\n\n", "String with trailing and leading white space\t"]))
+
+    def test_strTrime_series(self):
+        string = pd.Series(['\n\nString with trailing and leading white space\n\n', "  String with trailing and leading white space\t"])
+        pd.testing.assert_series_equal(str_trim(string, "left"), pd.Series(['\n\nString with trailing and leading white space', '  String with trailing and leading white space']))
+
+    # String Squish
+    def test_strSquish_string(self):
+        string = "  String with trailing,  middle, and leading white space\t"
+        assert str_squish(string) == "String with trailing, middle, and leading white space"
+
+    def test_strSquish_list(self):
+        string = ["\n\nString with excess,  trailing and leading white   space\n\n", "  String with trailing,  middle, and leading white space\t"]
+        assert str_squish(string) == ["String with excess, trailing and leading white space", "String with trailing, middle, and leading white space"]
+
+    def test_strSquish_array(self):
+        string = np.array(["  String with trailing   and   leading white space\t", "  String with trailing,  middle, and leading white space\t"])
+        np.testing.assert_array_equal(str_squish(string), np.array(["String with trailing and leading white space", "String with trailing, middle, and leading white space"]))
+
+    def test_strSquish_series(self):
+        string = pd.Series(["\n\nString with excess,  trailing and leading white   space\n\n", "  String with trailing   and   leading white space\t"])
+        pd.testing.assert_series_equal(str_squish(string), pd.Series(["String with excess, trailing and leading white space", "String with trailing and leading white space"]))
 
     # String Detect
     def test_strDetect_string(self):

@@ -481,6 +481,183 @@ def str_sort(string, decreasing=False, na_last=True, numeric=False):
             ...
 
 
+# Whitespace Manipulation
+
+def str_pad(string, width, side="right", pad=" "):
+    """Pad a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    width: int or list/tuple/numpy array/pandas Series
+        Minimum width of padded strings
+    side: str, default is right
+        Side on which padding character is added (left, right or both).
+    pad: str or list/tuple/numpy array/pandas Series, default is " "
+        Single padding character (default is a space).
+
+    Returns
+    -------
+    Our padded string
+    """
+    side = side.casefold()
+    if side not in ['right', 'left', 'center']:
+        raise ValueError("Cannot determine where to pad string")
+    if isinstance(string, str) and isinstance(width, int) and isinstance(pad, str):
+        if side == 'left':
+            padded_string = string.rjust(width, pad)
+        elif side == 'right':
+            padded_string = string.ljust(width, pad)
+        else:
+            padded_string = string.center(width, pad)
+    else:
+        if isinstance(string, pd.Series) and isinstance(pad, str) and isinstance(width, int):
+            if side == 'left':
+                padded_string = string.str.rjust(width, pad)
+            elif side == 'center':
+                padded_string = string.str.ljust(width, pad)
+            else:
+                padded_string = string.str.center(width, pad)
+        elif isinstance(string, (np.ndarray, np.generic)):
+            if side == 'left':
+                padded_string = np.char.rjust(string, width, pad)
+            elif side == 'right':
+                padded_string = np.char.ljust(string, width, pad)
+            else:
+                padded_string = np.char.center(string, width, pad)
+        else:
+            if isinstance(string, str):
+                if not isinstance(width, int):
+                    string = [string] * len(width)
+                else:
+                    string = [string] * len(pad)
+            if isinstance(width, int):
+                if isinstance(pad, str):
+                    if side == 'left':
+                        padded_string = [s.rjust(width, pad) for s in string]
+                    elif side == 'right':
+                        padded_string = [s.ljust(width, pad) for s in string]
+                    else:
+                        padded_string = [s.center(width, pad) for s in string]
+                else:
+                    if side == 'left':
+                        padded_string = [string[i].rjust(width, pad[i]) for i in range(len(pad))]
+                    elif side == 'right':
+                        padded_string = [string[i].ljust(width, pad[i]) for i in range(len(pad))]
+                    else:
+                        padded_string = [string[i].center(width, pad[i]) for i in range(len(pad))]
+            else:
+                if isinstance(pad, str):
+                    if side == 'left':
+                        padded_string = [string[i].rjust(width[i], pad) for i in range(len(width))]
+                    elif side == 'right':
+                        padded_string = [string[i].ljust(width[i], pad) for i in range(len(width))]
+                    else:
+                        padded_string = [string[i].center(width[i], pad) for i in range(len(width))]
+                else:
+                    if side == 'left':
+                        padded_string = [string[i].rjust(width[i], pad[i]) for i in range(len(width))]
+                    elif side == 'right':
+                        padded_string = [string[i].ljust(width[i], pad[i]) for i in range(len(width))]
+                    else:
+                        padded_string = [string[i].center(width[i], pad[i]) for i in range(len(width))]
+            if isinstance(string, (np.ndarray, np.generic)):
+                # Testing it out, it turns out that it is significantly less efficient to initialize an array and
+                # then iteratively re-populate it than it is to call np.array on list comprehension, like an order of
+                # magnitude slower.
+                # Additionally, one unique issue with numpy is that by default it only adds whitespace when you call
+                # np.char.center(), which is super inefficient when you're calling it thousands, if not millions of times
+                # So list comprehension makes more sense.
+                padded_string = np.array(padded_string)
+            elif isinstance(string, pd.Series):
+                # This similarly applies to pandas as well.
+                padded_string = pd.Series(padded_string)
+    return padded_string
+
+
+def str_trim(string, side='both'):
+    """Removes leading and trailing whitespace in our string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    side: str, {left, right, both}, default is both
+        Side on which to remove whitespace.
+
+    Returns
+    -------
+    Our trimmed string
+    """
+    side = side.casefold()
+    if side not in ['left', 'right', 'both']:
+        raise ValueError("Cannot determine method of trimming")
+    if isinstance(string, str):
+        if side == 'both':
+            return string.strip()
+        elif side == 'right':
+            return string.lstrip()
+        else:
+            return string.rstrip()
+    elif isinstance(string, (list, tuple)):
+        if side == 'both':
+            return [s.strip() for s in string]
+        elif side == 'right':
+            return [s.lstrip() for s in string]
+        else:
+            return [s.rstrip() for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if side == 'both':
+            return np.char.strip(string)
+        elif side == 'right':
+            return np.char.lstrip(string)
+        else:
+            return np.char.rstrip(string)
+    elif isinstance(string, pd.Series):
+        if side == 'both':
+            return string.str.strip()
+        elif side == 'right':
+            return string.str.lstrip()
+        else:
+            return string.str.rstrip()
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise ValueError("Cannot determine method for squishing strings")
+
+
+def str_squish(string):
+    """Squishes a string by removing leading and trailing whitespace as well as repeat whitespace inside a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+
+    Returns
+    -------
+
+    """
+    if isinstance(string, str):
+        squished_string = " ".join(string.split())
+    elif isinstance(string, (list, tuple)):
+        squished_string = [" ".join(s.split()) for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        # Using np.char.split() results in splits for every whitespace for every character, meaning we would have to
+        # rejoin them together, which is less efficient than using calling np.array() on list comprehension.
+        squished_string = np.array([" ".join(s.split()) for s in string])
+    elif isinstance(string, pd.Series):
+        # Similar to numpy, using df.str.split() results in splits for every whitespace for every character, meaning we
+        # would have to rejoin them together, which is less efficient overall.
+        squished_string = pd.Series([" ".join(s.split()) for s in string])
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise ValueError("Cannot determine method of squishing strings")
+    return squished_string
+
+
 # String Pattern Matching
 
 def str_detect(string, pattern, negate=False):
@@ -601,7 +778,7 @@ def str_subset(string, pattern, negate=False):
             return string
         else:
             return ""
-    elif isinstance(string, list):
+    elif isinstance(string, (list, tuple)):
         return list(compress(string, str_detect(string, pattern, negate)))
     else:
         return string[str_detect(string, pattern, negate)]
@@ -757,7 +934,7 @@ def str_split(string, pattern=" ", n=-1, simplify=False):
     """
     if isinstance(string, str):
         return string.split(pattern, maxsplit=n)
-    elif isinstance(string, list):
+    elif isinstance(string, (list, tuple)):
         split_string = [s.split(pattern, maxsplit=n) for s in string]
         if simplify:
             length = max(map(len, split_string))
@@ -830,7 +1007,7 @@ def str_split_n(string, pattern=" ", n=0):
             return None
         else:
             return split_string[n]
-    elif isinstance(string, list):
+    elif isinstance(string, (list, tuple)):
         length = len(split_string[0])
         if n >= length:
             raise ValueError("Index greater than number of elements")

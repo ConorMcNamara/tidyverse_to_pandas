@@ -71,14 +71,19 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_to_upper](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to uppercase
 * [str_to_lower](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to lowercase
 * [str_to_title](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to title format
-* [str_to_sentence](https://stringr.tidyverse.org/reference/case.html): Converst the entire string to sentence format
+* [str_to_sentence](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to sentence format
 
 ### Order
 * [str_order](https://stringr.tidyverse.org/reference/str_order.html): Orders a string
 * [str_sort](https://stringr.tidyverse.org/reference/str_order.html): Sorts a string
 
+### Whitespace Manipulation
+* [str_pad](https://stringr.tidyverse.org/reference/str_pad.html): Pads a string
+* [str_trim](https://stringr.tidyverse.org/reference/str_trim.html): Removes whitespace from start and end of a string
+* [str_squish](https://stringr.tidyverse.org/reference/str_trim.html): In addition to trimming, also reduces repeated whitespace inside a string
+
 ### Pattern Matching
-* [str_detect](https://stringr.tidyverse.org/reference/str_detect.html): Determines a string contains the regular expression
+* [str_detect](https://stringr.tidyverse.org/reference/str_detect.html): Determines if a string contains the regular expression
 * [str_count](https://stringr.tidyverse.org/reference/str_count.html): Counts the number of matches in a string
 * [str_subset](https://stringr.tidyverse.org/reference/str_subset.html): Keeps strings matching a pattern
 * [str_replace](https://stringr.tidyverse.org/reference/str_replace.html): Replace the first matched pattern in a string
