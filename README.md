@@ -85,6 +85,9 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_replace_all](https://stringr.tidyverse.org/reference/str_replace.html): Replace all matched patterns in a string
 * [str_remove](https://stringr.tidyverse.org/reference/str_remove.html): Removes the first matched pattern in a string
 * [str_remove_all](https://stringr.tidyverse.org/reference/str_remove.html): Removes all matched patterns in a string
+* [str_split](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into multiple pieces
+* [str_split_fixed](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into a character matrix
+* [str_split_n](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into a character vector
 
 
 ## lubridate

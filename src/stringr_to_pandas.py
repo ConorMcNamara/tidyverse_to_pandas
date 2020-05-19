@@ -731,3 +731,121 @@ def str_remove_all(string, pattern):
     Our string, but with all patterns removed
     """
     return str_replace_all(string, pattern, "")
+
+
+def str_split(string, pattern=" ", n=-1, simplify=False):
+    """Split a string into pieces
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str, default is " "
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    n: int, default is -1
+        Number of pieces to return. Default -1 uses all possible split positions.
+    simplify: bool, default is False
+        If False, the default, returns a list of character vectors. If True, returns a character matrix.
+
+    Returns
+    -------
+    Our string, but split along the pattern
+    """
+    if isinstance(string, str):
+        return string.split(pattern, maxsplit=n)
+    elif isinstance(string, list):
+        split_string = [s.split(pattern, maxsplit=n) for s in string]
+        if simplify:
+            length = max(map(len, split_string))
+            split_string = [xi + [""] * (length-len(xi)) for xi in split_string]
+        return split_string
+    elif isinstance(string, (np.ndarray, np.generic)):
+        split_string = np.char.split(string, pattern, maxsplit=n)
+        if simplify:
+            length = max(map(len, split_string))
+            split_string = np.array([np.array(xi + [""] * (length-len(xi))) for xi in split_string])
+        return split_string
+    elif isinstance(string, pd.Series):
+        split_string = string.str.split(pattern, n=n, expand=simplify)
+        if simplify:
+            split_string = split_string.fillna("")
+        return split_string
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine how to do string splitting")
+
+
+def str_split_fixed(string, pattern=" ", n=-1):
+    """Returns a character matrix. Essentially a wrapper for str_split with simplify=True
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str, default is " "
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    n: int, default is -1
+        For str_split_fixed, if n is greater than the number of pieces, the result will be padded with empty strings.
+
+    Returns
+    -------
+    A matrix of character splits
+    """
+    return str_split(string, pattern, n, simplify=True)
+
+
+def str_split_n(string, pattern=" ", n=0):
+    """Returns the nth index of a split string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str, default is " "
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    n: int, default is 0
+        For str_split_n, n is the desired index of each element of the split string. When there are fewer pieces than n,
+        return np.nan.
+
+    Returns
+    -------
+    A character vector containing the nth index of each string split.
+    """
+    split_string = str_split(string, pattern, n=-1, simplify=True)
+    if isinstance(string, str):
+        if n >= len(split_string):
+            return None
+        else:
+            return split_string[n]
+    elif isinstance(string, list):
+        length = len(split_string[0])
+        if n >= length:
+            raise ValueError("Index greater than number of elements")
+        return [el[n] if el[n] != "" else None for el in split_string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        length = len(split_string[0])
+        if n >= length:
+            raise ValueError("Index greater than number of elements")
+        split_string = split_string.flatten()
+        return pd.Series(split_string[n::length]).replace("", np.nan).to_numpy()
+    elif isinstance(string, (pd.Series, pd.DataFrame)):
+        if n >= len(split_string.columns):
+            raise ValueError("Index greater than number of elements")
+        return split_string.iloc[:, n].replace("", np.nan)
+    elif isinstance(string, (ps.Column, ps.DataFrame)):
+        ...
+    else:
+        raise TypeError("Cannot determine how to do string splitting for fixed n")

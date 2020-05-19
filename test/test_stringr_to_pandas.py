@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
-    str_remove_all, str_replace_na, str_replace, str_remove
+    str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -359,6 +359,66 @@ class TestStringrToPandas(unittest.TestCase):
         lyrics = pd.Series(['Come', 'Right', 'Out', 'and', 'Say', 'It'])
         expected = pd.Series(['Come', 'Rght', 'Out', 'and', 'Say', 't'])
         pd.testing.assert_series_equal(str_remove_all(lyrics, '[iI]'), expected)
+
+    # String Split
+    def test_strSplit_string(self):
+        string = "guinea pig and farts"
+        assert str_split(string, " and ") == ['guinea pig', 'farts']
+
+    def test_strSplit_list(self):
+        fruits = ["apples and oranges and pears and bananas", "pineapples and mangos and guavas"]
+        expected = [['apples', 'oranges', 'pears', 'bananas'], ['pineapples', 'mangos', 'guavas', '']]
+        assert str_split(fruits, " and ", simplify=True) == expected
+
+    def test_strSplit_array(self):
+        fruits = np.array(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
+        expected = np.array([["apples", "oranges and pears and bananas"], ["pineapples", "mangos and guavas"]])
+        assert all(str_split(fruits, " and ", n=1)[0] == expected[0])
+        assert all(str_split(fruits, " and ", n=1)[1] == expected[1])
+
+    def test_strSplit_series(self):
+        fruits = pd.Series(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
+        actual = str_split(fruits, " and ", n=5)
+        expected = pd.Series([['apples', 'oranges', 'pears', 'bananas'], ['pineapples', 'mangos', 'guavas']])
+        pd.testing.assert_series_equal(actual, expected)
+
+    # String Split Fixed
+    def test_strSplitFixed_string(self):
+        string = "guinea pig and farts"
+        assert str_split_fixed(string, " and ") == ['guinea pig', 'farts']
+
+    def test_strSplitFixed_list(self):
+        fruits = ["apples and oranges and pears and bananas", "pineapples and mangos and guavas"]
+        expected = [["apples", "oranges", "pears and bananas"], ["pineapples", "mangos", "guavas"]]
+        assert str_split_fixed(fruits, " and ", 2) == expected
+
+    def test_strSplitFixed_array(self):
+        fruits = np.array(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
+        expected = np.array([['apples', 'oranges and pears and bananas'], ["pineapples", "mangos and guavas"]])
+        np.testing.assert_array_equal(str_split_fixed(fruits, " and ", n=1), expected)
+
+    def test_strSplitFixed_series(self):
+        fruits = pd.Series(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
+        expected = pd.DataFrame([['apples', 'oranges', 'pears', 'bananas'], ['pineapples', 'mangos', 'guavas', ""]])
+        pd.testing.assert_frame_equal(str_split_fixed(fruits, " and ", 3), expected)
+
+    # String Split N
+    def test_strSplitN_string(self):
+        string = 'guinea pigs and farts'
+        assert str_split_n(string, " ", 1) == 'pigs'
+
+    def test_strSplitN_list(self):
+        fruits = ["apples and oranges and pears and bananas", "pineapples and mangos and guavas"]
+        assert str_split_n(fruits, " and ", 0) == ['apples', 'pineapples']
+
+    def test_strSplitN_array(self):
+        fruits = np.array(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
+        assert str_split_n(fruits, " and ", 3)[0] == 'bananas'
+        assert str_split_n(fruits, " and ", 3)[1] is np.nan
+
+    def test_strSplitN_series(self):
+        fruits = pd.Series(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
+        pd.testing.assert_series_equal(str_split_n(fruits, " and ", 3), pd.Series(['bananas', np.nan], name=3))
 
 
 if __name__ == '__main__':
