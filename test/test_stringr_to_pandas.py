@@ -5,7 +5,7 @@ import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
-    str_squish, str_trim
+    str_squish, str_trim, str_which
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -205,7 +205,7 @@ class TestStringrToPandas(unittest.TestCase):
 
     def test_strOrder_none(self):
         string = ['a', 'b', 'c', None]
-        assert str_order(string, na_last=False) == [0, 3, 1, 2]
+        assert str_order(string, na_last=False) == [3, 0, 1, 2]
 
     # String Sort
     def test_strSort_string(self):
@@ -230,7 +230,7 @@ class TestStringrToPandas(unittest.TestCase):
 
     def test_strSort_none(self):
         string = ['a', 'b', 'c', None]
-        assert str_sort(string, na_last=False) == ['a', None, 'b', 'c']
+        assert str_sort(string, na_last=False) == [None, 'a', 'b', 'c']
 
     # String Pad
     def test_strPad_string(self):
@@ -334,6 +334,24 @@ class TestStringrToPandas(unittest.TestCase):
         expected = pd.Series(['video', 'cross', 'authority'])
         expected.index = [1, 2, 5]
         pd.testing.assert_series_equal(str_subset(string, 'o'), expected)
+
+    # String Which
+    def test_strWhich_string(self):
+        string = 'video'
+        assert str_which(string, '[aeiou]') == 0
+
+    def test_strWhich_list(self):
+        string = ["why", "video", "cross", "extra", "deal", "authority"]
+        assert str_which(string, '[aeiou]') == [1, 2, 3, 4, 5]
+
+    def test_strWhich_array(self):
+        string = ["why", "video", "cross", "extra", "deal", "authority"]
+        np.testing.assert_array_equal(str_which(string, '[aeiou]', negate=True), np.array([0]))
+
+    def test_strWhich_series(self):
+        string = pd.Series(["why", "video", "cross", "extra", "deal", "authority"])
+        expected = pd.Series([1, 2, 5])
+        pd.testing.assert_series_equal(str_which(string, 'o'), expected)
 
     # String Replace
     def test_strReplace_string(self):

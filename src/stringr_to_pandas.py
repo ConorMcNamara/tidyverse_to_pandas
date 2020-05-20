@@ -408,8 +408,8 @@ def str_order(string, decreasing=False, na_last=True, numeric=False):
                 # For Python string comparisons, 'z' is considered the highest for letters
                 string = [val if val not in [np.nan, None] else 'z' * max_str_length for val in string]
             elif na_last is False:
-                # For Python string comparisons, 'a' is considered the lowest for letters
-                string = [val if val not in [np.nan, None] else 'a' for val in string]
+                # For Python string comparisons, 'A' is considered the lowest for letters
+                string = [val if val not in [np.nan, None] else 'A' for val in string]
             sorted_strings = sorted(range(len(string)), key=string.__getitem__)
     elif isinstance(string, (np.ndarray, np.generic)):
         if na_last is None:
@@ -425,7 +425,7 @@ def str_order(string, decreasing=False, na_last=True, numeric=False):
             if na_last is True:
                 string = np.where(np.isin(string, [np.nan, None]), 'z' * max_str_length, string)
             elif na_last is False:
-                string = np.where(np.isin(string, [np.nan, None]), 'a', string)
+                string = np.where(np.isin(string, [np.nan, None]), 'A', string)
             sorted_strings = np.argsort(string)
     elif isinstance(string, pd.Series):
         if na_last is None:
@@ -440,7 +440,7 @@ def str_order(string, decreasing=False, na_last=True, numeric=False):
             if na_last is True:
                 string = string.fillna('z' * max_str_length)
             elif na_last is False:
-                string = string.fillna('a')
+                string = string.fillna('A')
             sorted_strings = string.argsort()
     elif isinstance(string, ps.Column):
         ...
@@ -771,7 +771,7 @@ def str_subset(string, pattern, negate=False):
 
     Returns
     -------
-
+    Our filtered string
     """
     if isinstance(string, str):
         if str_detect(string, pattern, negate):
@@ -780,8 +780,48 @@ def str_subset(string, pattern, negate=False):
             return ""
     elif isinstance(string, (list, tuple)):
         return list(compress(string, str_detect(string, pattern, negate)))
+    elif isinstance(string, ps.Column):
+        ...
     else:
         return string[str_detect(string, pattern, negate)]
+
+
+def str_which(string, pattern, negate=False):
+    """Filters our string based on str_detect
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    negate: bool, default is False
+        If True, return non-matching elements.
+
+    Returns
+    -------
+    Indices of our filtered string
+    """
+    string_loc = str_detect(string, pattern, negate)
+    if isinstance(string, str):
+        if string_loc:
+            return 0
+        else:
+            return None
+    elif isinstance(string, (list, tuple)):
+        return [i for i, val in enumerate(string_loc) if val]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        return np.where(string_loc)[0]
+    elif isinstance(string, pd.Series):
+        return pd.Series(string[string_loc.isin([True])].index)
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise ValueError("Cannot determine how to do string which")
 
 
 def _str_replace(string, pattern, replacement, how='all'):
