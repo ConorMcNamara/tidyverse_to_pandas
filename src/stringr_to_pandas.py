@@ -1066,3 +1066,51 @@ def str_split_n(string, pattern=" ", n=0):
         ...
     else:
         raise TypeError("Cannot determine how to do string splitting for fixed n")
+
+
+def str_starts(string, pattern, negate=False):
+    """Detect the presence or absence of a pattern at the beginning of a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    negate: bool, default is False
+        If True, return non-matching elements.
+
+    Returns
+    -------
+
+    """
+    pattern = '^' + pattern
+    return str_detect(string, pattern, negate)
+
+
+def str_ends(string, pattern, negate=False):
+    """Detect the presence or absence of a pattern at the end of a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    negate: bool, default is False
+        If True, return non-matching elements.
+
+    Returns
+    -------
+
+    """
+    pattern = pattern + '$'
+    return str_detect(string, pattern, negate)

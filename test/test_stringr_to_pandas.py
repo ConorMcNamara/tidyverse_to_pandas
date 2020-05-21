@@ -5,7 +5,7 @@ import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
-    str_squish, str_trim, str_which
+    str_squish, str_trim, str_which, str_starts, str_ends
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -486,6 +486,40 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strSplitN_series(self):
         fruits = pd.Series(["apples and oranges and pears and bananas", "pineapples and mangos and guavas"])
         pd.testing.assert_series_equal(str_split_n(fruits, " and ", 3), pd.Series(['bananas', np.nan], name=3))
+
+    # String Starts
+    def test_strStarts_string(self):
+        string = 'guinea pigs and farts'
+        assert str_starts(string, 'guinea') == True
+
+    def test_strStarts_list(self):
+        fruit = ["apple", "banana", "pear", "pineapple"]
+        assert str_starts(fruit, "p") == [False, False, True, True]
+
+    def test_strStarts_array(self):
+        fruit = np.array(["apple", "banana", "pear", "pineapple"])
+        np.testing.assert_array_equal(str_starts(fruit, "p", negate=True), np.array([True, True, False, False]))
+
+    def test_strStarts_series(self):
+        fruit = pd.Series(["apple", "banana", "pear", "pineapple"])
+        pd.testing.assert_series_equal(str_starts(fruit, '[aeiou]'), pd.Series([True, False, False, False]))
+
+    # String Ends
+    def test_strEnds_string(self):
+        string = 'guinea pigs and farts'
+        assert str_ends(string, 'farts') == True
+
+    def test_strEnds_list(self):
+        fruit = ["apple", "banana", "pear", "pineapple"]
+        assert str_ends(fruit, "e") == [True, False, False, True]
+
+    def test_strEnds_array(self):
+        fruit = np.array(["apple", "banana", "pear", "pineapple"])
+        np.testing.assert_array_equal(str_ends(fruit, 'e', True), np.array([False, True, True, False]))
+
+    def test_strEnds_series(self):
+        fruit = pd.Series(["apple", "banana", "pear", "pineapple"])
+        pd.testing.assert_series_equal(str_ends(fruit, '[aeiou]'), pd.Series([True, True, False, True]))
 
 
 if __name__ == '__main__':
