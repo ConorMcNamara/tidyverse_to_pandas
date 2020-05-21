@@ -94,6 +94,8 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_split](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into multiple pieces
 * [str_split_fixed](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into a character matrix
 * [str_split_n](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into a character vector
+* [str_starts](https://stringr.tidyverse.org/reference/str_starts.html): Detect the presence of a pattern at the beginning of a string
+* [str_ends](https://stringr.tidyverse.org/reference/str_starts.html): Detect the presence of a pattern at the end of a string
 
 
 ## lubridate

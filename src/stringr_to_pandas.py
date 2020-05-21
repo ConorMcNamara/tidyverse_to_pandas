@@ -1114,3 +1114,89 @@ def str_ends(string, pattern, negate=False):
     """
     pattern = pattern + '$'
     return str_detect(string, pattern, negate)
+
+
+def str_extract(string, pattern):
+    """Extract first matching patterns from a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+
+    Returns
+    -------
+    First match within each string
+    """
+    if isinstance(string, str):
+        if re.search(pattern, string) is not None:
+            return re.search(pattern, string).group(0)
+        else:
+            return None
+    elif isinstance(string, (list, tuple)):
+        return [re.search(pattern, s).group(0) if re.search(pattern, s) is not None else None for s in string]
+    elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
+        if '(' not in pattern:
+            pattern = '(' + pattern + ')'
+        match = pd.Series(string).str.extract(pattern, expand=False)
+        if isinstance(string, (np.ndarray, np.generic)):
+            match = match.to_numpy()
+        return match
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot determine method of string extraction")
+
+
+def str_extract_all(string, pattern, simplify=False):
+    """Extract all matching patterns from a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+    simplify: bool, default is True
+        If False, the default, returns a list of character vectors. If True returns a character matrix.
+
+    Returns
+    -------
+    All non-overlapping matches within each string
+    """
+    if isinstance(string, str):
+        match = re.findall(pattern, string)
+    elif isinstance(string, (list, tuple)):
+        match = [re.findall(pattern, s) for s in string]
+        if simplify:
+            length = max(map(len, match))
+            match = [xi + [""] * (length - len(xi)) for xi in match]
+            match = ["" if x is None else x for x in match]
+    elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
+        if '(' not in pattern:
+            pattern = '(' + pattern + ')'
+        match = string.str.extractall(pattern)
+        if isinstance(string, (np.ndarray, np.generic)):
+            match = match.to_numpy()
+            if simplify:
+                length = max(map(len, match))
+                match = np.array([np.array(xi + [""] * (length - len(xi))) for xi in match])
+                match[match == None] = ""
+        else:
+            if simplify:
+                match = match.fillna("")
+    elif isinstance(string, ps.Column):
+        ...
+    return match
+
+

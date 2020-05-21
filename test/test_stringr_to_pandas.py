@@ -5,7 +5,7 @@ import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
-    str_squish, str_trim, str_which, str_starts, str_ends
+    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -520,6 +520,23 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strEnds_series(self):
         fruit = pd.Series(["apple", "banana", "pear", "pineapple"])
         pd.testing.assert_series_equal(str_ends(fruit, '[aeiou]'), pd.Series([True, True, False, True]))
+
+    # String Extract
+    def test_strExtract_string(self):
+        number = "219 733 8965"
+        assert str_extract(number, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == number
+
+    def test_strExtract_list(self):
+        shopping_list = ["apples x4", "bag of flour", "bag of sugar", "milk x2"]
+        assert str_extract(shopping_list, "\\d") == ['4', None, None, '2']
+
+    def test_strExtract_array(self):
+        shopping_list = np.array(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
+        np.testing.assert_array_equal(str_extract(shopping_list, "[a-z]{1,4}"), np.array(["appl", "bag", "bag", "milk"]))
+
+    def test_strExtract_series(self):
+        shopping_list = pd.Series(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
+        pd.testing.assert_series_equal(str_extract(shopping_list, "[a-z]+"), pd.Series(['apples', 'bag', 'bag', 'milk']))
 
 
 if __name__ == '__main__':
