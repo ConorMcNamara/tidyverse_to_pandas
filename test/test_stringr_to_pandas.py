@@ -538,6 +538,23 @@ class TestStringrToPandas(unittest.TestCase):
         shopping_list = pd.Series(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
         pd.testing.assert_series_equal(str_extract(shopping_list, "[a-z]+"), pd.Series(['apples', 'bag', 'bag', 'milk']))
 
+    # String Extract All
+    def test_strExtractAll_string(self):
+        number = "219 733 8965"
+        assert str_extract_all(number, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == [('219', '733', '8965')]
+
+    def test_strExtractAll_list(self):
+        shopping_list = ["apples x4", "bag of flour", "bag of sugar", "milk x2"]
+        assert str_extract_all(shopping_list, "\\b[a-z]+\\b") == [['apples'], ['bag', 'of', 'flour'], ['bag', 'of', 'sugar'], ['milk']]
+
+    def test_strExtractAll_array(self):
+        shopping_list = np.array(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
+        np.testing.assert_array_equal(str_extract_all(shopping_list, "\\b[a-z]+\\b", simplify=True),
+                                      np.array([['apples', '', ''], ['bag', 'of', 'flour'], ['bag', 'of', 'sugar'], ['milk', '', '']]))
+
+    def test_strExtractAll_series(self):
+        shopping_list = pd.Series(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
+        pd.testing.assert_series_equal(str_extract_all(shopping_list, "\\d", simplify=True), pd.Series(["4", "", "", "2"], name='match'))
 
 if __name__ == '__main__':
     unittest.main()

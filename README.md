@@ -96,6 +96,8 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_split_n](https://stringr.tidyverse.org/reference/str_split.html): Splits a string into a character vector
 * [str_starts](https://stringr.tidyverse.org/reference/str_starts.html): Detect the presence of a pattern at the beginning of a string
 * [str_ends](https://stringr.tidyverse.org/reference/str_starts.html): Detect the presence of a pattern at the end of a string
+* [str_extract](https://stringr.tidyverse.org/reference/str_extract.html): Extract first matching pattern from a string
+* [str_extract_all](https://stringr.tidyverse.org/reference/str_extract.html): Extract all non-overlapping matching patterns from a string
 
 
 ## lubridate

@@ -1182,21 +1182,29 @@ def str_extract_all(string, pattern, simplify=False):
             length = max(map(len, match))
             match = [xi + [""] * (length - len(xi)) for xi in match]
             match = ["" if x is None else x for x in match]
-    elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
+    elif isinstance(string, (np.ndarray, np.generic)):
+        match = [re.findall(pattern, s) for s in string]
+        if simplify:
+            length = max(map(len, match))
+            match = [xi + [""] * (length - len(xi)) for xi in match]
+            match = ["" if x is None else x for x in match]
+        match = np.array(match)
+    elif isinstance(string,  pd.Series):
         if '(' not in pattern:
             pattern = '(' + pattern + ')'
         match = string.str.extractall(pattern)
-        if isinstance(string, (np.ndarray, np.generic)):
-            match = match.to_numpy()
-            if simplify:
-                length = max(map(len, match))
-                match = np.array([np.array(xi + [""] * (length - len(xi))) for xi in match])
-                match[match == None] = ""
-        else:
-            if simplify:
+        if simplify:
+            if len(match.index) > 2:
+                if len(match.columns) == 1:
+                    match = pd.pivot(match.reset_index(), index='level_0', columns='match', values=0)
+                else:
+                    value_cols = match.columns.difference(['level_0', 'match'])
+                    match = pd.pivot(match.reset_index(), index='level_0', columns='match', values=value_cols)
                 match = match.fillna("")
+            else:
+                flat_match = pd.Series([""] * len(string), name='match')
+                flat_match[flat_match.index.isin(match.reset_index().level_0)] = match.rename({0: 'val'}, axis=1).reset_index()['val'].values
+                match = flat_match
     elif isinstance(string, ps.Column):
         ...
     return match
-
-
