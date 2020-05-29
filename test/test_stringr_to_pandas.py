@@ -5,7 +5,7 @@ import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
-    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all
+    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all, str_match
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -555,6 +555,32 @@ class TestStringrToPandas(unittest.TestCase):
     def test_strExtractAll_series(self):
         shopping_list = pd.Series(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
         pd.testing.assert_series_equal(str_extract_all(shopping_list, "\\d", simplify=True), pd.Series(["4", "", "", "2"], name='match'))
+
+    # String Match
+    def test_strMatch_string(self):
+        string = "<a> <b>"
+        assert str_match(string, pattern="<(.*?)> <(.*?)>") == ["<a> <b>", "a", "b"]
+
+    def test_strMatch_list(self):
+        strings = [" 219 733 8965", "329-293-8753 ", "banana", "595 794 7569", "387 287 6718", "apple", "233.398.9187  ",
+                   "482 952 3315", "239 923 8115 and 842 566 4692", "Work: 579-499-7527", "$1000", "Home: 543.355.3679"]
+        expected = [['219 733 8965', '219', '733', '8965'], ['329-293-8753', '329', '293', '8753'], [None, None, None, None],
+                    ['595 794 7569', '595', '794', '7569'], ['387 287 6718', '387', '287', '6718'], [None, None, None, None],
+                    ['233.398.9187', '233', '398', '9187'], ['482 952 3315', '482', '952', '3315'],['239 923 8115', '239', '923', '8115'],
+                    ['579-499-7527', '579', '499', '7527'], [None, None, None, None], ['543.355.3679', '543', '355', '3679']]
+        assert str_match(strings, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == expected
+
+    def test_strMatch_array(self):
+        string = np.array(["<a> <b>", "<a> <>", "<a>", "", None])
+        expected = np.array([['<a> <b>', 'a', 'b'], ['<a> <>', 'a', ''], [None, None, None], [None, None, None], [None, None, None]])
+        np.testing.assert_array_equal(str_match(string, "<(.*?)> <(.*?)>"), expected)
+
+    def test_strMatch_series(self):
+        string = pd.Series(["<a> <b>", "<a> <>", "<a>", "", None])
+        expected = pd.DataFrame({'whole_match': ['<a> <b>', '<a> <>', None, None, None],
+                              'match': ['a', 'a', np.nan, np.nan, np.nan]})
+        pd.testing.assert_frame_equal(str_match(string, "<(.*?)> <(.*?)>"), expected)
+
 
 if __name__ == '__main__':
     unittest.main()

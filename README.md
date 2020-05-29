@@ -98,6 +98,7 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_ends](https://stringr.tidyverse.org/reference/str_starts.html): Detect the presence of a pattern at the end of a string
 * [str_extract](https://stringr.tidyverse.org/reference/str_extract.html): Extract first matching pattern from a string
 * [str_extract_all](https://stringr.tidyverse.org/reference/str_extract.html): Extract all non-overlapping matching patterns from a string
+* [str_match](https://stringr.tidyverse.org/reference/str_match.html): Extracts first matched group in a string
 
 
 ## lubridate

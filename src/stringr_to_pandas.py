@@ -1140,14 +1140,11 @@ def str_extract(string, pattern):
         else:
             return None
     elif isinstance(string, (list, tuple)):
-        return [re.search(pattern, s).group(0) if re.search(pattern, s) is not None else None for s in string]
-    elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
-        if '(' not in pattern:
-            pattern = '(' + pattern + ')'
-        match = pd.Series(string).str.extract(pattern, expand=False)
-        if isinstance(string, (np.ndarray, np.generic)):
-            match = match.to_numpy()
-        return match
+        return [re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None for s in string]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        return np.array([re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None for s in string])
+    elif isinstance(string, pd.Series):
+        return pd.Series([re.search(pattern, s[1]).group(0) if s[1] not in [None, np.nan] and re.search(pattern, s[1]) is not None else None for s in string.iteritems()])
     elif isinstance(string, ps.Column):
         ...
     else:
@@ -1208,3 +1205,50 @@ def str_extract_all(string, pattern, simplify=False):
     elif isinstance(string, ps.Column):
         ...
     return match
+
+
+def str_match(string, pattern):
+    """
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+
+    Returns
+    -------
+
+    """
+    whole_match = str_extract(string, pattern)
+    if isinstance(string, str):
+        if whole_match is None:
+            return None
+        else:
+            partial_match = list(map(list, str_extract_all(whole_match, pattern, simplify=True)))[0]
+            return_match = [whole_match] + partial_match
+    elif isinstance(string, (list, tuple)):
+        whole_match = [s if s is not None else '' for s in whole_match]
+        partial_match = str_extract_all(whole_match, pattern, simplify=True)
+        return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
+        max_length = max(len(x) for x in return_match)
+        return_match = [val if len(val) == max_length else [None] * max_length for val in return_match]
+    elif isinstance(string, (np.ndarray, np.generic)):
+        whole_match[whole_match == None] = ''
+        partial_match = str_extract_all(whole_match, pattern, simplify=True)
+        return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
+        max_length = max(len(x) for x in return_match)
+        return_match = np.array([val if len(val) == max_length else [None] * max_length for val in return_match])
+    elif isinstance(string, pd.Series):
+        whole_match = whole_match.rename('whole_match')
+        partial_match = str_extract_all(whole_match, pattern, simplify=True)
+        return_match = pd.merge(whole_match, partial_match, how='left', left_index=True, right_index=True)
+        return_match = return_match.replace("", np.nan)
+    elif isinstance(string, ps.Column):
+        ...
+    return return_match
