@@ -67,6 +67,9 @@ def str_sub(string, start, end=None):
         else:
             return [s[start:end] for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
+        # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
+        # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
+        # to all elements of the array
         if end is None:
             np.frompyfunc(lambda x: x[start:], 1, 1)(string)
         elif end > 0 and start > 0:
@@ -860,26 +863,25 @@ def _str_replace(string, pattern, replacement, how='all'):
             return replacement if pattern in string else string
         else:
             return re.sub(pattern, replacement, string, count=count)
-    elif isinstance(string, (list, tuple)):
+    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
         if isinstance(replacement, str):
-            return [re.sub(pattern, replacement, s, count=count) for s in string]
+            if isinstance(string, (list, tuple)):
+                return [re.sub(pattern, replacement, s, count=count) for s in string]
+            else:
+                return np.array(list(map(lambda v: re.sub(pattern, replacement, v, count=count), string)))
         elif replacement is None or replacement is np.nan:
-            return [replacement if pattern in s else s for s in string]
+            if isinstance(string, (list, tuple)):
+                return [replacement if pattern in s else s for s in string]
+            else:
+                return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
         else:
             if isinstance(pattern, str):
-                return [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
+                match = [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
             else:
-                return [re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))]
-    elif isinstance(string, (np.ndarray, np.generic)):
-        if isinstance(replacement, str):
-            return np.array(list(map(lambda v: re.sub(pattern, replacement, v, count=count), string)))
-        elif replacement is None or replacement is np.nan:
-            return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
-        else:
-            if isinstance(pattern, str):
-                return np.array([re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))])
-            else:
-                return np.array([re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))])
+                match = [re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))]
+            if isinstance(string, (np.ndarray, np.generic)):
+                match = np.array(match)
+            return match
     elif isinstance(string, pd.Series):
         if isinstance(replacement, str) or replacement is None or replacement is np.nan:
             return string.str.replace(pattern, replacement, regex=True, n=-1)
@@ -1086,7 +1088,7 @@ def str_starts(string, pattern, negate=False):
 
     Returns
     -------
-
+    Either a bool or a container of bools indicating whether we can find our pattern at the start of the string
     """
     pattern = '^' + pattern
     return str_detect(string, pattern, negate)
@@ -1110,7 +1112,7 @@ def str_ends(string, pattern, negate=False):
 
     Returns
     -------
-
+    Either a bool or a container of bools indicating whether we can find our pattern at the end of the string
     """
     pattern = pattern + '$'
     return str_detect(string, pattern, negate)
@@ -1139,10 +1141,11 @@ def str_extract(string, pattern):
             return re.search(pattern, string).group(0)
         else:
             return None
-    elif isinstance(string, (list, tuple)):
-        return [re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
-        return np.array([re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None for s in string])
+    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
+        extract = [re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None for s in string]
+        if isinstance(string, (np.ndarray, np.generic)):
+            extract = np.array(extract)
+        return extract
     elif isinstance(string, pd.Series):
         return pd.Series([re.search(pattern, s[1]).group(0) if s[1] not in [None, np.nan] and re.search(pattern, s[1]) is not None else None for s in string.iteritems()])
     elif isinstance(string, ps.Column):
@@ -1173,19 +1176,14 @@ def str_extract_all(string, pattern, simplify=False):
     """
     if isinstance(string, str):
         match = re.findall(pattern, string)
-    elif isinstance(string, (list, tuple)):
+    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
         match = [re.findall(pattern, s) for s in string]
         if simplify:
             length = max(map(len, match))
             match = [xi + [""] * (length - len(xi)) for xi in match]
             match = ["" if x is None else x for x in match]
-    elif isinstance(string, (np.ndarray, np.generic)):
-        match = [re.findall(pattern, s) for s in string]
-        if simplify:
-            length = max(map(len, match))
-            match = [xi + [""] * (length - len(xi)) for xi in match]
-            match = ["" if x is None else x for x in match]
-        match = np.array(match)
+        if isinstance(string, (np.ndarray, np.generic)):
+            match = np.array(match)
     elif isinstance(string,  pd.Series):
         if '(' not in pattern:
             pattern = '(' + pattern + ')'
@@ -1208,7 +1206,7 @@ def str_extract_all(string, pattern, simplify=False):
 
 
 def str_match(string, pattern):
-    """
+    """Extract first matched group from a string
 
     Parameters
     ----------
@@ -1223,7 +1221,7 @@ def str_match(string, pattern):
 
     Returns
     -------
-
+    A container with our first matched groups, and None/np.nan if no match detected
     """
     whole_match = str_extract(string, pattern)
     if isinstance(string, str):
@@ -1232,18 +1230,17 @@ def str_match(string, pattern):
         else:
             partial_match = list(map(list, str_extract_all(whole_match, pattern, simplify=True)))[0]
             return_match = [whole_match] + partial_match
-    elif isinstance(string, (list, tuple)):
-        whole_match = [s if s is not None else '' for s in whole_match]
+    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
+        if isinstance(string, (np.ndarray, np.generic)):
+            whole_match[whole_match == None] = ''
+        else:
+            whole_match = [s if s is not None else '' for s in whole_match]
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
         return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
         max_length = max(len(x) for x in return_match)
-        return_match = [val if len(val) == max_length else [None] * max_length for val in return_match]
-    elif isinstance(string, (np.ndarray, np.generic)):
-        whole_match[whole_match == None] = ''
-        partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
-        max_length = max(len(x) for x in return_match)
-        return_match = np.array([val if len(val) == max_length else [None] * max_length for val in return_match])
+        return_match = [val if len(val) == max_length else [None] * max_length for index, val in enumerate(return_match)]
+        if isinstance(string, (np.ndarray, np.generic)):
+            return_match = np.array(return_match)
     elif isinstance(string, pd.Series):
         whole_match = whole_match.rename('whole_match')
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
@@ -1251,4 +1248,61 @@ def str_match(string, pattern):
         return_match = return_match.replace("", np.nan)
     elif isinstance(string, ps.Column):
         ...
+    return return_match
+
+
+def str_match_all(string, pattern):
+    """Extract all matched groups from a string
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        Input vector. Either a character vector, or something coercible to one.
+    pattern: str
+        Pattern to look for. The default interpretation is a regular expression, as described in
+        stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
+        using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
+        respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
+        with boundary(). An empty pattern, "", is equivalent to boundary("character").
+
+    Returns
+    -------
+    A container with all our matched groups, and None/np.nan if no match detected
+    """
+    if isinstance(string, ps.Column):
+        ...
+    else:
+        # One issue we have is that str_extract only finds the first total instance of a capture group in our string,
+        # while str_extract_all finds all the inner capture groups within our string. This works for str_match, where
+        # we need the first total match and all its inner matches, but doesn't work for str_match_all, where we need all
+        # total matches. So we need to iteratively go through the string, save all total matches and then get all
+        # inner matches
+        whole_match = []
+        if isinstance(string, str):
+            if string not in [np.nan, None] and re.search(pattern, string) is not None:
+                whole_match = []
+                for match in re.finditer(pattern, string):
+                    whole_match.append(match.group(0))
+            else:
+                return ""
+        else:
+            for s in string:
+                if s not in [np.nan, None] and re.search(pattern, s) is not None:
+                    for match in re.finditer(pattern, s):
+                        whole_match.append(match.group(0))
+                else:
+                    whole_match.append('')
+        if isinstance(string, pd.Series):
+            whole_match = pd.Series(whole_match, name='whole_match')
+            partial_match = str_extract_all(whole_match, pattern).reset_index().drop(['match'], axis=1)
+            return_match = pd.merge(whole_match, partial_match, left_index=True, right_on='level_0', how='left').drop(
+                ['level_0'], axis=1).fillna('')
+            return_match.index = np.arange(len(return_match))
+        else:
+            partial_match = str_extract_all(whole_match, pattern, simplify=True)
+            return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
+            max_length = max(len(x) for x in return_match)
+            return_match = [val if len(val) == max_length else [''] * max_length for index, val in enumerate(return_match)]
+            if isinstance(string, (np.ndarray, np.generic)):
+                return_match = np.array(return_match)
     return return_match

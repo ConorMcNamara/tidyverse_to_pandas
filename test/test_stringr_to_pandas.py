@@ -5,7 +5,7 @@ import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
-    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all, str_match
+    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all, str_match, str_match_all
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -580,6 +580,33 @@ class TestStringrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'whole_match': ['<a> <b>', '<a> <>', None, None, None],
                               'match': ['a', 'a', np.nan, np.nan, np.nan]})
         pd.testing.assert_frame_equal(str_match(string, "<(.*?)> <(.*?)>"), expected)
+
+    # String Match All
+    def test_strMatchAll_string(self):
+        string = "239 923 8115 and 842 566 4692"
+        expected = [["239 923 8115", "239", "923", "8115"], ["842 566 4692", "842", "566", "4692"]]
+        assert str_match_all(string, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == expected
+
+    def test_strMatchAll_list(self):
+        strings = [" 219 733 8965", "329-293-8753 ", "banana", "595 794 7569", "387 287 6718", "apple", "233.398.9187  ",
+                   "482 952 3315", "239 923 8115 and 842 566 4692", "Work: 579-499-7527", "$1000", "Home: 543.355.3679"]
+        expected = [['219 733 8965', '219', '733', '8965'], ['329-293-8753', '329', '293', '8753'], ['', '', '', ''],
+                    ['595 794 7569', '595', '794', '7569'], ['387 287 6718', '387', '287', '6718'], ['', '', '', ''],
+                    ['233.398.9187', '233', '398', '9187'], ['482 952 3315', '482', '952', '3315'], ['239 923 8115', '239', '923', '8115'],
+                    ['842 566 4692', '842', '566', '4692'], ['579-499-7527', '579', '499', '7527'], ['', '', '', ''],
+                    ['543.355.3679', '543', '355', '3679']]
+        assert str_match_all(strings, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == expected
+
+    def test_strMatchAll_array(self):
+        x = np.array(["<a> <b>", "<a> <>", "<a>", "", None])
+        expected = np.array([['<a>', 'a'], ['<b>', 'b'], ['<a>', 'a'], ['', ''], ['<a>', 'a'], ['', ''], ['', '']])
+        np.testing.assert_array_equal(str_match_all(x, "<(.*?)>"), expected)
+
+    def test_strMatchAll_series(self):
+        x = pd.Series(["<a> <b>", "<a> <>", "<a>", "", None])
+        expected = pd.DataFrame([['<a>', 'a'], ['<b>', 'b'], ['<a>', 'a'], ['<>', ''], ['<a>', 'a'], ['', ''], ['', '']])
+        expected.columns = ['whole_match', 0]
+        pd.testing.assert_frame_equal(str_match_all(x, "<(.*?)>"), expected)
 
 
 if __name__ == '__main__':
