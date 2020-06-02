@@ -2,7 +2,6 @@ from more_itertools import unique_everseen
 import pandas as pd
 import pyspark.sql as ps
 import warnings
-import re
 
 
 def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):

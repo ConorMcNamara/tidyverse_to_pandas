@@ -1,416 +1,73 @@
-import unittest
 import pandas as pd
-import dplyr_to_pandas
+from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull
+import numpy as np
+import unittest
+import pytest
 
 
 class TestDplyrToPandas(unittest.TestCase):
 
-    def test_mutate_nonDF_Exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.mutate, data)
+    # Arrange
+    def test_arrange_pandas(self):
+        cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
+        cars = cars.rename({'Unnamed: 0': 'car'}, axis=1)
+        expected = pd.DataFrame({'car': ['Toyota Corolla', 'Honda Civic', 'Fiat 128', 'Fiat X1-9', 'Lotus Europa'],
+                                 'mpg': [33.9, 30.4, 32.4, 27.3, 30.4], 'cyl': [4] * 5,
+                                 'disp': [71.1, 75.7, 78.7, 79.0, 95.1],
+                                 'hp': [65, 52, 66, 66, 113],
+                                 'drat': [4.22, 4.93, 4.08, 4.08, 3.77],
+                                 'wt': [1.835, 1.615, 2.200, 1.935, 1.513],
+                                 'qsec': [19.90, 18.52, 19.47, 18.90, 16.90],
+                                 'vs': [1] * 5, 'am': [1] * 5, 'gear': [4] * 4 + [5],
+                                 'carb': [1, 2, 1, 1, 2]})
+        actual = arrange(cars, ['cyl', 'disp']).head()
+        pd.testing.assert_frame_equal(expected, actual)
 
-    def test_mutate_camelCase_result(self):
-        df = pd.DataFrame(data={'aCol': [1, 3, 5, 7],
-                                'bCol': [2, 4, 6, 8]})
-        actual = dplyr_to_pandas.mutate(df, "cCol = aCol + bCol")
-        expected = pd.DataFrame(data={'aCol': [1, 3, 5, 7],
-                                      'bCol': [2, 4, 6, 8],
-                                      'cCol': [3, 7, 11, 15]})
-        pd.testing.assert_frame_equal(actual, expected)
+    def test_arrange_pandasDesc(self):
+        cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
+        cars = cars.rename({'Unnamed: 0': 'car'}, axis=1)
+        actual = arrange(cars, "desc(disp)").head()
+        expected = pd.DataFrame({'car': ['Cadillac Fleetwood', 'Lincoln Continental', 'Chrysler Imperial', 'Pontiac Firebird', 'Hornet Sportabout'],
+                                 'mpg': [10.4, 10.4, 14.7, 19.2, 18.7], 'cyl': [8] * 5,
+                                 'disp': [472.0, 460.0, 440.0, 400.0, 360.0],
+                                 'hp': [205, 215, 230, 175, 175],
+                                 'drat': [2.93, 3.00, 3.23, 3.08, 3.15],
+                                 'wt': [5.250, 5.424, 5.345, 3.845, 3.440],
+                                 'qsec': [17.98, 17.82, 17.42, 17.05, 17.02],
+                                 'vs': [0] * 5, 'am': [0] * 5, 'gear': [3] * 5, 'carb': [4, 4, 4, 2, 2]})
+        pd.testing.assert_frame_equal(expected, actual)
 
-    def test_mutate_snakeCase_result(self):
-        df = pd.DataFrame(data={'a_col': [1, 3, 5, 7],
-                                'b_col': [2, 4, 6, 8]})
-        actual = dplyr_to_pandas.mutate(df, "c_col = a_col * b_col")
-        expected = pd.DataFrame(data={'a_col': [1, 3, 5, 7],
-                                      'b_col': [2, 4, 6, 8],
-                                      'c_col': [2, 12, 30, 56]})
-        pd.testing.assert_frame_equal(actual, expected)
+    # Distinct
+    def test_distinct_pandasAll(self):
+        data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
+        assert len(distinct(data)) == len(distinct(data, ['x', 'y']))
 
-    def test_mutate_camelCase1_result(self):
-        df = pd.DataFrame(data={'col1': [1, 3, 5, 7],
-                                'col2': [2, 4, 6, 8]})
-        actual = dplyr_to_pandas.mutate(df, "col3 = col2 - col1")
-        expected = pd.DataFrame(data={'col1': [1, 3, 5, 7],
-                                      'col2': [2, 4, 6, 8],
-                                      'col3': [1, 1, 1, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
+    def test_distinct_pandasColumn(self):
+        data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
+        assert len(distinct(data, 'x')) == 10
 
-    def test_transmute_nonDF_exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.mutate, data)
+    def test_distinct_pandasKeepAll(self):
+        data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
+        assert distinct(data, 'y', keep_all=True).shape == (10, 2)
 
-    def test_transmute_camelCase_result(self):
-        df = pd.DataFrame(data={'aCol': [1, 3, 5, 7],
-                                'bCol': [2, 4, 6, 8]})
-        actual = dplyr_to_pandas.transmute(df, "cCol = aCol + bCol")
-        expected = pd.DataFrame(data={'cCol': [3, 7, 11, 15]})
-        pd.testing.assert_frame_equal(actual, expected)
+    # Filter
+    def test_filter_pandas(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.DataFrame({'name': {15: 'Jabba Desilijic Tiure'}, 'height': {15: 175.0}, 'mass': {15: 1358.0},
+                                 'hair_color': {15: np.nan}, 'skin_color': {15: 'green-tan, brown'}, 'eye_color': {15: 'orange'},
+                                 'birth_year': {15: 600.0}, 'sex': {15: 'hermaphroditic'}, 'gender': {15: 'masculine'},
+                                 'homeworld': {15: 'Nal Hutta'}, 'species': {15: 'Hutt'}})
+        expected['hair_color'] = expected['hair_color'].astype('object')
+        pd.testing.assert_frame_equal(expected, filter(starwars, 'mass > 1000'))
 
-    def test_transmute_snakeCase_result(self):
-        df = pd.DataFrame(data={'a_col': [1, 3, 5, 7],
-                                'b_col': [2, 4, 6, 8]})
-        actual = dplyr_to_pandas.transmute(df, "c_col = a_col * b_col")
-        expected = pd.DataFrame(data={'c_col': [2, 12, 30, 56]})
-        pd.testing.assert_frame_equal(actual, expected)
+    # Pull
+    def test_pull_pandas(self):
+        cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
+        expected = pd.Series([4, 4, 1, 1, 2], name='carb')
+        pd.testing.assert_series_equal(expected, pull(cars, -1).head())
 
-    def test_transmute_camelCase1_result(self):
-        df = pd.DataFrame(data={'col1': [1, 3, 5, 7],
-                                'col2': [2, 4, 6, 8]})
-        actual = dplyr_to_pandas.transmute(df, "col3 = col2 - col1")
-        expected = pd.DataFrame(data={'col3': [1, 1, 1, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_rename_nonDF_exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.rename, data)
-
-    def test_rename_DF_result(self):
-        df = pd.DataFrame(data={'col1': [1, 2, 3 , 4]})
-        actual = dplyr_to_pandas.rename(df, "col1 = col_1")
-        expected = pd.DataFrame(data={'col_1': [1, 2, 3, 4]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_nonDF_exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.select, data)
-
-    def test_select_dropCol_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "-model")
-        expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25],
-                                 'vs': [1, 1, 0, 0, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_multipleCols_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "model", "mpg")
-        expected = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                                 'mpg': [30, 50, 20, 25, 25]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_startsWith_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "starts_with(v)")
-        expected = pd.DataFrame({'vs': [1, 1, 0, 0, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_endsWith_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "ends_with(g)")
-        expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_contains_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "contains(o)")
-        expected = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW']})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_everything_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "everything()")
-        pd.testing.assert_frame_equal(actual, df)
-
-    def test_select_numRange_result(self):
-        df = pd.DataFrame({'V1': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'V2': [30, 50, 20, 25, 25],
-                           'V3': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "num_range(V, 2:3)")
-        expected = pd.DataFrame({'V2': [30, 50, 20, 25, 25],
-                                 'V3': [1, 1, 0, 0, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_lastColNoArgument_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "last_col()")
-        expected = pd.DataFrame({'vs': [1, 1, 0, 0, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_lastColNumericArgument_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "last_col(1)")
-        expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_lastColOffsetSpaceArgument_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "last_col(offset = 1)")
-        expected = pd.DataFrame({'mpg': [30, 50, 20, 25, 25]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_lastColOffsetArgument_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.select(df, "last_col(offset=2)")
-        expected = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW']})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_select_tooManyOffsets_Exception(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        self.assertRaises(Exception, dplyr_to_pandas.select, df, "last_col(offset=3)")
-
-    def test_filter_nonDF_Exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.filter, data, "mpg > mean(mpg)")
-
-    def test_filter_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.filter(df, "model == 'Lexus'")
-        expected = pd.DataFrame({"model": ['Lexus'],
-                                 "mpg": [25],
-                                 "vs": [0]}, index=[3])
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_filter_mean_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.filter(df, "mpg == mean(mpg)")
-        expected = pd.DataFrame({"model": ['Mazda'],
-                                 "mpg": [30],
-                                 "vs": [1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_filter_median_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.filter(df, "mpg > median(mpg)")
-        expected = pd.DataFrame({"model": ['Mazda', 'Toyota'],
-                                 "mpg": [30, 50],
-                                 "vs": [1, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_filter_min_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.filter(df, "mpg == min(mpg)")
-        expected = pd.DataFrame({"model": ['Ford'],
-                                 "mpg": [20],
-                                 "vs": [0]}, index=[2])
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_filter_max_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.filter(df, "mpg == max(vs)")
-        expected = pd.DataFrame({"model": ['Mazda', 'Toyota', 'BMW'],
-                                 "mpg": [30, 50, 25],
-                                 "vs": [1, 1, 1]}, index=[0, 1, 4])
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_filter_quantile_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.filter(df, "mpg  > quantile(mpg, 0.5)")
-        expected = pd.DataFrame({"model": ['Mazda', 'Toyota'],
-                                 "mpg": [30, 50],
-                                 "vs": [1, 1]}, index=[0, 1])
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_nonDF_Exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.summarise, data, "mean(mpg)")
-
-    def test_summarise_mean_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "mean(mpg)")
-        expected = pd.DataFrame(pd.Series(30.0, name='mean(mpg)'))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_median_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "median = median(mpg)")
-        expected = pd.DataFrame(pd.Series(25.0, name='median'))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_sd_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "sd(mpg)")
-        expected = pd.DataFrame(pd.Series(df['mpg'].std(), name="sd(mpg)"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_mad_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "mad = mad(mpg)")
-        expected = pd.DataFrame(pd.Series(df['mpg'].mad(), name="mad"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_iqr_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "iqr(mpg)")
-        expected = pd.DataFrame(pd.Series(5.0, name="iqr(mpg)"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_min_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "min(vs)")
-        expected = pd.DataFrame(pd.Series(0, name="min(vs)"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_max_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "maximum = max(vs)")
-        expected = pd.DataFrame(pd.Series(1, name="maximum"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_quantile_greaterThanOne_Exception(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        self.assertRaises(Exception, dplyr_to_pandas.summarise, df, "quantile(vs, 2")
-
-    def test_summarise_quantile_fullDecimal_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "quant = quantile(vs, 0.5)")
-        expected = pd.DataFrame(pd.Series(1.0, name="quant"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_quantile_partialDecimal_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "quant = quantile(vs, .5)")
-        expected = pd.DataFrame(pd.Series(1.0, name="quant"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_first_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "first = first(model)")
-        expected = pd.DataFrame(pd.Series("Mazda", name="first"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_last_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "last = last(model)")
-        expected = pd.DataFrame(pd.Series("BMW", name="last"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_nth_PositiveOutsideBounds_Exception(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        self.assertRaises(Exception, dplyr_to_pandas.summarise, df, "nth(mpg, 6)")
-
-    def test_summarise_nth_NegativeOutsideBounds_Exception(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        self.assertRaises(Exception, dplyr_to_pandas.summarise, df, "nth(mpg, -6)")
-
-    def test_summarise_nth_positiveInt_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "nth(model, 4)")
-        expected = pd.DataFrame(pd.Series("Lexus", name="nth(model, 4)"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_nth_negativeInt_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "nth(model, -4)")
-        expected = pd.DataFrame(pd.Series("Toyota", name="nth(model, -4)"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_n_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "n()")
-        expected = pd.DataFrame(pd.Series(5, name="n()"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_summarise_nDistinct_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.summarise(df, "distinct = n_distinct(mpg)")
-        expected = pd.DataFrame(pd.Series(4, name="distinct"))
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_arrange_nonDF_Exception(self):
-        data = [1, 2, 3, 4]
-        self.assertRaises(Exception, dplyr_to_pandas.arrange, data, "portal")
-
-    def test_arrange_noDesc_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.arrange(df, "model")
-        expected = pd.DataFrame({'model': ['BMW', 'Ford', 'Lexus', 'Mazda', 'Toyota'],
-                                 'mpg': [25, 20, 25, 30, 50],
-                                 'vs': [1, 0, 0, 1, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_arrange_desc_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.arrange(df, "desc(mpg)")
-        expected = pd.DataFrame({"model": ["Toyota", "Mazda", "Lexus", "BMW", "Ford"],
-                                 "mpg": [50, 30, 25, 25, 20],
-                                 "vs": [1, 1, 0, 1, 0]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-    def test_arrange_both_result(self):
-        df = pd.DataFrame({'model': ['Mazda', 'Toyota', 'Ford', 'Lexus', 'BMW'],
-                           'mpg': [30, 50, 20, 25, 25],
-                           'vs': [1, 1, 0, 0, 1]})
-        actual = dplyr_to_pandas.arrange(df, "mpg", "desc(vs)")
-        expected = pd.DataFrame({"model": ['Ford', 'BMW', 'Lexus', 'Mazda', 'Toyota'],
-                                 'mpg': [20, 25, 25, 30, 50],
-                                 'vs': [0, 1, 0, 1, 1]})
-        pd.testing.assert_frame_equal(actual, expected)
-
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_pull_pandasName(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.Series([172.0, 167.0, 96.0, 202.0, 150.0], name='height')
+        expected.index = pd.Series(['Luke Skywalker', 'C-3PO', 'R2-D2', 'Darth Vader', 'Leia Organa'], name='name')
+        pd.testing.assert_series_equal(expected, pull(starwars, 'height', 'name').head())

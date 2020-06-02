@@ -875,7 +875,7 @@ def replace_na(data, replace):
     """
     if isinstance(data, pd.DataFrame):
         data = data.fillna(replace, axis=0)
-    elif isinstance(data, ps.Column):
+    elif isinstance(data, ps.DataFrame):
         data = data.fillna(replace)
     else:
         raise Exception("Cannot fill NAs on a non-DataFrame")
