@@ -1,5 +1,5 @@
 import pandas as pd
-from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull
+from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count
 import numpy as np
 import unittest
 import pytest
@@ -37,6 +37,36 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'vs': [0] * 5, 'am': [0] * 5, 'gear': [3] * 5, 'carb': [4, 4, 4, 2, 2]})
         pd.testing.assert_frame_equal(expected, actual)
 
+    # Count
+    def test_count_pandas(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.DataFrame({'sex': ['male', 'female', 'none', 'none', 'hermaphroditic'],
+                                 'gender': ['masculine', 'feminine', 'masculine', 'feminine', 'masculine'],
+                                 'n': [60., 16., 5., 1., 1.]})
+        expected['sex'] = expected['sex'].astype('category')
+        expected['gender'] = expected['gender'].astype('category')
+        pd.testing.assert_frame_equal(count(starwars, ['sex', 'gender'], sort=True), expected)
+
+    def test_count_pandasWeight(self):
+        df = pd.DataFrame({'name': ['Max', 'Sandra', 'Susan'],
+                           'gender': ['male', 'female', 'female'],
+                           'runs': [10, 1, 4]})
+        expected = pd.DataFrame({'gender': ['female', 'male'],
+                                 'n': [5, 10]})
+        expected['gender'] = expected['gender'].astype('category')
+        pd.testing.assert_frame_equal(count(df, 'gender', wt='runs'), expected)
+
+    # Add Count
+    def test_addCount_pandas(self):
+        df = pd.DataFrame({'name': ['Max', 'Sandra', 'Susan'],
+                           'gender': ['male', 'female', 'female'],
+                           'runs': [10, 1, 4]})
+        expected = pd.DataFrame({'name': ['Max', 'Sandra', 'Susan'],
+                                 'gender': ['male', 'female', 'female'],
+                                 'runs': [10, 1, 4],
+                                 'n': [10, 5, 5]})
+        pd.testing.assert_frame_equal(add_count(df, "gender", wt="runs"), expected)
+
     # Distinct
     def test_distinct_pandasAll(self):
         data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
@@ -53,12 +83,58 @@ class TestDplyrToPandas(unittest.TestCase):
     # Filter
     def test_filter_pandas(self):
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
-        expected = pd.DataFrame({'name': {15: 'Jabba Desilijic Tiure'}, 'height': {15: 175.0}, 'mass': {15: 1358.0},
-                                 'hair_color': {15: np.nan}, 'skin_color': {15: 'green-tan, brown'}, 'eye_color': {15: 'orange'},
-                                 'birth_year': {15: 600.0}, 'sex': {15: 'hermaphroditic'}, 'gender': {15: 'masculine'},
-                                 'homeworld': {15: 'Nal Hutta'}, 'species': {15: 'Hutt'}})
+        expected = pd.DataFrame({'name': ['Jabba Desilijic Tiure'], 'height': [175.0], 'mass': [1358.0],
+                                 'hair_color': [np.nan], 'skin_color': ['green-tan, brown'], 'eye_color': ['orange'],
+                                 'birth_year': [600.0], 'sex': ['hermaphroditic'], 'gender': ['masculine'],
+                                 'homeworld': ['Nal Hutta'], 'species': ['Hutt']})
         expected['hair_color'] = expected['hair_color'].astype('object')
         pd.testing.assert_frame_equal(expected, filter(starwars, 'mass > 1000'))
+
+    def test_filter_pandasMean(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.DataFrame({'name': ['Darth Vader', 'Owen Lars', 'Chewbacca', 'Jabba Desilijic Tiure', 'Jek Tono Porkins'],
+                                 'height': [202.0, 178.0, 228.0, 175.0, 180.0], 'mass': [136.0, 120.0, 112.0, 1358.0, 110.0],
+                                 'hair_color': ['none', 'brown, grey', 'brown', np.nan, 'brown'],
+                                 'skin_color': ['white', 'light', 'unknown', 'green-tan, brown', 'fair'],
+                                 'eye_color': ['yellow', 'blue', 'blue', 'orange', 'blue'],
+                                 'birth_year': [41.9, 52.0, 200.0, 600.0, np.nan], 'sex': ['male', 'male', 'male', 'hermaphroditic', 'male'],
+                                 'gender': ['masculine'] * 5, 'homeworld': ['Tatooine', 'Tatooine', 'Kashyyyk', 'Nal Hutta', 'Bestine IV'],
+                                 'species': ['Human', 'Human', 'Wookiee', 'Hutt', 'Human']})
+        pd.testing.assert_frame_equal(expected, filter(starwars, 'mass > mean(mass)').head())
+
+    def test_filter_pandasMedian(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.DataFrame(
+            {'name': ['Darth Vader', 'Owen Lars', 'Biggs Darklighter', 'Anakin Skywalker', 'Chewbacca'],
+             'height': [202.0, 178.0, 183.0, 188.0, 228.0], 'mass': [136.0, 120.0, 84.0, 84.0, 112.0],
+             'hair_color': ['none', 'brown, grey', 'black', 'blond', 'brown'],
+             'skin_color': ['white', 'light', 'light', 'fair', 'unknown'],
+             'eye_color': ['yellow', 'blue', 'brown', 'blue', 'blue'],
+             'birth_year': [41.9, 52.0, 24.0, 41.9, 200.0], 'sex': ['male'] * 5,
+             'gender': ['masculine'] * 5, 'homeworld': ['Tatooine', 'Tatooine', 'Tatooine', 'Tatooine', 'Kashyyyk'],
+             'species': ['Human', 'Human', 'Human', 'Human', 'Wookiee']})
+        pd.testing.assert_frame_equal(expected, filter(starwars, "mass > median(mass)").head())
+
+    def test_filter_pandasMax(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.DataFrame({'name': ['Jabba Desilijic Tiure'], 'height': [175.0], 'mass': [1358.0],
+                                 'hair_color': [np.nan], 'skin_color': ['green-tan, brown'], 'eye_color': ['orange'],
+                                 'birth_year': [600.0], 'sex': ['hermaphroditic'], 'gender': ['masculine'],
+                                 'homeworld': ['Nal Hutta'], 'species': ['Hutt']})
+        expected['hair_color'] = expected['hair_color'].astype('object')
+        pd.testing.assert_frame_equal(expected, filter(starwars, 'mass == max(mass)'))
+
+    def test_filter_pandasMin(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        expected = pd.DataFrame({'name': ['Ratts Tyerell'], 'height': [79.0], 'mass': [15.0], 'hair_color': ['none'],
+                                 'skin_color': ['grey, blue'], 'eye_color': ['unknown'], 'birth_year': [np.nan],
+                                 'sex': ['male'], 'gender': ['masculine'], 'homeworld': ['Aleen Minor'], 'species': ['Aleena']})
+        pd.testing.assert_frame_equal(expected, filter(starwars, 'mass == min(mass)'))
+
+    def test_filter_pandasQuantile(self):
+        starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
+        pd.testing.assert_frame_equal(filter(starwars, "mass==median(mass)"), filter(starwars, "mass==quantile(mass, 0.5)"))
+
 
     # Pull
     def test_pull_pandas(self):

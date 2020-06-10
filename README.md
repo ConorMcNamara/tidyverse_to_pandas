@@ -48,11 +48,16 @@ Currently, I have support for the following tidyr functions:
 
 ## dplyr
 To quote Hadley Wickham, "dplyr is a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges:"
-* [mutate](https://dplyr.tidyverse.org/reference/mutate.html): Adds new variables that are functions of existing variables
-* [select](https://dplyr.tidyverse.org/reference/select.html): Picks variables based on their names
-* [filter](https://dplyr.tidyverse.org/reference/filter.html): Picks cases based on their values
-* [summarise](https://dplyr.tidyverse.org/reference/summarise.html): Reduces multiple values down to a single summary
-* [arrange](https://dplyr.tidyverse.org/reference/arrange.html): Changes the ordering of the rows
+
+### One Table Verbs
+* [arrange](https://dplyr.tidyverse.org/reference/arrange.html): Arrange rows by column values
+* [count](https://dplyr.tidyverse.org/reference/count.html): Count observations by group
+* [add_count](https://dplyr.tidyverse.org/reference/count.html): Count observations by group into new column
+* [distinct](https://dplyr.tidyverse.org/reference/distinct.html): Subset distinct/unique rows
+* [filter](https://dplyr.tidyverse.org/reference/filter.html): Subset rows using column values
+
+* [pull](https://dplyr.tidyverse.org/reference/pull.html): Extract a single column
+
 
 ## stringr
 To quote Hadley Wickham, "Strings are not glamorous, high-profile components of R, but they do play a big role in many data cleaning and preparation tasks. 
