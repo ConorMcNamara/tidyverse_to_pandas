@@ -318,8 +318,18 @@ def mutate(data, cols, keep='all'):
     ----------
     data: pandas or pyspark DataFrame
         A dataframe
-    cols
-    keep
+    cols: str, list or dict
+        Name-value pairs. The name gives the name of the column in the output. The value can be:
+            A vector of length 1, which will be recycled to the correct length.
+            A vector the same length as the current group (or the whole data frame if ungrouped).
+            NULL, to remove the column.
+            A data frame or tibble, to create multiple columns in the output.
+    keep: str, default is all
+        Allows you to control which columns from data are retained in the output:
+            "all", the default, retains all variables.
+            "used" keeps any variables used to make new variables; it's useful for checking your work as it displays inputs and outputs side-by-side.
+            "unused" keeps only existing variables not used to make new variables.
+            "none", only keeps grouping keys (like transmute()).
 
     Returns
     -------
@@ -327,20 +337,24 @@ def mutate(data, cols, keep='all'):
     """
     is_pandas = _check_df_type(data, "mutate")
     if is_pandas:
+        if keep.casefold() in ['used', 'unused']:
+            keep_cols = []
+        elif keep.casefold() == 'none':
+            keep_cols = data.columns
         if isinstance(cols, str):
-            cols = re.sub('\s', '', cols)
-            before_equals = re.search('.+?(?=)', cols).group(0)
-            after_equals = re.search('(?<=\=).*', cols).group(0)
+            cols = re.sub(r'\s', r'', cols)
+            before_equals = re.search(r'.+?(?=)', cols).group(0)
+            after_equals = re.search(r'(?<=\=).*', cols).group(0)
             # Handle camelCase
             after_equals = re.sub(r'\b([a-zA-Z]+)\b', r'df.\1', after_equals)
             # Handle Snake Case
             if re.search(r'(_)', after_equals):
                 after_equals = re.sub(r'\b([a-zA-Z]+_)', r'df.\1', after_equals)
             # Handle CamelCase1
-            if re.search(r'([a-zA-Z]+\d)', after_equals):
-                after_equals = re.sub(r'\b([a-zA-Z]+\d)\b', r'df.\1', after_equals)
+            if re.search(r'([a-zA-Z]+\d+)', after_equals):
+                after_equals = re.sub(r'\b([a-zA-Z]+\d+)\b', r'df.\1', after_equals)
             # Handle 18a
-            if re.search(r'(^\d)', after_equals):  # Handles 18a
+            if re.search(r'(^\d)', after_equals):
                 after_equals = re.sub(r'(^\d)', r'df.\1', after_equals)
             # Turn log manipulations into np.log
             if 'df.log(' in after_equals:
@@ -364,7 +378,7 @@ def mutate(data, cols, keep='all'):
                     else:
                         lag_string = ''.join(lag_string.split(',')[1:])
                     if 'n=' in lag_string:
-                        lag_string = re.sub(r'n', 'periods', lag_string)
+                        lag_string = re.sub(r'n=', 'periods=', lag_string)
                     if 'default=' in lag_string:
                         lag_string = re.sub(r'default', 'fill_value', lag_string)
                     if len(lag_string.split(',')) == 2:
@@ -385,19 +399,28 @@ def mutate(data, cols, keep='all'):
                     if 'n=' in lead_string:
                         lead_string = re.sub(r'n=', 'periods=-', lead_string)
                     if 'default=' in lead_string:
-                        lead_string = re.sub(r'default', 'fill_value', lead_string)
-                    if len(lead_string.split(',')) == 2:
+                        lead_string = re.sub(r'default=', 'fill_value=', lead_string)
+                    if len(lead_string.split(',')) >= 2:
                         if 'default' not in lead_string.split(',')[1]:
                             lead_string = re.sub(r',', ',fill_value=', lead_string)
                         if 'n=' not in lead_string.split(',')[0]:
-                            ...
-                            # lead_string = re.sub()
+                            lead_array = lead_string.split(',')
+                            lead_array[0] = str('periods={}'.format(-int(lead_array[0])))
+                            lead_string = ','.join(lead_array)
+                    else:
+                        lead_string = str('periods={}'.format(-int(lead_string)))
                     after_equals = re.sub(r',.*', '', re.sub('df\.lead\(', '', after_equals)) + '.shift({})'.format(lead_string)
                 else:
-                    after_equals = re.sub(r'lag\((.*?)\)', re.search(r'lag\((.*?)\)', cols).group(1) + '.shift()',
+                    after_equals = re.sub(r'lead\((.*?)\)', re.search(r'lead\((.*?)\)', cols).group(1) + '.shift(-1)',
                                           after_equals)
             after_equals = 'lambda df: {}'.format(after_equals)
             data = data.assign(**{before_equals: eval(after_equals)})
+            if keep.casefold() in ['none', 'unused']:
+                data = data.drop(keep_cols, axis=1)
+            elif keep.casefold() == 'used':
+                data = data.drop(data.columns.difference(keep_cols), axis=1)
+            else:
+                pass
         return data
 
 

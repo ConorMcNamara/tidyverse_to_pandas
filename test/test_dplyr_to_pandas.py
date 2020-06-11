@@ -1,5 +1,5 @@
 import pandas as pd
-from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count
+from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count, mutate
 import numpy as np
 import unittest
 import pytest
@@ -135,6 +135,38 @@ class TestDplyrToPandas(unittest.TestCase):
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         pd.testing.assert_frame_equal(filter(starwars, "mass==median(mass)"), filter(starwars, "mass==quantile(mass, 0.5)"))
 
+    # Mutate
+    def test_mutate_pandasString(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [11, 11, 11]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = x + y'), expected)
+
+    def test_mutate_pandasString_log(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y1': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y1': [10, 9, 8],
+                                 'z': [2.302585, 2.197225, 2.079442]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = log(y1)'), expected)
+
+    def test_mutate_pandasString_log2(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y_1': [2, 4, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y_1': [2, 4, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = log2(y_1)'), expected)
+
+    def test_mutate_pandasString_log10(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'yY': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'yY': [10, 100, 1000],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = log10(yY)'), expected)
 
     # Pull
     def test_pull_pandas(self):
