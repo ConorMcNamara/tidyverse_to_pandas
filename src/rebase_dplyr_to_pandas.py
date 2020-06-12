@@ -408,7 +408,12 @@ def mutate(data, cols, keep='all'):
                             lead_array[0] = str('periods={}'.format(-int(lead_array[0])))
                             lead_string = ','.join(lead_array)
                     else:
-                        lead_string = str('periods={}'.format(-int(lead_string)))
+                        if "fill_value=" in lead_string:
+                            lead_string = 'periods=-1,{}'.format(lead_string)
+                        elif 'periods=' in lead_string:
+                            pass
+                        else:
+                            lead_string = str('periods=-{}'.format(int(lead_string)))
                     after_equals = re.sub(r',.*', '', re.sub('df\.lead\(', '', after_equals)) + '.shift({})'.format(lead_string)
                 else:
                     after_equals = re.sub(r'lead\((.*?)\)', re.search(r'lead\((.*?)\)', cols).group(1) + '.shift(-1)',

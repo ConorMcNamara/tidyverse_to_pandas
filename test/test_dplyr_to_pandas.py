@@ -168,6 +168,78 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = log10(yY)'), expected)
 
+    def test_mutate_pandasString_cumsum(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [1, 3, 6]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = cumsum(x)'), expected)
+
+    def test_mutate_pandasString_lag(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [np.nan, 1.0, 2.0]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lag(x)'), expected)
+
+    def test_mutate_pandasString_lagNEquals(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [np.nan, np.nan, 1.0]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lag(x, n=2)'), expected)
+
+    def test_mutate_pandasString_lagDefaultEquals(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [0, 1, 2]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lag(x, default=0)'), expected)
+
+    def test_mutate_pandasString_lagNoKwargs(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [0, 0, 1]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lag(x, 2, 0)'), expected)
+
+    def test_mutate_pandasString_lead(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [2.0, 3.0, np.nan]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lead(x)'), expected)
+
+    def test_mutate_pandasString_leadNEquals(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [3.00, np.nan, np.nan]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, n=2)'), expected)
+
+    def test_mutate_pandasString_leadDefaultEquals(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [2, 3, 0]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, default=0)'), expected)
+
+    def test_mutate_pandasString_leadNoKwargs(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [3, 0, 0]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, 2, 0)'), expected)
+
     # Pull
     def test_pull_pandas(self):
         cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
@@ -179,3 +251,7 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.Series([172.0, 167.0, 96.0, 202.0, 150.0], name='height')
         expected.index = pd.Series(['Luke Skywalker', 'C-3PO', 'R2-D2', 'Darth Vader', 'Leia Organa'], name='name')
         pd.testing.assert_series_equal(expected, pull(starwars, 'height', 'name').head())
+
+
+if __name__ == '__main__':
+    unittest.main()
