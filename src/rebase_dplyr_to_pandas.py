@@ -339,7 +339,7 @@ def mutate(data, cols, keep='all'):
     if is_pandas:
         if keep.casefold() in ['used', 'unused']:
             keep_cols = []
-        elif keep.casefold() == 'none':
+        else:
             keep_cols = data.columns
         if isinstance(cols, str):
             cols = re.sub(r'\s', r'', cols)
@@ -363,12 +363,70 @@ def mutate(data, cols, keep='all'):
                 after_equals = re.sub(r'df.log2', r'np.log2', after_equals)
             if 'df.log10(' in after_equals:
                 after_equals = re.sub(r'df.log10', r'np.log10', after_equals)
+            # Turn trig manipulations into numpy equivalents
+            if 'df.sin(' in after_equals:
+                after_equals = re.sub(r'df.sin', r'np.sin', after_equals)
+            if 'df.cos(' in after_equals:
+                after_equals = re.sub(r'df.cos', r'np.cos', after_equals)
+            if 'df.tan(' in after_equals:
+                after_equals = re.sub(r'df.tan', r'np.tan', after_equals)
+            if 'df.arcsin(' in after_equals:
+                after_equals = re.sub(r'df.arcsin', r'np.arcsin', after_equals)
+            if 'df.arccos(' in after_equals:
+                after_equals = re.sub(r'df.arccos', r'np.arccos', after_equals)
+            if 'df.arctan(' in after_equals:
+                after_equals = re.sub(r'df.arctan', r'np.arctan', after_equals)
+            # Turn hyperbolic manipulations into numpy equivalent
+            if 'df.sinh(' in after_equals:
+                after_equals = re.sub(r'df.sinh', r'np.sinh', after_equals)
+            if 'df.cosh(' in after_equals:
+                after_equals = re.sub(r'df.cosh', r'np.cosh', after_equals)
+            if 'df.tanh(' in after_equals:
+                after_equals = re.sub(r'df.tanh', r'np.tanh', after_equals)
+            if 'df.arcsinh(' in after_equals:
+                after_equals = re.sub(r'df.arcsinh', r'np.arcsinh', after_equals)
+            if 'df.arccosh(' in after_equals:
+                after_equals = re.sub(r'df.arccosh', r'np.arccosh', after_equals)
+            if 'df.arctanh' in after_equals:
+                after_equals = re.sub(r'df.arctanh', r'np.arctanh', after_equals)
+            # Turn rounding manipulations into numpy equivalent
+            if 'df.ceil(' in after_equals:
+                after_equals = re.sub(r'df.ceil', r'np.ceil', after_equals)
+            if 'df.floor(' in after_equals:
+                after_equals = re.sub(r'df.floor', r'np.floor', after_equals)
+            if 'df.round(' in after_equals: # Look into switching to pandas solution as it seems faster than numpy for large Series
+                after_equals = re.sub(r'df.round', r'np.around', after_equals)
+            # Turn mathematical manipulations into numpy equivalents
+            if 'df.sqrt(' in after_equals:
+                after_equals = re.sub(r'df.sqrt', r'np.sqrt', after_equals)
+            if 'df.abs(' in after_equals:
+                after_equals = re.sub(r'abs\((.*?)\)', re.search(r'abs\((.*?)\)', cols).group(1) + '.abs()',
+                                      after_equals)
+            if 'df.sign(' in after_equals:
+                after_equals = re.sub(r'df.sign', r'np.sign', after_equals)
+            if 'df.mean(' in after_equals:
+                after_equals = re.sub(r'mean\((.*?)\)', re.search(r'mean\((.*?)\)', cols).group(1) + '.mean()',
+                                      after_equals)
+            if 'df.avg(' in after_equals:
+                after_equals = re.sub(r'avg\((.*?)\)', re.search(r'avg\((.*?)\)', cols).group(1) + '.mean()',
+                                      after_equals)
+            if 'df.med(' in after_equals:
+                after_equals = re.sub(r'med\((.*?)\)', re.search(r'med\((.*?)\)', cols).group(1) + '.median()',
+                                      after_equals)
+            if 'df.median(' in after_equals:
+                after_equals = re.sub(r'median\((.*?)\)', re.search(r'median\((.*?)\)', cols).group(1) + '.median()',
+                                      after_equals)
+            if 'df.max(' in after_equals:
+                after_equals = re.sub(r'max\((.*?)\)', re.search(r'max\((.*?)\)', cols).group(1) + '.max()', after_equals)
+            if 'df.min(' in after_equals:
+                after_equals = re.sub(r'min\((.*?)\)', re.search(r'min\((.*?)\)', cols).group(1) + '.min()', after_equals)
             # Turn cumulative sum into pandas equivalent
             if 'df.cumsum(' in after_equals:
                 after_equals = re.sub(r'cumsum\((.*?)\)', re.search(r'cumsum\((.*?)\)', cols).group(1) + '.cumsum()',
                                       after_equals)
             if 'df.cummean(' in after_equals:
                 ...
+            # Lead and Lag variables
             if 'df.lag(' in after_equals:
                 if ',' in re.search(r'(?<=lag\(df\.)[a-zA-Z0-9_,\s]*', after_equals).group(0):
                     lag_string = re.search(r'(?<=lag\()[a-zA-Z0-9_,\s\.=]*', after_equals).group(0)
@@ -418,7 +476,14 @@ def mutate(data, cols, keep='all'):
                 else:
                     after_equals = re.sub(r'lead\((.*?)\)', re.search(r'lead\((.*?)\)', cols).group(1) + '.shift(-1)',
                                           after_equals)
+            # Logical Operators
+            if 'df.if_else(' in after_equals:
+                ...
             after_equals = 'lambda df: {}'.format(after_equals)
+            if keep.casefold() in ['used', 'unused']:
+                keep_cols += re.findall(r'df\.([a-zA-Z0-9_]+)', after_equals)
+                if keep.casefold() == 'used':
+                    keep_cols += [before_equals]
             data = data.assign(**{before_equals: eval(after_equals)})
             if keep.casefold() in ['none', 'unused']:
                 data = data.drop(keep_cols, axis=1)

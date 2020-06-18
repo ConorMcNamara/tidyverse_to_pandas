@@ -168,6 +168,134 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = log10(yY)'), expected)
 
+    def test_mutate_pandasString_arcsin(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [1.000000, 1.141593, 0.141593]})
+        pd.testing.assert_frame_equal(mutate(data, "z = arcsin(sin(x))"), expected)
+
+    def test_mutate_pandasString_arccos(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = arccos(cos(x))"), expected)
+
+    def test_mutate_pandasString_arctan(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [1.000000, -1.141593, -0.141593]})
+        pd.testing.assert_frame_equal(mutate(data, "z = arctan(tan(x))"), expected)
+
+    def test_mutate_pandasString_arcsinh(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = arcsinh(sinh(x))"), expected)
+
+    def test_mutate_pandasString_arccosh(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = arccosh(cosh(x))"), expected)
+
+    def test_mutate_pandasString_arctanh(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = arctanh(tanh(x))"), expected)
+
+    def test_mutate_pandasString_ceil(self):
+        data = pd.DataFrame({'x': [1.2, 2.5, 3.7],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1.2, 2.5, 3.7],
+                                 'y': [10, 9, 8],
+                                 'z': [2.0, 3.0, 4.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = ceil(x)"), expected)
+
+    def test_mutate_pandasString_floor(self):
+        data = pd.DataFrame({'x': [1.2, 2.5, 3.7],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1.2, 2.5, 3.7],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = floor(x)"), expected)
+
+    def test_mutate_pandasString_round(self):
+        data = pd.DataFrame({'x': [1.2, 2.5, 3.7],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1.2, 2.5, 3.7],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 4.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = round(x, 0)"), expected)
+
+    def test_mutate_pandasString_sqrt(self):
+        data = pd.DataFrame({'x': [1, 4, 9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [1, 4, 9],
+                                 'y': [10, 9, 8],
+                                 'z': [1.0, 2.0, 3.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = sqrt(x)"), expected)
+
+    def test_mutate_pandasString_abs(self):
+        data = pd.DataFrame({'x': [-1, 4, -9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [-1, 4, -9],
+                                 'y': [10, 9, 8],
+                                 'z': [1, 4, 9]})
+        pd.testing.assert_frame_equal(mutate(data, "z = abs(x)"), expected)
+
+    def test_mutate_pandasString_sign(self):
+        data = pd.DataFrame({'x': [-1, 4, -9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [-1, 4, -9],
+                                 'y': [10, 9, 8],
+                                 'z': [-1, 1, -1]})
+        pd.testing.assert_frame_equal(mutate(data, "z = sign(x)"), expected)
+
+    def test_mutate_pandasString_mean(self):
+        data = pd.DataFrame({'x': [-1, 4, -9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [-1, 4, -9],
+                                 'y': [10, 9, 8],
+                                 'z': [9.0, 9.0, 9.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = mean(y)"), expected)
+
+    def test_mutate_pandasString_median(self):
+        data = pd.DataFrame({'x': [-1, 4, -9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [-1, 4, -9],
+                                 'y': [10, 9, 8],
+                                 'z': [9.0, 9.0, 9.0]})
+        pd.testing.assert_frame_equal(mutate(data, "z = median(y)"), expected)
+
+    def test_mutate_pandasString_min(self):
+        data = pd.DataFrame({'x': [-1, 4, -9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [-1, 4, -9],
+                                 'y': [10, 9, 8],
+                                 'z': [8, 8, 8]})
+        pd.testing.assert_frame_equal(mutate(data, "z = min(y)"), expected)
+
+    def test_mutate_pandasString_max(self):
+        data = pd.DataFrame({'x': [-1, 4, -9],
+                             'y': [10, 9, 8]})
+        expected = pd.DataFrame({'x': [-1, 4, -9],
+                                 'y': [10, 9, 8],
+                                 'z': [10, 10, 10]})
+        pd.testing.assert_frame_equal(mutate(data, "z = max(y)"), expected)
+
     def test_mutate_pandasString_cumsum(self):
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
