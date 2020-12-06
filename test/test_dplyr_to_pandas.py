@@ -1,5 +1,5 @@
 import pandas as pd
-from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count, mutate
+from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count, mutate, rename
 import numpy as np
 import unittest
 import pytest
@@ -304,6 +304,22 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1, 3, 6]})
         pd.testing.assert_frame_equal(mutate(data, 'z = cumsum(x)'), expected)
 
+    def test_mutate_pandasString_cummin(self):
+        data = pd.DataFrame({'x': [3, 4, 2, 4, 1],
+                             'y': [10, 100, 1000, 10000, 100000]})
+        expected = pd.DataFrame({'x': [3, 4, 2, 4, 1],
+                                 'y': [10, 100, 1000, 10000, 100000],
+                                 'z': [3, 3, 2, 2, 1]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = cummin(x)'), expected)
+
+    def test_mutate_pandasString_cummax(self):
+        data = pd.DataFrame({'x': [3, 4, 2, 5, 1],
+                             'y': [10, 100, 1000, 10000, 100000]})
+        expected = pd.DataFrame({'x': [3, 4, 2, 5, 1],
+                                 'y': [10, 100, 1000, 10000, 100000],
+                                 'z': [3, 4, 4, 5, 5]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = cummax(x)'), expected)
+
     def test_mutate_pandasString_lag(self):
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
@@ -368,6 +384,30 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [3, 0, 0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, 2, 0)'), expected)
 
+    def test_mutate_pandasString_ifelse(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [True, False, False]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = if_else(x == 1, True, False)'), expected)
+
+    def test_mutate_pandasString_naif(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, 1000],
+                                 'z': [np.nan, 2, 3]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = na_if(x, 1)'), expected)
+
+    def test_mutate_pandasString_coalesce(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, np.nan]})
+        expected = pd.DataFrame({'x': [1, 2, 3],
+                                 'y': [10, 100, np.nan],
+                                 'z': [10., 100., 1000.]})
+        pd.testing.assert_frame_equal(mutate(data, 'z = coalesce(y, 1000)'), expected)
+
     # Pull
     def test_pull_pandas(self):
         cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
@@ -379,6 +419,21 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.Series([172.0, 167.0, 96.0, 202.0, 150.0], name='height')
         expected.index = pd.Series(['Luke Skywalker', 'C-3PO', 'R2-D2', 'Darth Vader', 'Leia Organa'], name='name')
         pd.testing.assert_series_equal(expected, pull(starwars, 'height', 'name').head())
+
+    # Rename
+    def test_rename_pandasString(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'blarg': [1, 2, 3],
+                                 'y': [10, 100, 1000]})
+        pd.testing.assert_frame_equal(rename(data, 'x = blarg'), expected)
+
+    def test_rename_pandasList(self):
+        data = pd.DataFrame({'x': [1, 2, 3],
+                             'y': [10, 100, 1000]})
+        expected = pd.DataFrame({'blarg': [1, 2, 3],
+                                 'smarg': [10, 100, 1000]})
+        pd.testing.assert_frame_equal(rename(data, ['x = blarg', 'y = smarg']), expected)
 
 
 if __name__ == '__main__':

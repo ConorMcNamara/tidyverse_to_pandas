@@ -230,7 +230,7 @@ def filter(data, cols):
     ----------
     data: pandas DataFrame
         The dataframe for which we filtering the data on
-    *args: str
+    cols: str or list
         The filter conditions we are applying on our dataframe
 
     Returns
@@ -312,7 +312,7 @@ def filter(data, cols):
 
 
 def mutate(data, cols, keep='all'):
-    """
+    """Add new variables while preserving existing ones.
 
     Parameters
     ----------
@@ -333,7 +333,7 @@ def mutate(data, cols, keep='all'):
 
     Returns
     -------
-
+    Our dataframe, but with the new columns added
     """
     is_pandas = _check_df_type(data, "mutate")
     if is_pandas:
@@ -425,7 +425,12 @@ def mutate(data, cols, keep='all'):
                 after_equals = re.sub(r'cumsum\((.*?)\)', re.search(r'cumsum\((.*?)\)', cols).group(1) + '.cumsum()',
                                       after_equals)
             if 'df.cummean(' in after_equals:
-                ...
+                after_equals = re.sub(r'cummean\((.*?)\)', re.search(r'cummean\((.*?)\)', cols).group(1) + '.expanding().mean()',
+                                      after_equals)
+            if 'df.cummin(' in after_equals:
+                after_equals = re.sub(r'df.cummin', r'np.minimum.accumulate', after_equals)
+            if 'df.cummax(' in after_equals:
+                after_equals = re.sub(r'df.cummax', r'np.maximum.accumulate', after_equals)
             # Lead and Lag variables
             if 'df.lag(' in after_equals:
                 if ',' in re.search(r'(?<=lag\(df\.)[a-zA-Z0-9_,\s]*', after_equals).group(0):
@@ -478,8 +483,38 @@ def mutate(data, cols, keep='all'):
                                           after_equals)
             # Logical Operators
             if 'df.if_else(' in after_equals:
-                ...
+                after_equals = re.sub(r'df.if_else', r'np.where', after_equals)
+                # Handle True/False cases
+                if 'True' in after_equals:
+                    after_equals = re.sub(r'df.True', r'True', after_equals)
+                if 'False' in after_equals:
+                    after_equals = re.sub(r'df.False', 'False', after_equals)
+                # Handle strings that aren't columns
+                after_equals_split = after_equals.split(',')
+                after_equals_split_1 = re.sub('df.', '', after_equals_split[1])
+                after_equals_split_2 = re.sub('df.', '', after_equals_split[2])
+                after_equals_split_2 = re.sub('\)', '', after_equals_split_2)
+                if after_equals_split_1 not in data.columns:
+                    after_equals = re.sub(after_equals_split[1], after_equals_split_1, after_equals)
+                if after_equals_split_2 not in data.columns:
+                    after_equals = after_equals.replace(after_equals_split[2], after_equals_split_2)
+                if ')' not in after_equals:
+                    after_equals += ')'
+            # Handle missing values
+            if 'df.na_if(' in after_equals:
+                after_equals_split = after_equals.split(',')
+                after_equals_split_1 = re.sub('df.na_if\(', '', after_equals_split[0])
+                after_equals_split_2 = re.sub('df.', '', after_equals_split[1])
+                after_equals_split_2 = re.sub('\)', '', after_equals_split_2)
+                after_equals = '{0}.replace({1}, np.nan)'.format(after_equals_split_1, after_equals_split_2)
+            if 'df.coalesce(' in after_equals:
+                after_equals_split = after_equals.split(',')
+                after_equals_split_1 = re.sub('df.coalesce\(', '', after_equals_split[0])
+                after_equals_split_2 = re.sub('df.', '', after_equals_split[1])
+                after_equals_split_2 = re.sub('\)', '', after_equals_split_2)
+                after_equals = '{0}.fillna({1})'.format(after_equals_split_1, after_equals_split_2)
             after_equals = 'lambda df: {}'.format(after_equals)
+            # Keep or drop columns
             if keep.casefold() in ['used', 'unused']:
                 keep_cols += re.findall(r'df\.([a-zA-Z0-9_]+)', after_equals)
                 if keep.casefold() == 'used':
@@ -495,6 +530,23 @@ def mutate(data, cols, keep='all'):
 
 
 def transmute(data, cols):
+    """Add new variables while eliminating any columns not used to make our new columns
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A dataframe
+    cols: str, list or dict
+        Name-value pairs. The name gives the name of the column in the output. The value can be:
+            A vector of length 1, which will be recycled to the correct length.
+            A vector the same length as the current group (or the whole data frame if ungrouped).
+            NULL, to remove the column.
+            A data frame or tibble, to create multiple columns in the output.
+
+    Returns
+    -------
+    Our dataframe, but with the new columns added and all non-grouping keys removed
+    """
     return mutate(data, cols, keep='None')
 
 
@@ -534,3 +586,36 @@ def pull(data, var, name=None):
         else:
             return_col = data.select(data.columns[var])
     return return_col
+
+
+def rename(data, cols):
+    """Change the name of individual columns
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A dataframe
+    cols: str or list
+        The columns we are renaming, and the name we are changing them to
+
+    Returns
+    -------
+    Our dataframe, but with the columns renamed
+    """
+    is_pandas = _check_df_type(data, 'rename')
+    if is_pandas:
+        rename_dict = {}
+        if isinstance(cols, str):
+            cols = re.sub(r'\s', r'', cols)
+            split_name = cols.split('=')
+            rename_dict[split_name[0]] = split_name[1]
+        elif isinstance(cols, list):
+            rename_dict = {}
+            for col in cols:
+                col = re.sub(r'\s', r'', col)
+                split_name = col.split('=')
+                rename_dict[split_name[0]] = split_name[1]
+        data = data.rename(columns=rename_dict)
+    else:
+        ...
+    return data
