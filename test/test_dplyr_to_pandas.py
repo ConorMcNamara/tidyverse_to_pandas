@@ -1,5 +1,5 @@
 import pandas as pd
-from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count, mutate, rename
+from src.rebase_dplyr_to_pandas import arrange, distinct, filter, pull, count, add_count, mutate, rename, relocate
 import numpy as np
 import unittest
 import pytest
@@ -434,6 +434,52 @@ class TestDplyrToPandas(unittest.TestCase):
         expected = pd.DataFrame({'blarg': [1, 2, 3],
                                  'smarg': [10, 100, 1000]})
         pd.testing.assert_frame_equal(rename(data, ['x = blarg', 'y = smarg']), expected)
+
+    # Relocate
+    def test_relocate_beforeAfterNone(self):
+        data = pd.DataFrame({'a': [1],
+                             'b': [1],
+                             'c': [1],
+                             'd': ['a'],
+                             'e': ['a'],
+                             'f': ['a']})
+        expected = pd.DataFrame({'f': ['a'],
+                                 'a': [1],
+                                 'b': [1],
+                                 'c': [1],
+                                 'd': ['a'],
+                                 'e': ['a']})
+        pd.testing.assert_frame_equal(relocate(data, 'f'), expected)
+
+    def test_relocate_before(self):
+        data = pd.DataFrame({'a': [1],
+                             'b': [1],
+                             'c': [1],
+                             'd': ['a'],
+                             'e': ['a'],
+                             'f': ['a']})
+        expected = pd.DataFrame({'a': [1],
+                                 'f': ['a'],
+                                 'b': [1],
+                                 'c': [1],
+                                 'd': ['a'],
+                                 'e': ['a']})
+        pd.testing.assert_frame_equal(relocate(data, 'f', before='b'), expected)
+
+    def test_relocate_after(self):
+        data = pd.DataFrame({'a': [1],
+                             'b': [1],
+                             'c': [1],
+                             'd': ['a'],
+                             'e': ['a'],
+                             'f': ['a']})
+        expected = pd.DataFrame({'b': [1],
+                                 'c': [1],
+                                 'a': [1],
+                                 'd': ['a'],
+                                 'e': ['a'],
+                                 'f': ['a']})
+        pd.testing.assert_frame_equal(relocate(data, 'a', after='c'), expected)
 
 
 if __name__ == '__main__':

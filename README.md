@@ -57,6 +57,7 @@ To quote Hadley Wickham, "dplyr is a grammar of data manipulation, providing a c
 * [filter](https://dplyr.tidyverse.org/reference/filter.html): Subset rows using column values
 
 * [pull](https://dplyr.tidyverse.org/reference/pull.html): Extract a single column
+* [rename](https://dplyr.tidyverse.org/reference/rename.html): Rename a column(s)
 
 
 ## stringr

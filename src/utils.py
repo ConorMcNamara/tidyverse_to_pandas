@@ -47,7 +47,7 @@ def _get_list_columns(data, list_cols, is_pandas=True):
     ----------
     data: pandas or pyspark column
         Our data frame for determining applicable column names
-    list_cls: list, tuple or numpy array
+    list_cols: list, tuple or numpy array
         The arguments for selecting columns. Currently supported are the name itself, "x", everything but the column
         listed, "-x", and every column in-between, "x:y".
     is_pandas: bool, default is True

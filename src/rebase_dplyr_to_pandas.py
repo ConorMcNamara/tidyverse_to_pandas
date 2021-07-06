@@ -224,11 +224,11 @@ def distinct(data, cols=None, keep_all=False):
 
 
 def filter(data, cols):
-    """Filters data based on arguments from args
+    """Filters data based on arguments from cols
 
     Parameters
     ----------
-    data: pandas DataFrame
+    data: pandas or pyspark DataFrame
         The dataframe for which we filtering the data on
     cols: str or list
         The filter conditions we are applying on our dataframe
@@ -414,7 +414,7 @@ def mutate(data, cols, keep='all'):
                 after_equals = re.sub(r'med\((.*?)\)', re.search(r'med\((.*?)\)', cols).group(1) + '.median()',
                                       after_equals)
             if 'df.median(' in after_equals:
-                after_equals = re.sub(r'median\((.*?)\)', re.search(r'median\((.*?)\)', cols).group(1) + '.median()',
+                after_equals = re.sub(r'median\((.*?)\)', re.search(r'median\f((.*?)\)', cols).group(1) + '.median()',
                                       after_equals)
             if 'df.max(' in after_equals:
                 after_equals = re.sub(r'max\((.*?)\)', re.search(r'max\((.*?)\)', cols).group(1) + '.max()', after_equals)
@@ -500,6 +500,16 @@ def mutate(data, cols, keep='all'):
                     after_equals = after_equals.replace(after_equals_split[2], after_equals_split_2)
                 if ')' not in after_equals:
                     after_equals += ')'
+            if 'df.recode(' in after_equals:
+                recode = {}
+                after_equals_split = after_equals.split(',')
+                after_equals_split_name = re.sub('df.recode\(', '', after_equals_split[0])
+                for i in range(1, len(after_equals_split)):
+                    split_equals = after_equals_split[i].split('=')
+                    var_to_be_changed = re.sub('df.', '', split_equals[0])
+                    var_to_change = re.sub('df.', '', split_equals[1])
+                    recode[var_to_be_changed] = var_to_change
+                after_equals = '{0}.replace({1})'.format(after_equals_split_name, recode)
             # Handle missing values
             if 'df.na_if(' in after_equals:
                 after_equals_split = after_equals.split(',')
@@ -527,6 +537,8 @@ def mutate(data, cols, keep='all'):
             else:
                 pass
         return data
+    elif isinstance(cols, list):
+        columns = _get_list_columns(data, cols, is_pandas)
 
 
 def transmute(data, cols):
@@ -619,3 +631,82 @@ def rename(data, cols):
     else:
         ...
     return data
+
+
+def relocate(data, cols, before=None, after=None):
+    """Use relocate() to change column positions
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A dataframe
+    cols: str or list
+         Columns to move
+    before: str, default=None
+        Destination of columns. Default is to move to the very left.
+    after: str, default=None
+        Destination of columns. Default is to move the very left.
+
+    Returns
+    -------
+    Our dataframe, but with the columns repositioned
+    """
+    is_pandas = _check_df_type(data, 'rename')
+    if isinstance(cols, str):
+        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, list):
+        cols = _get_list_columns(data, cols, is_pandas)
+    if is_pandas:
+        if before is None and after is None:
+            new_cols = [cols] + data.columns.difference([cols]).tolist()
+            return_data = data[new_cols]
+        elif isinstance(before, str):
+            if isinstance(after, str):
+                raise ValueError("Only one of before or after can be specified")
+            if isinstance(cols, str):
+                cols_to_move = data.pop(cols).values
+                data.insert(data.columns.get_loc(before), cols, cols_to_move)
+            else:
+                for col in cols:
+                    cols_to_move = data.pop(col).values
+                    data.insert(data.columns.get_loc(before) - 1, col, cols_to_move)
+            return_data = data.copy()
+        elif isinstance(after, str):
+            if isinstance(cols, str):
+                cols_to_move = data.pop(cols).values
+                data.insert(data.columns.get_loc(after) + 1, cols, cols_to_move)
+            else:
+                for i, col in enumerate(cols):
+                    cols_to_move = data.pop(cols).values
+                    data.insert(data.columns.get_loc(after) + (i + 1), col, cols_to_move)
+            return_data = data.copy()
+        else:
+            raise TypeError("One of before or after must be in string format, or both set to None")
+        return return_data
+    else:
+        ...
+
+
+def select(data, cols):
+    """Select variables in a data frame
+
+    Parameters
+    ----------
+    data: pandas or pyspark DataFrame
+        A dataframe
+    cols: str or list
+         Columns to move
+
+    Returns
+    -------
+    Our dataframe, but with the selected columns
+    """
+    is_pandas = _check_df_type(data, "select")
+    if isinstance(cols, str):
+        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
+    elif isinstance(cols, list):
+        cols = _get_list_columns(data, cols, is_pandas)
+    if is_pandas:
+        return data.loc[:, cols]
+    else:
+        return data.select(*cols)
