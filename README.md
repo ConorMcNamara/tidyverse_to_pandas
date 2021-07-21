@@ -49,15 +49,19 @@ Currently, I have support for the following tidyr functions:
 ## dplyr
 To quote Hadley Wickham, "dplyr is a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges:"
 
+Currently I have support for the following dplyr functions:
+
 ### One Table Verbs
 * [arrange](https://dplyr.tidyverse.org/reference/arrange.html): Arrange rows by column values
 * [count](https://dplyr.tidyverse.org/reference/count.html): Count observations by group
 * [add_count](https://dplyr.tidyverse.org/reference/count.html): Count observations by group into new column
 * [distinct](https://dplyr.tidyverse.org/reference/distinct.html): Subset distinct/unique rows
 * [filter](https://dplyr.tidyverse.org/reference/filter.html): Subset rows using column values
-
+* [mutate](https://dplyr.tidyverse.org/reference/mutate.html): Adds new variables and preserves existing ones
+* [transute](https://dplyr.tidyverse.org/reference/mutate.html): Adds new variables and drops existing ones
 * [pull](https://dplyr.tidyverse.org/reference/pull.html): Extract a single column
 * [rename](https://dplyr.tidyverse.org/reference/rename.html): Rename a column(s)
+* [relocate](https://dplyr.tidyverse.org/reference/relocate.html): Change column order
 
 
 ## stringr
@@ -109,3 +113,12 @@ the best place to start is the chapter on strings in R for Data Science."
 
 
 ## lubridate
+To quote Hadley Wickham, "Date-time data can be frustrating to work with in R. R commands for date-times are generally unintuitive and change depending on the type of date-time object being used. Moreover, the methods we use with date-times must be robust to time zones, leap days, daylight savings times, and other time related quirks, and R lacks these capabilities in some situations. Lubridate makes it easier to do the things R does with date-times and possible to do the things R does not."
+
+Currently I have support for the following lubridate functions:
+* [ymd](https://lubridate.tidyverse.org/reference/ymd.html): Transforms dates in the format ymd
+* [ydm](https://lubridate.tidyverse.org/reference/ymd.html): Transforms dates in the format ydm
+* [mdy](https://lubridate.tidyverse.org/reference/ymd.html): Transforms dates in the format mdy
+* [myd](https://lubridate.tidyverse.org/reference/ymd.html): Transforms dates in the format myd
+* [dmy](https://lubridate.tidyverse.org/reference/ymd.html): Transforms dates in the format dmy
+* [dym](https://lubridate.tidyverse.org/reference/ymd.html): Transforms dates in the format dym
