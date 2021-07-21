@@ -6,6 +6,7 @@ from itertools import compress
 from string import capwords
 from natsort import index_natsorted
 
+
 # Character Manipulation
 
 
@@ -105,7 +106,8 @@ def str_dup(string, num_dupes):
     """
     if isinstance(string, str):
         if not isinstance(num_dupes, int):
-            raise TypeError("Cannot determine number of duplications using type {}. Use integer instead".format(type(num_dupes)))
+            raise TypeError(
+                "Cannot determine number of duplications using type {}. Use integer instead".format(type(num_dupes)))
         else:
             return string * num_dupes
     elif isinstance(string, (list, tuple)):
@@ -191,14 +193,14 @@ def str_trunc(string, width, side="right", ellipsis="..."):
         elif side.casefold() == 'left':
             return str(ellipsis) + string[-width:]
         else:
-            return string[:width//2] + ellipsis + string[-width//2:]
+            return string[:width // 2] + ellipsis + string[-width // 2:]
     elif isinstance(string, (list, tuple)):
         if side.casefold() == 'right':
             return [s[:width] + str(ellipsis) for s in string]
         elif side.casefold() == 'left':
             return [str(ellipsis) + s[-width:] for s in string]
         else:
-            return [s[:width//2] + str(ellipsis) + s[-width//2:] for s in string]
+            return [s[:width // 2] + str(ellipsis) + s[-width // 2:] for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
@@ -208,14 +210,14 @@ def str_trunc(string, width, side="right", ellipsis="..."):
         elif side.casefold() == 'left':
             return np.frompyfunc(lambda s: str(ellipsis) + s[-width:], 1, 1)(string)
         else:
-            return np.frompyfunc(lambda s: s[:width//2] + str(ellipsis) + s[-width//2], 1, 1)(string)
+            return np.frompyfunc(lambda s: s[:width // 2] + str(ellipsis) + s[-width // 2], 1, 1)(string)
     elif isinstance(string, pd.Series):
         if side.casefold() == 'right':
             return string.str.slice(stop=width) + str(ellipsis)
         elif side.casefold() == 'left':
             return string.str.slice(start=width) + str(ellipsis)
         else:
-            return string.str.slice(stop=width//2) + str(ellipsis) + string.str.slice(start=width//2)
+            return string.str.slice(stop=width // 2) + str(ellipsis) + string.str.slice(start=width // 2)
     elif isinstance(string, ps.Column):
         ...
     else:
@@ -484,6 +486,46 @@ def str_sort(string, decreasing=False, na_last=True, numeric=False):
             ...
 
 
+def str_equal(x, y, ignore_case=False):
+    """Determines if two strings are equivalent
+
+    Parameters
+    ----------
+    x, y: str or list/tuple or numpy array or pandas Series or pyspark column
+        A pair of character vectors
+    ignore_case: bool, default=False
+        Ignore case when comparing strings?
+
+    Returns
+    -------
+    Whether or not the strings are equal
+    """
+    if type(x) != type(y):
+        raise TypeError("x and y must be of the same type")
+    if isinstance(x, str):
+        if ignore_case is False:
+            return x.casefold() == y.casefold()
+        else:
+            return x.decode('utf8') == y.decode('utf8')
+    elif isinstance(x, pd.Series):
+        if ignore_case is False:
+            return np.where(x.str.casefold() == y.str.casefold(), True, False)
+        else:
+            return np.where(x.apply(lambda a: a.decode('utf8')) == y.apply(lambda b: b.decode('utf8')), True, False)
+    elif isinstance(x, (list, tuple)):
+        if ignore_case is False:
+            return [i.casefold() == j.casefold() for i, j in zip(x, y)]
+        else:
+            return [i.decode('utf8') == y.decode('utf8') for i,j in zip(x, y)]
+    elif isinstance(x, (np.ndarray, np.generic)):
+        if ignore_case is True:
+            return np.compare_chararrays(np.char.upper(x), np.char.upper(y), "==", True)
+        else:
+            return np.compare_chararrays(x, y, "==", True)
+    else:
+        ...
+
+
 # Whitespace Manipulation
 
 def str_pad(string, width, side="right", pad=" "):
@@ -640,7 +682,7 @@ def str_squish(string):
 
     Returns
     -------
-
+    Our squished string
     """
     if isinstance(string, str):
         squished_string = " ".join(string.split())
@@ -980,13 +1022,13 @@ def str_split(string, pattern=" ", n=-1, simplify=False):
         split_string = [s.split(pattern, maxsplit=n) for s in string]
         if simplify:
             length = max(map(len, split_string))
-            split_string = [xi + [""] * (length-len(xi)) for xi in split_string]
+            split_string = [xi + [""] * (length - len(xi)) for xi in split_string]
         return split_string
     elif isinstance(string, (np.ndarray, np.generic)):
         split_string = np.char.split(string, pattern, maxsplit=n)
         if simplify:
             length = max(map(len, split_string))
-            split_string = np.array([np.array(xi + [""] * (length-len(xi))) for xi in split_string])
+            split_string = np.array([np.array(xi + [""] * (length - len(xi))) for xi in split_string])
         return split_string
     elif isinstance(string, pd.Series):
         split_string = string.str.split(pattern, n=n, expand=simplify)
@@ -1142,12 +1184,15 @@ def str_extract(string, pattern):
         else:
             return None
     elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
-        extract = [re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None for s in string]
+        extract = [
+            re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None
+            for s in string]
         if isinstance(string, (np.ndarray, np.generic)):
             extract = np.array(extract)
         return extract
     elif isinstance(string, pd.Series):
-        return pd.Series([re.search(pattern, s[1]).group(0) if s[1] not in [None, np.nan] and re.search(pattern, s[1]) is not None else None for s in string.iteritems()])
+        return pd.Series([re.search(pattern, s[1]).group(0) if s[1] not in [None, np.nan] and re.search(pattern, s[
+            1]) is not None else None for s in string.iteritems()])
     elif isinstance(string, ps.Column):
         ...
     else:
@@ -1184,7 +1229,7 @@ def str_extract_all(string, pattern, simplify=False):
             match = ["" if x is None else x for x in match]
         if isinstance(string, (np.ndarray, np.generic)):
             match = np.array(match)
-    elif isinstance(string,  pd.Series):
+    elif isinstance(string, pd.Series):
         if '(' not in pattern:
             pattern = '(' + pattern + ')'
         match = string.str.extractall(pattern)
@@ -1198,7 +1243,8 @@ def str_extract_all(string, pattern, simplify=False):
                 match = match.fillna("")
             else:
                 flat_match = pd.Series([""] * len(string), name='match')
-                flat_match[flat_match.index.isin(match.reset_index().level_0)] = match.rename({0: 'val'}, axis=1).reset_index()['val'].values
+                flat_match[flat_match.index.isin(match.reset_index().level_0)] = \
+                match.rename({0: 'val'}, axis=1).reset_index()['val'].values
                 match = flat_match
     elif isinstance(string, ps.Column):
         ...
@@ -1238,7 +1284,8 @@ def str_match(string, pattern):
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
         return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
         max_length = max(len(x) for x in return_match)
-        return_match = [val if len(val) == max_length else [None] * max_length for index, val in enumerate(return_match)]
+        return_match = [val if len(val) == max_length else [None] * max_length for index, val in
+                        enumerate(return_match)]
         if isinstance(string, (np.ndarray, np.generic)):
             return_match = np.array(return_match)
     elif isinstance(string, pd.Series):
@@ -1302,7 +1349,8 @@ def str_match_all(string, pattern):
             partial_match = str_extract_all(whole_match, pattern, simplify=True)
             return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
             max_length = max(len(x) for x in return_match)
-            return_match = [val if len(val) == max_length else [''] * max_length for index, val in enumerate(return_match)]
+            return_match = [val if len(val) == max_length else [''] * max_length for index, val in
+                            enumerate(return_match)]
             if isinstance(string, (np.ndarray, np.generic)):
                 return_match = np.array(return_match)
     return return_match
