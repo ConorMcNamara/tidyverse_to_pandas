@@ -6,7 +6,7 @@ from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, st
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
     str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all, str_match, str_match_all, \
-    str_equal
+    str_equal, str_unique
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -640,6 +640,32 @@ class TestStrEqual:
         pd.testing.assert_series_equal(pd.Series([True, False, True, True]), stp.str_equal(string1, string2, True))
         pd.testing.assert_series_equal(pd.Series([False, False, True, True]), stp.str_equal(string1, string2))
 
+class TestStrUnique:
+
+    @staticmethod
+    def test_strUnique_string():
+        string = "guinea pig"
+        assert stp.str_unique(string) == "guinea p"
+        assert stp.str_unique(string, True) == "guinea p"
+
+    @staticmethod
+    def test_strUnique_list():
+        string = ["a", "b", "c", "b", "a"]
+        assert stp.str_unique(string) == ['a', 'b', 'c']
+        assert stp.str_unique(string, True) == ['a', 'b', 'c']
+
+    @staticmethod
+    def test_strUnique_array():
+        string = np.array(["motley", "mötley", "pinguino", "pingüino"])
+        np.testing.assert_array_equal(stp.str_unique(string), np.array(['motley', 'pinguino']))
+        np.testing.assert_array_equal(stp.str_unique(string, True), string)
+
+    @staticmethod
+    def test_strUnique_series():
+        string = pd.Series(["What", "what", "is", "love"])
+        pd.testing.assert_series_equal(stp.str_unique(string), pd.Series(["what", "is", "love"]))
+        pd.testing.assert_series_equal(stp.str_unique(string, True), string)
+ 
 
 if __name__ == '__main__':
     unittest.main()
