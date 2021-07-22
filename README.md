@@ -83,9 +83,10 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_to_title](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to title format
 * [str_to_sentence](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to sentence format
 
-### Order
+### Order and Equality
 * [str_order](https://stringr.tidyverse.org/reference/str_order.html): Orders a string
 * [str_sort](https://stringr.tidyverse.org/reference/str_order.html): Sorts a string
+* [str_equal](https://stringr.tidyverse.org/reference/str_equal.html): Determines if two strings are equivalent
 
 ### Whitespace Manipulation
 * [str_pad](https://stringr.tidyverse.org/reference/str_pad.html): Pads a string
