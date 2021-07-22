@@ -5,7 +5,8 @@ import numpy as np
 from src.stringr_to_pandas import str_length, str_sub, str_detect, str_count, str_dup, str_subset, str_to_upper, \
     str_to_lower, str_to_sentence, str_to_title, str_replace_all, str_order, str_sort, str_flatten, str_trunc, \
     str_remove_all, str_replace_na, str_replace, str_remove, str_split, str_split_fixed, str_split_n, str_pad, \
-    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all, str_match, str_match_all
+    str_squish, str_trim, str_which, str_starts, str_ends, str_extract, str_extract_all, str_match, str_match_all, \
+    str_equal
 
 
 class TestStringrToPandas(unittest.TestCase):
@@ -607,6 +608,37 @@ class TestStringrToPandas(unittest.TestCase):
         expected = pd.DataFrame([['<a>', 'a'], ['<b>', 'b'], ['<a>', 'a'], ['<>', ''], ['<a>', 'a'], ['', ''], ['', '']])
         expected.columns = ['whole_match', 0]
         pd.testing.assert_frame_equal(str_match_all(x, "<(.*?)>"), expected)
+        
+# String Equal
+class TestStrEqual:
+
+    @staticmethod
+    def test_strEqual_str():
+        string1 = '\u03A9'
+        string2 = '\u2126'
+        assert stp.str_equal(string1, string2) is True
+        assert stp.str_equal(string1, string2, True) is True
+
+    @staticmethod
+    def test_strEqual_list():
+        string1 = ['\u00e1']
+        string2 = ["a\u0301"]
+        np.testing.assert_array_equal(stp.str_equal(string1, string2, True), [True])
+        np.testing.assert_array_equal(stp.str_equal(string1, string2), [True])
+
+    @staticmethod
+    def test_strEqual_array():
+        string1 = np.array(['guinea', 'pigs', 'and', 'farts'])
+        string2 = np.array(['Guinea', 'pigs', '&', 'farts'])
+        np.testing.assert_array_equal(stp.str_equal(string1, string2), np.array([False, True, False, True]))
+        np.testing.assert_array_equal(stp.str_equal(string1, string2, True), np.array([True, True, False, True]))
+
+    @staticmethod
+    def test_strEqual_series():
+        string1 = pd.Series(["Farts", "and", "guinea", "pigs"])
+        string2 = pd.Series(["farts", "&", "guinea", "pigs"])
+        pd.testing.assert_series_equal(pd.Series([True, False, True, True]), stp.str_equal(string1, string2, True))
+        pd.testing.assert_series_equal(pd.Series([False, False, True, True]), stp.str_equal(string1, string2))
 
 
 if __name__ == '__main__':
