@@ -1,9 +1,13 @@
+import re
+import unicodedata
+
+from itertools import compress
+from string import capwords
+
 import pandas as pd
 import numpy as np
 import pyspark.sql as ps
-import re
-from itertools import compress
-from string import capwords
+
 from natsort import index_natsorted
 
 
@@ -107,7 +111,10 @@ def str_dup(string, num_dupes):
     if isinstance(string, str):
         if not isinstance(num_dupes, int):
             raise TypeError(
-                "Cannot determine number of duplications using type {}. Use integer instead".format(type(num_dupes)))
+                "Cannot determine number of duplications using type {}. Use integer instead".format(
+                    type(num_dupes)
+                )
+            )
         else:
             return string * num_dupes
     elif isinstance(string, (list, tuple)):
@@ -130,9 +137,9 @@ def str_dup(string, num_dupes):
         repeat_array = np.repeat(string, num_dupes)
         split_repeat = np.split(repeat_array, cum_dupes)
         if len(string) == 1:
-            return np.array([''.join(row) for row in split_repeat])[:-1]
+            return np.array(["".join(row) for row in split_repeat])[:-1]
         else:
-            return np.array([''.join(row) for row in split_repeat])
+            return np.array(["".join(row) for row in split_repeat])
     elif isinstance(string, pd.Series):
         return string.str.repeat(repeats=num_dupes)
     elif isinstance(string, ps.Column):
@@ -158,13 +165,13 @@ def str_flatten(string, collapse=""):
     if isinstance(string, str):
         return string
     elif isinstance(string, (list, tuple)):
-        return '{}'.format(collapse).join([char for char in string])
+        return "{}".format(collapse).join([char for char in string])
     elif isinstance(string, (np.ndarray, np.generic)):
         # Ironically, we can call this for both pandas and lists, but I wanted to show the various ways of doing it
         # rather than simply calling the iterable.
-        return '{}'.format(collapse).join(string)
+        return "{}".format(collapse).join(string)
     elif isinstance(string, pd.Series):
-        return '{}'.format(collapse).join(string.values.flatten())
+        return "{}".format(collapse).join(string.values.flatten())
 
 
 def str_trunc(string, width, side="right", ellipsis="..."):
@@ -185,39 +192,45 @@ def str_trunc(string, width, side="right", ellipsis="..."):
     -------
     Our truncated string
     """
-    if side.casefold() not in ['right', 'left', 'center']:
+    if side.casefold() not in ["right", "left", "center"]:
         raise ValueError("Cannot determine location of ellipsis.")
     if isinstance(string, str):
-        if side.casefold() == 'right':
+        if side.casefold() == "right":
             return string[:width] + str(ellipsis)
-        elif side.casefold() == 'left':
+        elif side.casefold() == "left":
             return str(ellipsis) + string[-width:]
         else:
-            return string[:width // 2] + ellipsis + string[-width // 2:]
+            return string[: width // 2] + ellipsis + string[-width // 2 :]
     elif isinstance(string, (list, tuple)):
-        if side.casefold() == 'right':
+        if side.casefold() == "right":
             return [s[:width] + str(ellipsis) for s in string]
-        elif side.casefold() == 'left':
+        elif side.casefold() == "left":
             return [str(ellipsis) + s[-width:] for s in string]
         else:
-            return [s[:width // 2] + str(ellipsis) + s[-width // 2:] for s in string]
+            return [s[: width // 2] + str(ellipsis) + s[-width // 2 :] for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
         # to all elements of the array
-        if side.casefold() == 'right':
+        if side.casefold() == "right":
             return np.frompyfunc(lambda s: s[:width] + str(ellipsis), 1, 1)(string)
-        elif side.casefold() == 'left':
+        elif side.casefold() == "left":
             return np.frompyfunc(lambda s: str(ellipsis) + s[-width:], 1, 1)(string)
         else:
-            return np.frompyfunc(lambda s: s[:width // 2] + str(ellipsis) + s[-width // 2], 1, 1)(string)
+            return np.frompyfunc(
+                lambda s: s[: width // 2] + str(ellipsis) + s[-width // 2], 1, 1
+            )(string)
     elif isinstance(string, pd.Series):
-        if side.casefold() == 'right':
+        if side.casefold() == "right":
             return string.str.slice(stop=width) + str(ellipsis)
-        elif side.casefold() == 'left':
+        elif side.casefold() == "left":
             return string.str.slice(start=width) + str(ellipsis)
         else:
-            return string.str.slice(stop=width // 2) + str(ellipsis) + string.str.slice(start=width // 2)
+            return (
+                string.str.slice(stop=width // 2)
+                + str(ellipsis)
+                + string.str.slice(start=width // 2)
+            )
     elif isinstance(string, ps.Column):
         ...
     else:
@@ -256,6 +269,7 @@ def str_replace_na(string, replacement="NA"):
 
 
 # Case Transformations
+
 
 def str_to_upper(string):
     """Converts all string to UPPERCASE
@@ -309,7 +323,7 @@ def str_to_title(string):
         raise TypeError("Cannot determine to how titalize strings")
 
 
-def str_to_lower(string, locale='en'):
+def str_to_lower(string, locale="en"):
     """Converts all of our strings into lowercase
 
     Parameters
@@ -324,22 +338,22 @@ def str_to_lower(string, locale='en'):
     All of our strings in lowercase
     """
     if isinstance(string, str):
-        if locale == 'en':
+        if locale == "en":
             return string.casefold()
         else:
             return string.lower()
     elif isinstance(string, (list, tuple)):
-        if locale == 'en':
+        if locale == "en":
             return [s.casefold() for s in string]
         else:
             return [s.lower() for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
-        if locale == 'en':
+        if locale == "en":
             return np.array(list(map(lambda v: v.casefold(), string)))
         else:
             return np.char.lower(string)
     elif isinstance(string, pd.Series):
-        if locale == 'en':
+        if locale == "en":
             return string.str.casefold()
         else:
             return string.str.lower()
@@ -403,18 +417,24 @@ def str_order(string, decreasing=False, na_last=True, numeric=False):
         if numeric:
             if na_last is True:
                 # For Python string comparisons, 9 is considered the highest for numbers
-                string = [val if val not in [np.nan, None] else '9' * max_str_length for val in string]
+                string = [
+                    val if val not in [np.nan, None] else "9" * max_str_length
+                    for val in string
+                ]
             elif na_last is False:
                 # Similarly, for Python string comparisons, 0 is considered the lowest for numbers
-                string = [val if val not in [np.nan, None] else '0' for val in string]
+                string = [val if val not in [np.nan, None] else "0" for val in string]
             sorted_strings = index_natsorted(string)
         else:
             if na_last is True:
                 # For Python string comparisons, 'z' is considered the highest for letters
-                string = [val if val not in [np.nan, None] else 'z' * max_str_length for val in string]
+                string = [
+                    val if val not in [np.nan, None] else "z" * max_str_length
+                    for val in string
+                ]
             elif na_last is False:
                 # For Python string comparisons, 'A' is considered the lowest for letters
-                string = [val if val not in [np.nan, None] else 'A' for val in string]
+                string = [val if val not in [np.nan, None] else "A" for val in string]
             sorted_strings = sorted(range(len(string)), key=string.__getitem__)
     elif isinstance(string, (np.ndarray, np.generic)):
         if na_last is None:
@@ -422,30 +442,34 @@ def str_order(string, decreasing=False, na_last=True, numeric=False):
             string = string[string != None]
         if numeric:
             if na_last is True:
-                string = np.where(np.isin(string, [np.nan, None]), '9' * max_str_length, string)
+                string = np.where(
+                    np.isin(string, [np.nan, None]), "9" * max_str_length, string
+                )
             elif na_last is False:
-                string = np.where(np.isin(string, [np.nan, None]), '0', string)
+                string = np.where(np.isin(string, [np.nan, None]), "0", string)
             sorted_strings = np.array(index_natsorted(string))
         else:
             if na_last is True:
-                string = np.where(np.isin(string, [np.nan, None]), 'z' * max_str_length, string)
+                string = np.where(
+                    np.isin(string, [np.nan, None]), "z" * max_str_length, string
+                )
             elif na_last is False:
-                string = np.where(np.isin(string, [np.nan, None]), 'A', string)
+                string = np.where(np.isin(string, [np.nan, None]), "A", string)
             sorted_strings = np.argsort(string)
     elif isinstance(string, pd.Series):
         if na_last is None:
             string = string.dropna()
         if numeric:
             if na_last is True:
-                string = string.fillna('9' * max_str_length)
+                string = string.fillna("9" * max_str_length)
             elif na_last is False:
-                string = string.fillna('0')
+                string = string.fillna("0")
             sorted_strings = pd.Series(index_natsorted(string))
         else:
             if na_last is True:
-                string = string.fillna('z' * max_str_length)
+                string = string.fillna("z" * max_str_length)
             elif na_last is False:
-                string = string.fillna('A')
+                string = string.fillna("A")
             sorted_strings = string.argsort()
     elif isinstance(string, ps.Column):
         ...
@@ -503,30 +527,70 @@ def str_equal(x, y, ignore_case=False):
     if type(x) != type(y):
         raise TypeError("x and y must be of the same type")
     if isinstance(x, str):
-        if ignore_case is False:
-            return x.casefold() == y.casefold()
+        if ignore_case:
+            return unicodedata.normalize("NFC", x.casefold()) == unicodedata.normalize(
+                "NFC", y.casefold()
+            )
         else:
-            return x.decode('utf8') == y.decode('utf8')
+            return unicodedata.normalize("NFC", x) == unicodedata.normalize("NFC", y)
     elif isinstance(x, pd.Series):
-        if ignore_case is False:
-            return np.where(x.str.casefold() == y.str.casefold(), True, False)
+        if ignore_case:
+            return pd.Series(np.where(
+                x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
+                == y.str.casefold().apply(lambda y: unicodedata.normalize("NFC", y)),
+                True,
+                False,
+            ))
         else:
-            return np.where(x.apply(lambda a: a.decode('utf8')) == y.apply(lambda b: b.decode('utf8')), True, False)
+            return pd.Series(np.where(
+                x.apply(lambda x: unicodedata.normalize("NFC", x))
+                == y.apply(lambda y: unicodedata.normalize("NFC", y)),
+                True,
+                False,
+            ))
     elif isinstance(x, (list, tuple)):
-        if ignore_case is False:
-            return [i.casefold() == j.casefold() for i, j in zip(x, y)]
+        if ignore_case:
+            return [
+                unicodedata.normalize("NFC", i.casefold())
+                == unicodedata.normalize("NFC", j.casefold())
+                for i, j in zip(x, y)
+            ]
         else:
-            return [i.decode('utf8') == y.decode('utf8') for i,j in zip(x, y)]
+            return [
+                unicodedata.normalize("NFC", i) == unicodedata.normalize("NFC", j)
+                for i, j in zip(x, y)
+            ]
     elif isinstance(x, (np.ndarray, np.generic)):
-        if ignore_case is True:
-            return np.compare_chararrays(np.char.upper(x), np.char.upper(y), "==", True)
+        if ignore_case:
+            return np.compare_chararrays(
+                np.fromiter(
+                    (unicodedata.normalize("NFC", xi) for xi in np.char.upper(x)),
+                    dtype=x.dtype,
+                ),
+                np.fromiter(
+                    (unicodedata.normalize("NFC", yi) for yi in np.char.upper(y)),
+                    dtype=y.dtype,
+                ),
+                "==",
+                True,
+            )
         else:
-            return np.compare_chararrays(x, y, "==", True)
+            return np.compare_chararrays(
+                np.fromiter(
+                    (unicodedata.normalize("NFC", xi) for xi in x), dtype=x.dtype
+                ),
+                np.fromiter(
+                    (unicodedata.normalize("NFC", yi) for yi in y), dtype=y.dtype
+                ),
+                "==",
+                True,
+            )
     else:
         ...
 
 
 # Whitespace Manipulation
+
 
 def str_pad(string, width, side="right", pad=" "):
     """Pad a string
@@ -547,27 +611,31 @@ def str_pad(string, width, side="right", pad=" "):
     Our padded string
     """
     side = side.casefold()
-    if side not in ['right', 'left', 'center']:
+    if side not in ["right", "left", "center"]:
         raise ValueError("Cannot determine where to pad string")
     if isinstance(string, str) and isinstance(width, int) and isinstance(pad, str):
-        if side == 'left':
+        if side == "left":
             padded_string = string.rjust(width, pad)
-        elif side == 'right':
+        elif side == "right":
             padded_string = string.ljust(width, pad)
         else:
             padded_string = string.center(width, pad)
     else:
-        if isinstance(string, pd.Series) and isinstance(pad, str) and isinstance(width, int):
-            if side == 'left':
+        if (
+            isinstance(string, pd.Series)
+            and isinstance(pad, str)
+            and isinstance(width, int)
+        ):
+            if side == "left":
                 padded_string = string.str.rjust(width, pad)
-            elif side == 'center':
+            elif side == "center":
                 padded_string = string.str.ljust(width, pad)
             else:
                 padded_string = string.str.center(width, pad)
         elif isinstance(string, (np.ndarray, np.generic)):
-            if side == 'left':
+            if side == "left":
                 padded_string = np.char.rjust(string, width, pad)
-            elif side == 'right':
+            elif side == "right":
                 padded_string = np.char.ljust(string, width, pad)
             else:
                 padded_string = np.char.center(string, width, pad)
@@ -579,34 +647,53 @@ def str_pad(string, width, side="right", pad=" "):
                     string = [string] * len(pad)
             if isinstance(width, int):
                 if isinstance(pad, str):
-                    if side == 'left':
+                    if side == "left":
                         padded_string = [s.rjust(width, pad) for s in string]
-                    elif side == 'right':
+                    elif side == "right":
                         padded_string = [s.ljust(width, pad) for s in string]
                     else:
                         padded_string = [s.center(width, pad) for s in string]
                 else:
-                    if side == 'left':
-                        padded_string = [string[i].rjust(width, pad[i]) for i in range(len(pad))]
-                    elif side == 'right':
-                        padded_string = [string[i].ljust(width, pad[i]) for i in range(len(pad))]
+                    if side == "left":
+                        padded_string = [
+                            string[i].rjust(width, pad[i]) for i in range(len(pad))
+                        ]
+                    elif side == "right":
+                        padded_string = [
+                            string[i].ljust(width, pad[i]) for i in range(len(pad))
+                        ]
                     else:
-                        padded_string = [string[i].center(width, pad[i]) for i in range(len(pad))]
+                        padded_string = [
+                            string[i].center(width, pad[i]) for i in range(len(pad))
+                        ]
             else:
                 if isinstance(pad, str):
-                    if side == 'left':
-                        padded_string = [string[i].rjust(width[i], pad) for i in range(len(width))]
-                    elif side == 'right':
-                        padded_string = [string[i].ljust(width[i], pad) for i in range(len(width))]
+                    if side == "left":
+                        padded_string = [
+                            string[i].rjust(width[i], pad) for i in range(len(width))
+                        ]
+                    elif side == "right":
+                        padded_string = [
+                            string[i].ljust(width[i], pad) for i in range(len(width))
+                        ]
                     else:
-                        padded_string = [string[i].center(width[i], pad) for i in range(len(width))]
+                        padded_string = [
+                            string[i].center(width[i], pad) for i in range(len(width))
+                        ]
                 else:
-                    if side == 'left':
-                        padded_string = [string[i].rjust(width[i], pad[i]) for i in range(len(width))]
-                    elif side == 'right':
-                        padded_string = [string[i].ljust(width[i], pad[i]) for i in range(len(width))]
+                    if side == "left":
+                        padded_string = [
+                            string[i].rjust(width[i], pad[i]) for i in range(len(width))
+                        ]
+                    elif side == "right":
+                        padded_string = [
+                            string[i].ljust(width[i], pad[i]) for i in range(len(width))
+                        ]
                     else:
-                        padded_string = [string[i].center(width[i], pad[i]) for i in range(len(width))]
+                        padded_string = [
+                            string[i].center(width[i], pad[i])
+                            for i in range(len(width))
+                        ]
             if isinstance(string, (np.ndarray, np.generic)):
                 # Testing it out, it turns out that it is significantly less efficient to initialize an array and
                 # then iteratively re-populate it than it is to call np.array on list comprehension, like an order of
@@ -621,7 +708,7 @@ def str_pad(string, width, side="right", pad=" "):
     return padded_string
 
 
-def str_trim(string, side='both'):
+def str_trim(string, side="both"):
     """Removes leading and trailing whitespace in our string
 
     Parameters
@@ -636,33 +723,33 @@ def str_trim(string, side='both'):
     Our trimmed string
     """
     side = side.casefold()
-    if side not in ['left', 'right', 'both']:
+    if side not in ["left", "right", "both"]:
         raise ValueError("Cannot determine method of trimming")
     if isinstance(string, str):
-        if side == 'both':
+        if side == "both":
             return string.strip()
-        elif side == 'right':
+        elif side == "right":
             return string.lstrip()
         else:
             return string.rstrip()
     elif isinstance(string, (list, tuple)):
-        if side == 'both':
+        if side == "both":
             return [s.strip() for s in string]
-        elif side == 'right':
+        elif side == "right":
             return [s.lstrip() for s in string]
         else:
             return [s.rstrip() for s in string]
     elif isinstance(string, (np.ndarray, np.generic)):
-        if side == 'both':
+        if side == "both":
             return np.char.strip(string)
-        elif side == 'right':
+        elif side == "right":
             return np.char.lstrip(string)
         else:
             return np.char.rstrip(string)
     elif isinstance(string, pd.Series):
-        if side == 'both':
+        if side == "both":
             return string.str.strip()
-        elif side == 'right':
+        elif side == "right":
             return string.str.lstrip()
         else:
             return string.str.rstrip()
@@ -704,6 +791,7 @@ def str_squish(string):
 
 
 # String Pattern Matching
+
 
 def str_detect(string, pattern, negate=False):
     """Determines if each string contains the regular expression
@@ -777,12 +865,16 @@ def str_count(string, pattern):
         if isinstance(pattern, str):
             string_counts = [len(re.findall(pattern, s)) for s in string]
         else:
-            string_counts = [len(re.findall(pattern[i], string[i])) for i in range(len(pattern))]
+            string_counts = [
+                len(re.findall(pattern[i], string[i])) for i in range(len(pattern))
+            ]
     elif isinstance(string, (np.ndarray, np.generic)):
         if isinstance(pattern, str):
             string_counts = np.char.count(string, pattern)
         else:
-            string_counts = np.array([len(re.findall(pattern[i], string[i])) for i in range(len(pattern))])
+            string_counts = np.array(
+                [len(re.findall(pattern[i], string[i])) for i in range(len(pattern))]
+            )
     elif isinstance(string, pd.Series):
         if isinstance(pattern, str):
             string_counts = string.str.count(pattern)
@@ -869,7 +961,7 @@ def str_which(string, pattern, negate=False):
         raise ValueError("Cannot determine how to do string which")
 
 
-def _str_replace(string, pattern, replacement, how='all'):
+def _str_replace(string, pattern, replacement, how="all"):
     """Replaces either the first or all instance(s) of pattern in string with replacement
 
     Parameters
@@ -896,7 +988,7 @@ def _str_replace(string, pattern, replacement, how='all'):
     -------
     The string, but with either the first or all matched patterns removed
     """
-    if how.casefold() == 'all':
+    if how.casefold() == "all":
         count = 0
     else:
         count = 1
@@ -910,17 +1002,32 @@ def _str_replace(string, pattern, replacement, how='all'):
             if isinstance(string, (list, tuple)):
                 return [re.sub(pattern, replacement, s, count=count) for s in string]
             else:
-                return np.array(list(map(lambda v: re.sub(pattern, replacement, v, count=count), string)))
+                return np.array(
+                    list(
+                        map(
+                            lambda v: re.sub(pattern, replacement, v, count=count),
+                            string,
+                        )
+                    )
+                )
         elif replacement is None or replacement is np.nan:
             if isinstance(string, (list, tuple)):
                 return [replacement if pattern in s else s for s in string]
             else:
-                return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
+                return np.array(
+                    list(map(lambda v: replacement if pattern in v else v, string))
+                )
         else:
             if isinstance(pattern, str):
-                match = [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
+                match = [
+                    re.sub(pattern, replacement[i], string[i], count=count)
+                    for i in range(len(string))
+                ]
             else:
-                match = [re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))]
+                match = [
+                    re.sub(pattern[i], replacement[i], string[i], count=count)
+                    for i in range(len(string))
+                ]
             if isinstance(string, (np.ndarray, np.generic)):
                 match = np.array(match)
             return match
@@ -928,13 +1035,17 @@ def _str_replace(string, pattern, replacement, how='all'):
         if isinstance(replacement, str) or replacement is None or replacement is np.nan:
             return string.str.replace(pattern, replacement, regex=True, n=-1)
         else:
-            replacement_series = pd.Series([''] * len(string))
+            replacement_series = pd.Series([""] * len(string))
             replacement_series.index = np.arange(len(string))
             for i in range(len(pattern)):
                 if isinstance(pattern, str):
-                    replacement_series[i] = re.sub(pattern, replacement[i], string[i], count=count)
+                    replacement_series[i] = re.sub(
+                        pattern, replacement[i], string[i], count=count
+                    )
                 else:
-                    replacement_series[i] = re.sub(pattern[i], replacement[i], string[i], count=count)
+                    replacement_series[i] = re.sub(
+                        pattern[i], replacement[i], string[i], count=count
+                    )
             return replacement_series
     elif isinstance(string, ps.Column):
         ...
@@ -944,12 +1055,12 @@ def _str_replace(string, pattern, replacement, how='all'):
 
 def str_replace(string, pattern, replacement):
     """Replaces the first instance of pattern in string with replacement"""
-    return _str_replace(string, pattern, replacement, how='first')
+    return _str_replace(string, pattern, replacement, how="first")
 
 
 def str_replace_all(string, pattern, replacement):
     """Replaces all instances of pattern in string with replacement"""
-    return _str_replace(string, pattern, replacement, how='all')
+    return _str_replace(string, pattern, replacement, how="all")
 
 
 def str_remove(string, pattern):
@@ -1028,7 +1139,9 @@ def str_split(string, pattern=" ", n=-1, simplify=False):
         split_string = np.char.split(string, pattern, maxsplit=n)
         if simplify:
             length = max(map(len, split_string))
-            split_string = np.array([np.array(xi + [""] * (length - len(xi))) for xi in split_string])
+            split_string = np.array(
+                [np.array(xi + [""] * (length - len(xi))) for xi in split_string]
+            )
         return split_string
     elif isinstance(string, pd.Series):
         split_string = string.str.split(pattern, n=n, expand=simplify)
@@ -1132,7 +1245,7 @@ def str_starts(string, pattern, negate=False):
     -------
     Either a bool or a container of bools indicating whether we can find our pattern at the start of the string
     """
-    pattern = '^' + pattern
+    pattern = "^" + pattern
     return str_detect(string, pattern, negate)
 
 
@@ -1156,7 +1269,7 @@ def str_ends(string, pattern, negate=False):
     -------
     Either a bool or a container of bools indicating whether we can find our pattern at the end of the string
     """
-    pattern = pattern + '$'
+    pattern = pattern + "$"
     return str_detect(string, pattern, negate)
 
 
@@ -1185,14 +1298,23 @@ def str_extract(string, pattern):
             return None
     elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
         extract = [
-            re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None
-            for s in string]
+            re.search(pattern, s).group(0)
+            if s not in [None, np.nan] and re.search(pattern, s) is not None
+            else None
+            for s in string
+        ]
         if isinstance(string, (np.ndarray, np.generic)):
             extract = np.array(extract)
         return extract
     elif isinstance(string, pd.Series):
-        return pd.Series([re.search(pattern, s[1]).group(0) if s[1] not in [None, np.nan] and re.search(pattern, s[
-            1]) is not None else None for s in string.iteritems()])
+        return pd.Series(
+            [
+                re.search(pattern, s[1]).group(0)
+                if s[1] not in [None, np.nan] and re.search(pattern, s[1]) is not None
+                else None
+                for s in string.iteritems()
+            ]
+        )
     elif isinstance(string, ps.Column):
         ...
     else:
@@ -1230,21 +1352,29 @@ def str_extract_all(string, pattern, simplify=False):
         if isinstance(string, (np.ndarray, np.generic)):
             match = np.array(match)
     elif isinstance(string, pd.Series):
-        if '(' not in pattern:
-            pattern = '(' + pattern + ')'
+        if "(" not in pattern:
+            pattern = "(" + pattern + ")"
         match = string.str.extractall(pattern)
         if simplify:
             if len(match.index) > 2:
                 if len(match.columns) == 1:
-                    match = pd.pivot(match.reset_index(), index='level_0', columns='match', values=0)
+                    match = pd.pivot(
+                        match.reset_index(), index="level_0", columns="match", values=0
+                    )
                 else:
-                    value_cols = match.columns.difference(['level_0', 'match'])
-                    match = pd.pivot(match.reset_index(), index='level_0', columns='match', values=value_cols)
+                    value_cols = match.columns.difference(["level_0", "match"])
+                    match = pd.pivot(
+                        match.reset_index(),
+                        index="level_0",
+                        columns="match",
+                        values=value_cols,
+                    )
                 match = match.fillna("")
             else:
-                flat_match = pd.Series([""] * len(string), name='match')
-                flat_match[flat_match.index.isin(match.reset_index().level_0)] = \
-                match.rename({0: 'val'}, axis=1).reset_index()['val'].values
+                flat_match = pd.Series([""] * len(string), name="match")
+                flat_match[flat_match.index.isin(match.reset_index().level_0)] = (
+                    match.rename({0: "val"}, axis=1).reset_index()["val"].values
+                )
                 match = flat_match
     elif isinstance(string, ps.Column):
         ...
@@ -1274,24 +1404,32 @@ def str_match(string, pattern):
         if whole_match is None:
             return None
         else:
-            partial_match = list(map(list, str_extract_all(whole_match, pattern, simplify=True)))[0]
+            partial_match = list(
+                map(list, str_extract_all(whole_match, pattern, simplify=True))
+            )[0]
             return_match = [whole_match] + partial_match
     elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
         if isinstance(string, (np.ndarray, np.generic)):
-            whole_match[whole_match == None] = ''
+            whole_match[whole_match == None] = ""
         else:
-            whole_match = [s if s is not None else '' for s in whole_match]
+            whole_match = [s if s is not None else "" for s in whole_match]
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
+        return_match = [
+            [a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)
+        ]
         max_length = max(len(x) for x in return_match)
-        return_match = [val if len(val) == max_length else [None] * max_length for index, val in
-                        enumerate(return_match)]
+        return_match = [
+            val if len(val) == max_length else [None] * max_length
+            for index, val in enumerate(return_match)
+        ]
         if isinstance(string, (np.ndarray, np.generic)):
             return_match = np.array(return_match)
     elif isinstance(string, pd.Series):
-        whole_match = whole_match.rename('whole_match')
+        whole_match = whole_match.rename("whole_match")
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = pd.merge(whole_match, partial_match, how='left', left_index=True, right_index=True)
+        return_match = pd.merge(
+            whole_match, partial_match, how="left", left_index=True, right_index=True
+        )
         return_match = return_match.replace("", np.nan)
     elif isinstance(string, ps.Column):
         ...
@@ -1338,19 +1476,37 @@ def str_match_all(string, pattern):
                     for match in re.finditer(pattern, s):
                         whole_match.append(match.group(0))
                 else:
-                    whole_match.append('')
+                    whole_match.append("")
         if isinstance(string, pd.Series):
-            whole_match = pd.Series(whole_match, name='whole_match')
-            partial_match = str_extract_all(whole_match, pattern).reset_index().drop(['match'], axis=1)
-            return_match = pd.merge(whole_match, partial_match, left_index=True, right_on='level_0', how='left').drop(
-                ['level_0'], axis=1).fillna('')
+            whole_match = pd.Series(whole_match, name="whole_match")
+            partial_match = (
+                str_extract_all(whole_match, pattern)
+                .reset_index()
+                .drop(["match"], axis=1)
+            )
+            return_match = (
+                pd.merge(
+                    whole_match,
+                    partial_match,
+                    left_index=True,
+                    right_on="level_0",
+                    how="left",
+                )
+                .drop(["level_0"], axis=1)
+                .fillna("")
+            )
             return_match.index = np.arange(len(return_match))
         else:
             partial_match = str_extract_all(whole_match, pattern, simplify=True)
-            return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
+            return_match = [
+                [a] + [elem for elem in b[0]]
+                for a, b in zip(whole_match, partial_match)
+            ]
             max_length = max(len(x) for x in return_match)
-            return_match = [val if len(val) == max_length else [''] * max_length for index, val in
-                            enumerate(return_match)]
+            return_match = [
+                val if len(val) == max_length else [""] * max_length
+                for index, val in enumerate(return_match)
+            ]
             if isinstance(string, (np.ndarray, np.generic)):
                 return_match = np.array(return_match)
     return return_match
