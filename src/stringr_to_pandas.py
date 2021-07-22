@@ -268,6 +268,69 @@ def str_replace_na(string, replacement="NA"):
     return string
 
 
+def str_unique(string, exact=False):
+    """Keeps unique strings only
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        A character vector to return unique strings
+    exact: bool
+        Whether or not we want exact matches.
+
+    Returns
+    -------
+    All unique strings
+    """
+    if isinstance(string, str):
+        if exact:
+            return "".join(dict.fromkeys(string).keys())
+        else:
+            return "".join(
+                dict.fromkeys(
+                    unicodedata.normalize("NFC", remove_accents(string)).casefold()
+                ).keys()
+            )
+    elif isinstance(string, (list, tuple)):
+        if exact:
+            return list(dict.fromkeys(string).keys())
+        else:
+            return list(
+                dict.fromkeys(
+                    [
+                        unicodedata.normalize("NFC", remove_accents(s)).casefold()
+                        for s in string
+                    ]
+                ).keys()
+            )
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if exact:
+            return np.unique(string)
+        else:
+            return np.unique(
+                np.fromiter(
+                    (
+                        unicodedata.normalize("NFC", remove_accents(xi)).casefold()
+                        for xi in string
+                    ),
+                    dtype=string.dtype,
+                )
+            )
+    elif isinstance(string, pd.Series):
+        if exact:
+            return pd.Series(string.unique())
+        else:
+            return pd.Series(
+                string.str.casefold()
+                .apply(lambda x: unicodedata.normalize("NFC", remove_accents(x)))
+                .unique()
+            )
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot identify value for str_unique")
+
+
 # Case Transformations
 
 
@@ -389,7 +452,7 @@ def str_to_sentence(string):
         raise TypeError("Cannot determine how to capitalize string")
 
 
-# String Ordering
+# String Ordering and Equality
 def str_order(string, decreasing=False, na_last=True, numeric=False):
     """Returns the string(s) with the indices marking the order of the string
 
@@ -535,19 +598,25 @@ def str_equal(x, y, ignore_case=False):
             return unicodedata.normalize("NFC", x) == unicodedata.normalize("NFC", y)
     elif isinstance(x, pd.Series):
         if ignore_case:
-            return pd.Series(np.where(
-                x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
-                == y.str.casefold().apply(lambda y: unicodedata.normalize("NFC", y)),
-                True,
-                False,
-            ))
+            return pd.Series(
+                np.where(
+                    x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
+                    == y.str.casefold().apply(
+                        lambda y: unicodedata.normalize("NFC", y)
+                    ),
+                    True,
+                    False,
+                )
+            )
         else:
-            return pd.Series(np.where(
-                x.apply(lambda x: unicodedata.normalize("NFC", x))
-                == y.apply(lambda y: unicodedata.normalize("NFC", y)),
-                True,
-                False,
-            ))
+            return pd.Series(
+                np.where(
+                    x.apply(lambda x: unicodedata.normalize("NFC", x))
+                    == y.apply(lambda y: unicodedata.normalize("NFC", y)),
+                    True,
+                    False,
+                )
+            )
     elif isinstance(x, (list, tuple)):
         if ignore_case:
             return [
@@ -1510,3 +1579,19 @@ def str_match_all(string, pattern):
             if isinstance(string, (np.ndarray, np.generic)):
                 return_match = np.array(return_match)
     return return_match
+
+
+def remove_accents(input_str):
+    """Removes all accents from a string
+
+    Parameters
+    ----------
+    input_str: string
+        The string we wish to remove accents from
+
+    Returns
+    -------
+    Our string, but with all accents removed
+    """
+    nfkd_form = unicodedata.normalize("NFKD", input_str)
+    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
