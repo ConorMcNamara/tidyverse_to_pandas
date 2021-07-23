@@ -640,6 +640,7 @@ class TestStrEqual:
         pd.testing.assert_series_equal(pd.Series([True, False, True, True]), stp.str_equal(string1, string2, True))
         pd.testing.assert_series_equal(pd.Series([False, False, True, True]), stp.str_equal(string1, string2))
 
+        
 class TestStrUnique:
 
     @staticmethod
@@ -651,20 +652,20 @@ class TestStrUnique:
     @staticmethod
     def test_strUnique_list():
         string = ["a", "b", "c", "b", "a"]
-        assert stp.str_unique(string) == ['a', 'b', 'c']
-        assert stp.str_unique(string, True) == ['a', 'b', 'c']
+        assert stp.str_unique(string, 1) == ['a', 'b', 'c']
+        assert stp.str_unique(string, 4) == ['a', 'b', 'c']
 
     @staticmethod
     def test_strUnique_array():
         string = np.array(["motley", "mötley", "pinguino", "pingüino"])
-        np.testing.assert_array_equal(stp.str_unique(string), np.array(['motley', 'pinguino']))
-        np.testing.assert_array_equal(stp.str_unique(string, True), string)
+        np.testing.assert_array_equal(stp.str_unique(string, 1), np.array(['motley', 'pinguino']))
+        np.testing.assert_array_equal(stp.str_unique(string, 4), string)
 
     @staticmethod
     def test_strUnique_series():
         string = pd.Series(["What", "what", "is", "love"])
-        pd.testing.assert_series_equal(stp.str_unique(string), pd.Series(["what", "is", "love"]))
-        pd.testing.assert_series_equal(stp.str_unique(string, True), string)
+        pd.testing.assert_series_equal(stp.str_unique(string, 1), pd.Series(["What", "is", "love"], index=[0, 1, 2]))
+        pd.testing.assert_series_equal(stp.str_unique(string, 4), string)
  
 
 if __name__ == '__main__':
