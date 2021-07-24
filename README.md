@@ -69,6 +69,8 @@ To quote Hadley Wickham, "Strings are not glamorous, high-profile components of 
 The stringr package provide a cohesive set of functions designed to make working with strings as easy as possible. If you’re not familiar with strings, 
 the best place to start is the chapter on strings in R for Data Science."
 
+Currently I have support for the following stringr functions:
+
 ### Character Manipulation
 * [str_length](https://stringr.tidyverse.org/reference/str_length.html): Returns the number of characters in a string
 * [str_sub](https://stringr.tidyverse.org/reference/str_sub.html): Extracts substrings from a string
@@ -76,6 +78,7 @@ the best place to start is the chapter on strings in R for Data Science."
 * [str_flatten](https://stringr.tidyverse.org/reference/str_flatten.html): Flattens a string
 * [str_trunc](https://stringr.tidyverse.org/reference/str_trunc.html): Truncates a string
 * [str_replace_na](https://stringr.tidyverse.org/reference/str_replace_na.html): Replaces NaN/None with a string
+* [str_unique](https://stringr.tidyverse.org/reference/str_unique.html): Keeps unique strings only
 
 ### Case Transformation
 * [str_to_upper](https://stringr.tidyverse.org/reference/case.html): Converts the entire string to uppercase

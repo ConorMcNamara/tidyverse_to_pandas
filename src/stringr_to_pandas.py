@@ -268,6 +268,159 @@ def str_replace_na(string, replacement="NA"):
     return string
 
 
+def str_unique(string, strength=1):
+    """Keeps unique strings only
+
+    Parameters
+    ----------
+    string: str or list/tuple or numpy array or pandas Series or pyspark column
+        A character vector to return unique strings
+    strength: [1, 2, 3, 4]
+        Single integer which defines collation strength; `1` for the most permissive collation rules, `4` for the
+        strictest ones
+
+    Returns
+    -------
+    All unique strings
+    """
+    if strength not in [1, 2, 3, 4]:
+        raise ValueError("Cannot determine strength of collation")
+    if isinstance(string, str):
+        if strength in [3, 4]:
+            return "".join(dict.fromkeys(string).keys())
+        elif strength == 2:
+            return "".join(
+                dict.fromkeys(
+                    unicodedata.normalize("NFC", remove_accents(string))
+                ).keys()
+            )
+        else:
+            str_array = np.array(list(string))
+            return "".join(
+                (
+                    str_array[
+                        np.sort(
+                            np.unique(
+                                np.fromiter(
+                                    (
+                                        unicodedata.normalize(
+                                            "NFC", remove_accents(xi)
+                                        ).casefold()
+                                        for xi in string
+                                    ),
+                                    dtype=str_array.dtype,
+                                ),
+                                return_index=True,
+                            )[1]
+                        )
+                    ]
+                )
+            )
+
+    elif isinstance(string, (list, tuple)):
+        if strength in [3, 4]:
+            return list(dict.fromkeys(string).keys())
+        elif strength == 2:
+            return list(
+                dict.fromkeys(
+                    [unicodedata.normalize("NFC", remove_accents(s)) for s in string]
+                ).keys()
+            )
+        else:
+            str_array = np.array(string)
+            return list(
+                str_array[
+                    np.sort(
+                        np.unique(
+                            np.fromiter(
+                                (
+                                    unicodedata.normalize(
+                                        "NFC", remove_accents(xi)
+                                    ).casefold()
+                                    for xi in string
+                                ),
+                                dtype=str_array.dtype,
+                            ),
+                            return_index=True,
+                        )[1]
+                    )
+                ]
+            )
+    elif isinstance(string, (np.ndarray, np.generic)):
+        if strength in [3, 4]:
+            return np.unique(string)
+        elif strength == 2:
+            return string[
+                np.sort(
+                    np.unique(
+                        np.fromiter(
+                            (
+                                unicodedata.normalize("NFC", remove_accents(xi))
+                                for xi in string
+                            ),
+                            dtype=string.dtype,
+                        ),
+                        return_index=True,
+                    )[1]
+                )
+            ]
+        else:
+            return string[
+                np.sort(
+                    np.unique(
+                        np.fromiter(
+                            (
+                                unicodedata.normalize(
+                                    "NFC", remove_accents(xi)
+                                ).casefold()
+                                for xi in string
+                            ),
+                            dtype=string.dtype,
+                        ),
+                        return_index=True,
+                    )[1]
+                )
+            ]
+    elif isinstance(string, pd.Series):
+        if strength in [3, 4]:
+            return pd.Series(string.unique())
+        elif strength == 2:
+            indices = np.sort(
+                np.unique(
+                    np.fromiter(
+                        (
+                            unicodedata.normalize("NFC", remove_accents(xi))
+                            for xi in string
+                        ),
+                        dtype="<U8",
+                    ),
+                    return_index=True,
+                )[1]
+            )
+            series = string[indices]
+            series.index = list(np.arange(len(series)))
+        else:
+            indices = np.sort(
+                np.unique(
+                    np.fromiter(
+                        (
+                            unicodedata.normalize("NFC", remove_accents(xi)).casefold()
+                            for xi in string
+                        ),
+                        dtype="<U8",
+                    ),
+                    return_index=True,
+                )[1]
+            )
+            series = string[indices]
+            series.index = np.arange(len(series))
+        return series
+    elif isinstance(string, ps.Column):
+        ...
+    else:
+        raise TypeError("Cannot identify value for str_unique")
+
+
 # Case Transformations
 
 
@@ -389,7 +542,7 @@ def str_to_sentence(string):
         raise TypeError("Cannot determine how to capitalize string")
 
 
-# String Ordering
+# String Ordering and Equality
 def str_order(string, decreasing=False, na_last=True, numeric=False):
     """Returns the string(s) with the indices marking the order of the string
 
@@ -535,19 +688,25 @@ def str_equal(x, y, ignore_case=False):
             return unicodedata.normalize("NFC", x) == unicodedata.normalize("NFC", y)
     elif isinstance(x, pd.Series):
         if ignore_case:
-            return pd.Series(np.where(
-                x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
-                == y.str.casefold().apply(lambda y: unicodedata.normalize("NFC", y)),
-                True,
-                False,
-            ))
+            return pd.Series(
+                np.where(
+                    x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
+                    == y.str.casefold().apply(
+                        lambda y: unicodedata.normalize("NFC", y)
+                    ),
+                    True,
+                    False,
+                )
+            )
         else:
-            return pd.Series(np.where(
-                x.apply(lambda x: unicodedata.normalize("NFC", x))
-                == y.apply(lambda y: unicodedata.normalize("NFC", y)),
-                True,
-                False,
-            ))
+            return pd.Series(
+                np.where(
+                    x.apply(lambda x: unicodedata.normalize("NFC", x))
+                    == y.apply(lambda y: unicodedata.normalize("NFC", y)),
+                    True,
+                    False,
+                )
+            )
     elif isinstance(x, (list, tuple)):
         if ignore_case:
             return [
@@ -1510,3 +1669,19 @@ def str_match_all(string, pattern):
             if isinstance(string, (np.ndarray, np.generic)):
                 return_match = np.array(return_match)
     return return_match
+
+
+def remove_accents(input_str):
+    """Removes all accents from a string
+
+    Parameters
+    ----------
+    input_str: string
+        The string we wish to remove accents from
+
+    Returns
+    -------
+    Our string, but with all accents removed
+    """
+    nfkd_form = unicodedata.normalize("NFKD", input_str)
+    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
