@@ -1,6 +1,8 @@
 import dateutil
 import re
 
+from typing import Optional, Sequence, Union
+
 import numpy as np
 import pandas as pd
 
@@ -9,7 +11,7 @@ from datetime import date, datetime
 
 
 # Year, month and day parsing
-def ymd(dates, tz=None):
+def ymd(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in ymd format to %Y-%m-%d
 
     Parameters
@@ -75,7 +77,7 @@ def ymd(dates, tz=None):
     return return_date
 
 
-def ydm(dates, tz=None):
+def ydm(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in ydm format to %Y-%m-%d
 
     Parameters
@@ -141,7 +143,7 @@ def ydm(dates, tz=None):
     return return_date
 
 
-def mdy(dates, tz=None):
+def mdy(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in mdy format to %Y-%m-%d
 
     Parameters
@@ -321,7 +323,7 @@ def myd(dates, tz=None):
     return return_date
 
 
-def dmy(dates, tz=None):
+def dmy(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in dmy format to %Y-%m-%d
 
     Parameters
@@ -387,7 +389,7 @@ def dmy(dates, tz=None):
     return return_date
 
 
-def _dym(dates):
+def _dym(dates: str):
     current_year = date.today().year
     month_cal = {
         "Jan": "01",
@@ -452,7 +454,7 @@ def _dym(dates):
     return datetime.strptime("{}-{}-{}".format(year, month, day), "%Y-%m-%d")
 
 
-def dym(dates, tz=None):
+def dym(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in dym format to %Y-%m-%d
 
     Parameters
@@ -493,6 +495,37 @@ def dym(dates, tz=None):
             return_date = _dym(dates).strftime("%Y-%m-%d")
         else:
             return_date = zone.localize(_dym(dates)).strftime("%Y-%m-%d %Z")
+    else:
+        raise TypeError("Cannot identify date variable")
+    return return_date
+
+
+# Year, month, day, hour, minute and second parsing
+def ymd_hms(dates, tz=None):
+    """Converts our suspected dates in ymd_hms format to %Y-%m-%d %h:%m:%s
+
+    Parameters
+    ----------
+    dates: str or array-like format
+        A character or an array-like of suspected dates
+    tz: str
+        Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
+
+    Returns
+    -------
+    Our suspected dates converted to %Y-%m-%d %h:%m:%s format
+    """
+    if tz is not None:
+        zone = timezone(tz)
+    if isinstance(dates, pd.Series):
+        ...
+    elif isinstance(dates, str):
+        if tz is None:
+            return_date = dateutil.parser.parse(dates, dayfirst=True, yearfirst=False).strftime("%Y-%m-%d %H:%m:%S")
+        else:
+            return_date = zone.localize(
+                dateutil.parser.parse(dates, dayfirst=True, yearfirst=False)
+            ).strftime("%Y-%m-%d %Z")
     else:
         raise TypeError("Cannot identify date variable")
     return return_date
