@@ -3,19 +3,19 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from context import lubridate_to_pandas as ltp
+import src.lubridate_to_pandas as ltp
 
 
 class TestYMD:
 
     @staticmethod
-    def test_ymd_typeError():
+    def test_ymd_typeError() -> None:
         date = 201001
         with pytest.raises(TypeError, match="Cannot identify date variable"):
             ltp.ymd(date)
 
     @staticmethod
-    def test_ymd_string():
+    def test_ymd_string() -> None:
         date = '20/02/01'
         expected_date = '2020-02-01'
         assert ltp.ymd(date) == expected_date
@@ -25,7 +25,7 @@ class TestYMD:
         assert ltp.ymd(date, timezone) == expected_date
 
     @staticmethod
-    def test_ymd_list():
+    def test_ymd_list() -> None:
         date = ['20-02-01']
         expected_date = ['2020-02-01']
         np.testing.assert_array_equal(expected_date, ltp.ymd(date))
@@ -35,7 +35,7 @@ class TestYMD:
         np.testing.assert_array_equal(expected_date, ltp.ymd(date, timezone))
 
     @staticmethod
-    def test_ymd_numpy():
+    def test_ymd_numpy() -> None:
         date = np.array(['20 Jan 1'])
         expected_date = np.array(['2020-01-01'], dtype='datetime64[D]')
         np.testing.assert_array_equal(expected_date, ltp.ymd(date))
@@ -45,7 +45,7 @@ class TestYMD:
         np.testing.assert_array_equal(expected_date, ltp.ymd(date, timezone))
 
     @staticmethod
-    def test_ymd_pandas():
+    def test_ymd_pandas() -> None:
         date = pd.Series(['20 02 01'])
         expected_date = pd.Series(['2020-02-01'], dtype='datetime64[ns]')
         pd.testing.assert_series_equal(expected_date, ltp.ymd(date))
@@ -58,13 +58,13 @@ class TestYMD:
 class TestYDM:
 
     @staticmethod
-    def test_ydm_typeError():
+    def test_ydm_typeError() -> None:
         date = 201001
         with pytest.raises(TypeError, match="Cannot identify date variable"):
             ltp.ydm(date)
 
     @staticmethod
-    def test_ydm_string():
+    def test_ydm_string() -> None:
         date = '20/02/01'
         expected_date = '2020-01-02'
         assert ltp.ydm(date) == expected_date
@@ -74,7 +74,7 @@ class TestYDM:
         assert ltp.ydm(date, timezone) == expected_date
 
     @staticmethod
-    def test_ymd_list():
+    def test_ymd_list() -> None:
         date = ['20-02-01']
         expected_date = ['2020-01-02']
         np.testing.assert_array_equal(expected_date, ltp.ydm(date))
@@ -84,7 +84,7 @@ class TestYDM:
         np.testing.assert_array_equal(expected_date, ltp.ydm(date, timezone))
 
     @staticmethod
-    def test_ymd_numpy():
+    def test_ymd_numpy() -> None:
         date = np.array(['20 Jan 1'])
         expected_date = np.array(['2020-01-01'], dtype='datetime64[D]')
         np.testing.assert_array_equal(expected_date, ltp.ydm(date))
@@ -94,7 +94,7 @@ class TestYDM:
         np.testing.assert_array_equal(expected_date, ltp.ydm(date, timezone))
 
     @staticmethod
-    def test_ymd_pandas():
+    def test_ymd_pandas() -> None:
         date = pd.Series(['20 02 01'])
         expected_date = pd.Series(['2020-01-02'], dtype='datetime64[ns]')
         pd.testing.assert_series_equal(expected_date, ltp.ydm(date))
@@ -107,13 +107,13 @@ class TestYDM:
 class TestMDY:
 
     @staticmethod
-    def test_mdy_typeError():
+    def test_mdy_typeError() -> None:
         date = 201001
         with pytest.raises(TypeError, match="Cannot identify date variable"):
             ltp.mdy(date)
 
     @staticmethod
-    def test_mdy_string():
+    def test_mdy_string() -> None:
         date = '10/02/01'
         expected_date = '2001-10-02'
         assert ltp.mdy(date) == expected_date
@@ -123,7 +123,7 @@ class TestMDY:
         assert ltp.mdy(date, timezone) == expected_date
 
     @staticmethod
-    def test_mdy_list():
+    def test_mdy_list() -> None:
         date = ['10-02-01']
         expected_date = ['2001-10-02']
         np.testing.assert_array_equal(expected_date, ltp.mdy(date))
@@ -133,7 +133,7 @@ class TestMDY:
         np.testing.assert_array_equal(expected_date, ltp.mdy(date, timezone))
 
     @staticmethod
-    def test_mdy_numpy():
+    def test_mdy_numpy() -> None:
         date = np.array(['20 1 Jan'])
         expected_date = np.array(['2020-01-01'], dtype='datetime64[D]')
         np.testing.assert_array_equal(expected_date, ltp.mdy(date))
@@ -143,7 +143,7 @@ class TestMDY:
         np.testing.assert_array_equal(expected_date, ltp.mdy(date, timezone))
 
     @staticmethod
-    def test_mdy_pandas():
+    def test_mdy_pandas() -> None:
         date = pd.Series(['10 02 01'])
         expected_date = pd.Series(['2001-10-02'], dtype='datetime64[ns]')
         pd.testing.assert_series_equal(expected_date, ltp.mdy(date))
@@ -156,13 +156,13 @@ class TestMDY:
 class TestMYD:
 
     @staticmethod
-    def test_myd_typeError():
+    def test_myd_typeError() -> None:
         date = 201001
         with pytest.raises(TypeError, match="Cannot identify date variable"):
             ltp.myd(date)
 
     @staticmethod
-    def test_myd_string():
+    def test_myd_string() -> None:
         date = '10/02/01'
         expected_date = '2002-10-01'
         assert ltp.myd(date) == expected_date
@@ -172,7 +172,7 @@ class TestMYD:
         assert ltp.myd(date, timezone) == expected_date
 
     @staticmethod
-    def test_myd_list():
+    def test_myd_list() -> None:
         date = ['10-02-01']
         expected_date = ['2002-10-01']
         np.testing.assert_array_equal(expected_date, ltp.myd(date))
@@ -182,7 +182,7 @@ class TestMYD:
         np.testing.assert_array_equal(expected_date, ltp.myd(date, timezone))
 
     @staticmethod
-    def test_myd_numpy():
+    def test_myd_numpy() -> None:
         date = np.array(['Jan 20 01'])
         expected_date = np.array(['2020-01-01'], dtype='datetime64[D]')
         np.testing.assert_array_equal(expected_date, ltp.myd(date))
@@ -192,7 +192,7 @@ class TestMYD:
         np.testing.assert_array_equal(expected_date, ltp.myd(date, timezone))
 
     @staticmethod
-    def test_myd_pandas():
+    def test_myd_pandas() -> None:
         date = pd.Series(['10 02 01'])
         expected_date = pd.Series(['2002-10-01'], dtype='datetime64[ns]')
         pd.testing.assert_series_equal(expected_date, ltp.myd(date))
@@ -204,13 +204,13 @@ class TestMYD:
 
 class TestDMY:
     @staticmethod
-    def test_dmy_typeError():
+    def test_dmy_typeError() -> None:
         date = 201001
         with pytest.raises(TypeError, match="Cannot identify date variable"):
             ltp.dmy(date)
 
     @staticmethod
-    def test_dmy_string():
+    def test_dmy_string() -> None:
         date = '10/02/01'
         expected_date = '2001-02-10'
         assert ltp.dmy(date) == expected_date
@@ -220,7 +220,7 @@ class TestDMY:
         assert ltp.dmy(date, timezone) == expected_date
 
     @staticmethod
-    def test_dmy_list():
+    def test_dmy_list() -> None:
         date = ['10-02-01']
         expected_date = ['2001-02-10']
         np.testing.assert_array_equal(expected_date, ltp.dmy(date))
@@ -230,7 +230,7 @@ class TestDMY:
         np.testing.assert_array_equal(expected_date, ltp.dmy(date, timezone))
 
     @staticmethod
-    def test_dmy_numpy():
+    def test_dmy_numpy() -> None:
         date = np.array(['01 Jan 20'])
         expected_date = np.array(['2020-01-01'], dtype='datetime64[D]')
         np.testing.assert_array_equal(expected_date, ltp.dmy(date))
@@ -240,7 +240,7 @@ class TestDMY:
         np.testing.assert_array_equal(expected_date, ltp.dmy(date, timezone))
 
     @staticmethod
-    def test_dmy_pandas():
+    def test_dmy_pandas() -> None:
         date = pd.Series(['10 02 01'])
         expected_date = pd.Series(['2001-02-10'], dtype='datetime64[ns]')
         pd.testing.assert_series_equal(expected_date, ltp.dmy(date))
@@ -252,13 +252,13 @@ class TestDMY:
 
 class TestDYM:
     @staticmethod
-    def test_dym_typeError():
+    def test_dym_typeError() -> None:
         date = 201001
         with pytest.raises(TypeError, match="Cannot identify date variable"):
             ltp.dym(date)
 
     @staticmethod
-    def test_dym_string():
+    def test_dym_string() -> None:
         date = '10/02/01'
         expected_date = '2002-01-10'
         assert ltp.dym(date) == expected_date
@@ -268,7 +268,7 @@ class TestDYM:
         assert ltp.dym(date, timezone) == expected_date
 
     @staticmethod
-    def test_dym_list():
+    def test_dym_list() -> None:
         date = ['10-02-01']
         expected_date = ['2002-01-10']
         np.testing.assert_array_equal(expected_date, ltp.dym(date))
@@ -278,7 +278,7 @@ class TestDYM:
         np.testing.assert_array_equal(expected_date, ltp.dym(date, timezone))
 
     @staticmethod
-    def test_dym_numpy():
+    def test_dym_numpy() -> None:
         date = np.array(['01 20 Jan'])
         expected_date = np.array(['2020-01-01'], dtype='datetime64[D]')
         np.testing.assert_array_equal(expected_date, ltp.dym(date))
@@ -288,7 +288,7 @@ class TestDYM:
         np.testing.assert_array_equal(expected_date, ltp.dym(date, timezone))
 
     @staticmethod
-    def test_dym_pandas():
+    def test_dym_pandas() -> None:
         date = pd.Series(['10 02 01'])
         expected_date = pd.Series(['2002-01-10'], dtype='datetime64[ns]')
         pd.testing.assert_series_equal(expected_date, ltp.dym(date))
