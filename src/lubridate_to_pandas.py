@@ -11,7 +11,9 @@ from datetime import date, datetime
 
 
 # Year, month and day parsing
-def ymd(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+def ymd(
+    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
+) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in ymd format to %Y-%m-%d
 
     Parameters
@@ -77,7 +79,9 @@ def ymd(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[st
     return return_date
 
 
-def ydm(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+def ydm(
+    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
+) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in ydm format to %Y-%m-%d
 
     Parameters
@@ -143,7 +147,9 @@ def ydm(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[st
     return return_date
 
 
-def mdy(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+def mdy(
+    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
+) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in mdy format to %Y-%m-%d
 
     Parameters
@@ -302,7 +308,9 @@ def myd(dates, tz=None):
             return_date = np.array(list(map(_myd, dates)), dtype="datetime64[D]")
         else:
             return_date = (
-                pd.to_datetime(pd.Series(dates).apply(lambda x: _myd(x).strftime("%Y-%m-%d")))
+                pd.to_datetime(
+                    pd.Series(dates).apply(lambda x: _myd(x).strftime("%Y-%m-%d"))
+                )
                 .dt.tz_localize(tz=zone)
                 .to_numpy(dtype="datetime64")
             )
@@ -323,7 +331,9 @@ def myd(dates, tz=None):
     return return_date
 
 
-def dmy(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+def dmy(
+    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
+) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in dmy format to %Y-%m-%d
 
     Parameters
@@ -454,7 +464,9 @@ def _dym(dates: str):
     return datetime.strptime("{}-{}-{}".format(year, month, day), "%Y-%m-%d")
 
 
-def dym(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+def dym(
+    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None
+) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
     """Converts our suspected dates in dym format to %Y-%m-%d
 
     Parameters
@@ -471,7 +483,9 @@ def dym(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None)
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates.apply(lambda x: _dym(x).strftime("%Y-%m-%d")))
+        return_date = pd.to_datetime(
+            dates.apply(lambda x: _dym(x).strftime("%Y-%m-%d"))
+        )
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -479,7 +493,9 @@ def dym(dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None)
             return_date = np.array(list(map(_dym, dates)), dtype="datetime64[D]")
         else:
             return_date = (
-                pd.to_datetime(pd.Series(dates).apply(lambda x: _dym(x).strftime("%Y-%m-%d")))
+                pd.to_datetime(
+                    pd.Series(dates).apply(lambda x: _dym(x).strftime("%Y-%m-%d"))
+                )
                 .dt.tz_localize(tz=zone)
                 .to_numpy(dtype="datetime64")
             )
@@ -521,7 +537,9 @@ def ymd_hms(dates, tz=None):
         ...
     elif isinstance(dates, str):
         if tz is None:
-            return_date = dateutil.parser.parse(dates, dayfirst=True, yearfirst=False).strftime("%Y-%m-%d %H:%m:%S")
+            return_date = dateutil.parser.parse(
+                dates, dayfirst=True, yearfirst=False
+            ).strftime("%Y-%m-%d %H:%m:%S")
         else:
             return_date = zone.localize(
                 dateutil.parser.parse(dates, dayfirst=True, yearfirst=False)
