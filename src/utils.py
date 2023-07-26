@@ -1,10 +1,18 @@
+import numpy as np
 from more_itertools import unique_everseen
 import pandas as pd
 import pyspark.sql as ps
 import warnings
 
+from typing import Union, Optional
 
-def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):
+
+def _get_str_columns(
+    data: Union[pd.DataFrame, ps.DataFrame],
+    str_arguments: str,
+    cols: Optional[list, tuple] = None,
+    is_pandas: bool = True,
+) -> list:
     """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns
 
     Parameters
@@ -29,18 +37,22 @@ def _get_str_columns(data, str_arguments, cols=None, is_pandas=True):
         else:
             cols = data.columns
     if ":" in str_arguments:
-        start_col, end_col = str_arguments.split(':')
+        start_col, end_col = str_arguments.split(":")
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
     elif "-" in str_arguments:
-        col_to_remove = str_arguments[str_arguments.find("-") + 1:]
+        col_to_remove = str_arguments[str_arguments.find("-") + 1 :]
         cols.remove(col_to_remove)
     else:
         cols = [str_arguments]
     return cols
 
 
-def _get_list_columns(data, list_cols, is_pandas=True):
+def _get_list_columns(
+    data: Union[pd.DataFrame, ps.DataFrame],
+    list_cols: Union[list, tuple, np.ndarray],
+    is_pandas: bool = True,
+) -> list:
     """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns
 
     Parameters
@@ -67,13 +79,17 @@ def _get_list_columns(data, list_cols, is_pandas=True):
     return list(unique_everseen(return_cols))
 
 
-def _convert_numeric(data):
+def _convert_numeric(
+    data: Union[pd.DataFrame, ps.DataFrame]
+) -> Union[pd.DataFrame, ps.DataFrame]:
     # We go column by column and see if the column contains only numeric characters. If it does, then we
     # can safely use pd.to_numeric(), which also handles if it gets converted to integer or float.
-    return data.apply(lambda x: pd.to_numeric(x) if x.str.isnumeric().all() else x, axis=0)
+    return data.apply(
+        lambda x: pd.to_numeric(x) if x.str.isnumeric().all() else x, axis=0
+    )
 
 
-def _check_df_type(data, argument):
+def _check_df_type(data: Union[pd.DataFrame, ps.DataFrame], argument: str) -> bool:
     if isinstance(data, pd.DataFrame):
         return True
     elif isinstance(data, ps.Column):
@@ -82,16 +98,20 @@ def _check_df_type(data, argument):
         raise Exception("Cannot perform {} on non-DataFrame".format(argument))
 
 
-def _check_unique(data, how='unique'):
+def _check_unique(
+    data: Union[pd.DataFrame, ps.DataFrame], how: str = "unique"
+) -> Union[pd.DataFrame, ps.DataFrame]:
     # Check for repeated names
     if len(set(data.columns)) != len(data.columns):
-        if how.casefold() == 'check_unique':
+        if how.casefold() == "check_unique":
             raise AttributeError("Not all columns have unique names")
-        elif how.casefold() == 'unique':
+        elif how.casefold() == "unique":
             cols = pd.Series(data.columns)
             for dup in cols[cols.duplicated()].unique():
-                cols[cols[cols == dup].index.values.tolist()] = [dup + '.' + str(i) if i != 0 else dup for i in
-                                                                 range(sum(cols == dup))]
+                cols[cols[cols == dup].index.values.tolist()] = [
+                    dup + "." + str(i) if i != 0 else dup
+                    for i in range(sum(cols == dup))
+                ]
             data.columns = cols
             return data
         else:
