@@ -1,8 +1,11 @@
 import pandas as pd
+import pyspark.sql as ps
+
+from typing import Union
 from src.utils import _check_df_type
 
 
-def everything(data):
+def everything(data: Union[pd.DataFrame, ps.DataFrame]) -> list:
     """Selects all variables
 
     Parameters
@@ -21,7 +24,7 @@ def everything(data):
         return data.columns
 
 
-def last_col(data, offset=0):
+def last_col(data: Union[pd.DataFrame, ps.DataFrame], offset: int = 0) -> str:
     """Selects the `nth` last column
 
     Parameters
