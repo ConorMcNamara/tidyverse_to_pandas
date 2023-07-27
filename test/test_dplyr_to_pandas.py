@@ -8,7 +8,7 @@ import pytest
 class TestDplyrToPandas(unittest.TestCase):
 
     # Arrange
-    def test_arrange_pandas(self):
+    def test_arrange_pandas(self) -> None:
         cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
         cars = cars.rename({'Unnamed: 0': 'car'}, axis=1)
         expected = pd.DataFrame({'car': ['Toyota Corolla', 'Honda Civic', 'Fiat 128', 'Fiat X1-9', 'Lotus Europa'],
@@ -23,7 +23,7 @@ class TestDplyrToPandas(unittest.TestCase):
         actual = arrange(cars, ['cyl', 'disp']).head()
         pd.testing.assert_frame_equal(expected, actual)
 
-    def test_arrange_pandasDesc(self):
+    def test_arrange_pandasDesc(self) -> None:
         cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
         cars = cars.rename({'Unnamed: 0': 'car'}, axis=1)
         actual = arrange(cars, "desc(disp)").head()
@@ -38,7 +38,7 @@ class TestDplyrToPandas(unittest.TestCase):
         pd.testing.assert_frame_equal(expected, actual)
 
     # Count
-    def test_count_pandas(self):
+    def test_count_pandas(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.DataFrame({'sex': ['male', 'female', 'none', 'none', 'hermaphroditic'],
                                  'gender': ['masculine', 'feminine', 'masculine', 'feminine', 'masculine'],
@@ -47,7 +47,7 @@ class TestDplyrToPandas(unittest.TestCase):
         expected['gender'] = expected['gender'].astype('category')
         pd.testing.assert_frame_equal(count(starwars, ['sex', 'gender'], sort=True), expected)
 
-    def test_count_pandasWeight(self):
+    def test_count_pandasWeight(self) -> None:
         df = pd.DataFrame({'name': ['Max', 'Sandra', 'Susan'],
                            'gender': ['male', 'female', 'female'],
                            'runs': [10, 1, 4]})
@@ -57,7 +57,7 @@ class TestDplyrToPandas(unittest.TestCase):
         pd.testing.assert_frame_equal(count(df, 'gender', wt='runs'), expected)
 
     # Add Count
-    def test_addCount_pandas(self):
+    def test_addCount_pandas(self) -> None:
         df = pd.DataFrame({'name': ['Max', 'Sandra', 'Susan'],
                            'gender': ['male', 'female', 'female'],
                            'runs': [10, 1, 4]})
@@ -68,20 +68,20 @@ class TestDplyrToPandas(unittest.TestCase):
         pd.testing.assert_frame_equal(add_count(df, "gender", wt="runs"), expected)
 
     # Distinct
-    def test_distinct_pandasAll(self):
+    def test_distinct_pandasAll(self) -> None:
         data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
         assert len(distinct(data)) == len(distinct(data, ['x', 'y']))
 
-    def test_distinct_pandasColumn(self):
+    def test_distinct_pandasColumn(self) -> None:
         data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
         assert len(distinct(data, 'x')) == 10
 
-    def test_distinct_pandasKeepAll(self):
+    def test_distinct_pandasKeepAll(self) -> None:
         data = pd.DataFrame({'x': np.random.choice(10, 100, replace=True), 'y': np.random.choice(10, 100, replace=True)})
         assert distinct(data, 'y', keep_all=True).shape == (10, 2)
 
     # Filter
-    def test_filter_pandas(self):
+    def test_filter_pandas(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.DataFrame({'name': ['Jabba Desilijic Tiure'], 'height': [175.0], 'mass': [1358.0],
                                  'hair_color': [np.nan], 'skin_color': ['green-tan, brown'], 'eye_color': ['orange'],
@@ -90,7 +90,7 @@ class TestDplyrToPandas(unittest.TestCase):
         expected['hair_color'] = expected['hair_color'].astype('object')
         pd.testing.assert_frame_equal(expected, filter(starwars, 'mass > 1000'))
 
-    def test_filter_pandasMean(self):
+    def test_filter_pandasMean(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.DataFrame({'name': ['Darth Vader', 'Owen Lars', 'Chewbacca', 'Jabba Desilijic Tiure', 'Jek Tono Porkins'],
                                  'height': [202.0, 178.0, 228.0, 175.0, 180.0], 'mass': [136.0, 120.0, 112.0, 1358.0, 110.0],
@@ -102,7 +102,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'species': ['Human', 'Human', 'Wookiee', 'Hutt', 'Human']})
         pd.testing.assert_frame_equal(expected, filter(starwars, 'mass > mean(mass)').head())
 
-    def test_filter_pandasMedian(self):
+    def test_filter_pandasMedian(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.DataFrame(
             {'name': ['Darth Vader', 'Owen Lars', 'Biggs Darklighter', 'Anakin Skywalker', 'Chewbacca'],
@@ -115,7 +115,7 @@ class TestDplyrToPandas(unittest.TestCase):
              'species': ['Human', 'Human', 'Human', 'Human', 'Wookiee']})
         pd.testing.assert_frame_equal(expected, filter(starwars, "mass > median(mass)").head())
 
-    def test_filter_pandasMax(self):
+    def test_filter_pandasMax(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.DataFrame({'name': ['Jabba Desilijic Tiure'], 'height': [175.0], 'mass': [1358.0],
                                  'hair_color': [np.nan], 'skin_color': ['green-tan, brown'], 'eye_color': ['orange'],
@@ -124,19 +124,19 @@ class TestDplyrToPandas(unittest.TestCase):
         expected['hair_color'] = expected['hair_color'].astype('object')
         pd.testing.assert_frame_equal(expected, filter(starwars, 'mass == max(mass)'))
 
-    def test_filter_pandasMin(self):
+    def test_filter_pandasMin(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.DataFrame({'name': ['Ratts Tyerell'], 'height': [79.0], 'mass': [15.0], 'hair_color': ['none'],
                                  'skin_color': ['grey, blue'], 'eye_color': ['unknown'], 'birth_year': [np.nan],
                                  'sex': ['male'], 'gender': ['masculine'], 'homeworld': ['Aleen Minor'], 'species': ['Aleena']})
         pd.testing.assert_frame_equal(expected, filter(starwars, 'mass == min(mass)'))
 
-    def test_filter_pandasQuantile(self):
+    def test_filter_pandasQuantile(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         pd.testing.assert_frame_equal(filter(starwars, "mass==median(mass)"), filter(starwars, "mass==quantile(mass, 0.5)"))
 
     # Mutate
-    def test_mutate_pandasString(self):
+    def test_mutate_pandasString(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -144,7 +144,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [11, 11, 11]})
         pd.testing.assert_frame_equal(mutate(data, 'z = x + y'), expected)
 
-    def test_mutate_pandasString_log(self):
+    def test_mutate_pandasString_log(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y1': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -152,7 +152,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [2.302585, 2.197225, 2.079442]})
         pd.testing.assert_frame_equal(mutate(data, 'z = log(y1)'), expected)
 
-    def test_mutate_pandasString_log2(self):
+    def test_mutate_pandasString_log2(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y_1': [2, 4, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -160,7 +160,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = log2(y_1)'), expected)
 
-    def test_mutate_pandasString_log10(self):
+    def test_mutate_pandasString_log10(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'yY': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -168,7 +168,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = log10(yY)'), expected)
 
-    def test_mutate_pandasString_arcsin(self):
+    def test_mutate_pandasString_arcsin(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -176,7 +176,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.000000, 1.141593, 0.141593]})
         pd.testing.assert_frame_equal(mutate(data, "z = arcsin(sin(x))"), expected)
 
-    def test_mutate_pandasString_arccos(self):
+    def test_mutate_pandasString_arccos(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -184,7 +184,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = arccos(cos(x))"), expected)
 
-    def test_mutate_pandasString_arctan(self):
+    def test_mutate_pandasString_arctan(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -192,7 +192,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.000000, -1.141593, -0.141593]})
         pd.testing.assert_frame_equal(mutate(data, "z = arctan(tan(x))"), expected)
 
-    def test_mutate_pandasString_arcsinh(self):
+    def test_mutate_pandasString_arcsinh(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -200,7 +200,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = arcsinh(sinh(x))"), expected)
 
-    def test_mutate_pandasString_arccosh(self):
+    def test_mutate_pandasString_arccosh(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -208,7 +208,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = arccosh(cosh(x))"), expected)
 
-    def test_mutate_pandasString_arctanh(self):
+    def test_mutate_pandasString_arctanh(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -216,7 +216,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = arctanh(tanh(x))"), expected)
 
-    def test_mutate_pandasString_ceil(self):
+    def test_mutate_pandasString_ceil(self) -> None:
         data = pd.DataFrame({'x': [1.2, 2.5, 3.7],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1.2, 2.5, 3.7],
@@ -224,7 +224,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [2.0, 3.0, 4.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = ceil(x)"), expected)
 
-    def test_mutate_pandasString_floor(self):
+    def test_mutate_pandasString_floor(self) -> None:
         data = pd.DataFrame({'x': [1.2, 2.5, 3.7],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1.2, 2.5, 3.7],
@@ -232,7 +232,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = floor(x)"), expected)
 
-    def test_mutate_pandasString_round(self):
+    def test_mutate_pandasString_round(self) -> None:
         data = pd.DataFrame({'x': [1.2, 2.5, 3.7],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1.2, 2.5, 3.7],
@@ -240,7 +240,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 4.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = round(x, 0)"), expected)
 
-    def test_mutate_pandasString_sqrt(self):
+    def test_mutate_pandasString_sqrt(self) -> None:
         data = pd.DataFrame({'x': [1, 4, 9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [1, 4, 9],
@@ -248,7 +248,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1.0, 2.0, 3.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = sqrt(x)"), expected)
 
-    def test_mutate_pandasString_abs(self):
+    def test_mutate_pandasString_abs(self) -> None:
         data = pd.DataFrame({'x': [-1, 4, -9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [-1, 4, -9],
@@ -256,7 +256,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1, 4, 9]})
         pd.testing.assert_frame_equal(mutate(data, "z = abs(x)"), expected)
 
-    def test_mutate_pandasString_sign(self):
+    def test_mutate_pandasString_sign(self) -> None:
         data = pd.DataFrame({'x': [-1, 4, -9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [-1, 4, -9],
@@ -264,7 +264,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [-1, 1, -1]})
         pd.testing.assert_frame_equal(mutate(data, "z = sign(x)"), expected)
 
-    def test_mutate_pandasString_mean(self):
+    def test_mutate_pandasString_mean(self) -> None:
         data = pd.DataFrame({'x': [-1, 4, -9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [-1, 4, -9],
@@ -272,7 +272,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [9.0, 9.0, 9.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = mean(y)"), expected)
 
-    def test_mutate_pandasString_median(self):
+    def test_mutate_pandasString_median(self) -> None:
         data = pd.DataFrame({'x': [-1, 4, -9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [-1, 4, -9],
@@ -280,7 +280,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [9.0, 9.0, 9.0]})
         pd.testing.assert_frame_equal(mutate(data, "z = median(y)"), expected)
 
-    def test_mutate_pandasString_min(self):
+    def test_mutate_pandasString_min(self) -> None:
         data = pd.DataFrame({'x': [-1, 4, -9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [-1, 4, -9],
@@ -288,7 +288,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [8, 8, 8]})
         pd.testing.assert_frame_equal(mutate(data, "z = min(y)"), expected)
 
-    def test_mutate_pandasString_max(self):
+    def test_mutate_pandasString_max(self) -> None:
         data = pd.DataFrame({'x': [-1, 4, -9],
                              'y': [10, 9, 8]})
         expected = pd.DataFrame({'x': [-1, 4, -9],
@@ -296,7 +296,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [10, 10, 10]})
         pd.testing.assert_frame_equal(mutate(data, "z = max(y)"), expected)
 
-    def test_mutate_pandasString_cumsum(self):
+    def test_mutate_pandasString_cumsum(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -304,7 +304,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [1, 3, 6]})
         pd.testing.assert_frame_equal(mutate(data, 'z = cumsum(x)'), expected)
 
-    def test_mutate_pandasString_cummin(self):
+    def test_mutate_pandasString_cummin(self) -> None:
         data = pd.DataFrame({'x': [3, 4, 2, 4, 1],
                              'y': [10, 100, 1000, 10000, 100000]})
         expected = pd.DataFrame({'x': [3, 4, 2, 4, 1],
@@ -312,7 +312,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [3, 3, 2, 2, 1]})
         pd.testing.assert_frame_equal(mutate(data, 'z = cummin(x)'), expected)
 
-    def test_mutate_pandasString_cummax(self):
+    def test_mutate_pandasString_cummax(self) -> None:
         data = pd.DataFrame({'x': [3, 4, 2, 5, 1],
                              'y': [10, 100, 1000, 10000, 100000]})
         expected = pd.DataFrame({'x': [3, 4, 2, 5, 1],
@@ -320,7 +320,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [3, 4, 4, 5, 5]})
         pd.testing.assert_frame_equal(mutate(data, 'z = cummax(x)'), expected)
 
-    def test_mutate_pandasString_lag(self):
+    def test_mutate_pandasString_lag(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -328,7 +328,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [np.nan, 1.0, 2.0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lag(x)'), expected)
 
-    def test_mutate_pandasString_lagNEquals(self):
+    def test_mutate_pandasString_lagNEquals(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -336,7 +336,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [np.nan, np.nan, 1.0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lag(x, n=2)'), expected)
 
-    def test_mutate_pandasString_lagDefaultEquals(self):
+    def test_mutate_pandasString_lagDefaultEquals(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -344,7 +344,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [0, 1, 2]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lag(x, default=0)'), expected)
 
-    def test_mutate_pandasString_lagNoKwargs(self):
+    def test_mutate_pandasString_lagNoKwargs(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -352,7 +352,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [0, 0, 1]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lag(x, 2, 0)'), expected)
 
-    def test_mutate_pandasString_lead(self):
+    def test_mutate_pandasString_lead(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -360,7 +360,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [2.0, 3.0, np.nan]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lead(x)'), expected)
 
-    def test_mutate_pandasString_leadNEquals(self):
+    def test_mutate_pandasString_leadNEquals(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -368,7 +368,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [3.00, np.nan, np.nan]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, n=2)'), expected)
 
-    def test_mutate_pandasString_leadDefaultEquals(self):
+    def test_mutate_pandasString_leadDefaultEquals(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -376,7 +376,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [2, 3, 0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, default=0)'), expected)
 
-    def test_mutate_pandasString_leadNoKwargs(self):
+    def test_mutate_pandasString_leadNoKwargs(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -384,7 +384,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [3, 0, 0]})
         pd.testing.assert_frame_equal(mutate(data, 'z = lead(x, 2, 0)'), expected)
 
-    def test_mutate_pandasString_ifelse(self):
+    def test_mutate_pandasString_ifelse(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -392,7 +392,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [True, False, False]})
         pd.testing.assert_frame_equal(mutate(data, 'z = if_else(x == 1, True, False)'), expected)
 
-    def test_mutate_pandasString_naif(self):
+    def test_mutate_pandasString_naif(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -400,7 +400,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'z': [np.nan, 2, 3]})
         pd.testing.assert_frame_equal(mutate(data, 'z = na_if(x, 1)'), expected)
 
-    def test_mutate_pandasString_coalesce(self):
+    def test_mutate_pandasString_coalesce(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, np.nan]})
         expected = pd.DataFrame({'x': [1, 2, 3],
@@ -409,26 +409,26 @@ class TestDplyrToPandas(unittest.TestCase):
         pd.testing.assert_frame_equal(mutate(data, 'z = coalesce(y, 1000)'), expected)
 
     # Pull
-    def test_pull_pandas(self):
+    def test_pull_pandas(self) -> None:
         cars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\mtcars.csv')
         expected = pd.Series([4, 4, 1, 1, 2], name='carb')
         pd.testing.assert_series_equal(expected, pull(cars, -1).head())
 
-    def test_pull_pandasName(self):
+    def test_pull_pandasName(self) -> None:
         starwars = pd.read_csv('C:\\Users\\conor\\Documents\\tidyverse_to_pandas\\data\\starwars.csv')
         expected = pd.Series([172.0, 167.0, 96.0, 202.0, 150.0], name='height')
         expected.index = pd.Series(['Luke Skywalker', 'C-3PO', 'R2-D2', 'Darth Vader', 'Leia Organa'], name='name')
         pd.testing.assert_series_equal(expected, pull(starwars, 'height', 'name').head())
 
     # Rename
-    def test_rename_pandasString(self):
+    def test_rename_pandasString(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'blarg': [1, 2, 3],
                                  'y': [10, 100, 1000]})
         pd.testing.assert_frame_equal(rename(data, 'x = blarg'), expected)
 
-    def test_rename_pandasList(self):
+    def test_rename_pandasList(self) -> None:
         data = pd.DataFrame({'x': [1, 2, 3],
                              'y': [10, 100, 1000]})
         expected = pd.DataFrame({'blarg': [1, 2, 3],
@@ -436,7 +436,7 @@ class TestDplyrToPandas(unittest.TestCase):
         pd.testing.assert_frame_equal(rename(data, ['x = blarg', 'y = smarg']), expected)
 
     # Relocate
-    def test_relocate_beforeAfterNone(self):
+    def test_relocate_beforeAfterNone(self) -> None:
         data = pd.DataFrame({'a': [1],
                              'b': [1],
                              'c': [1],
@@ -451,7 +451,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'e': ['a']})
         pd.testing.assert_frame_equal(relocate(data, 'f'), expected)
 
-    def test_relocate_before(self):
+    def test_relocate_before(self) -> None:
         data = pd.DataFrame({'a': [1],
                              'b': [1],
                              'c': [1],
@@ -466,7 +466,7 @@ class TestDplyrToPandas(unittest.TestCase):
                                  'e': ['a']})
         pd.testing.assert_frame_equal(relocate(data, 'f', before='b'), expected)
 
-    def test_relocate_after(self):
+    def test_relocate_after(self) -> None:
         data = pd.DataFrame({'a': [1],
                              'b': [1],
                              'c': [1],
