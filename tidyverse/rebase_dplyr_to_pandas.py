@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
-from src.utils import _check_df_type, _get_list_columns, _get_str_columns
+from tidyverse.utils import _check_df_type, _get_list_columns, _get_str_columns
 import pyspark.sql as ps
 
 from typing import Union, Optional
@@ -56,11 +56,7 @@ def arrange(
     if is_pandas:
         # Here, we are resetting the index because R's implementation also resets the index. Thus, we also need to drop
         # our prior index
-        return (
-            data.sort_values(sorting_cols, ascending=ascending_cols)
-            .reset_index()
-            .drop("index", axis=1)
-        )
+        return data.sort_values(sorting_cols, ascending=ascending_cols).reset_index().drop("index", axis=1)
     else:
         return data.orderBy(sorting_cols, ascending=ascending_cols)
 
@@ -325,9 +321,7 @@ def filter(
         elif "quantile(" in c.casefold():
             quantile_col = re.search(r"(?<=quantile\()[a-zA-Z]+", c).group(0)
             if re.search("probs=", c):
-                quantile_percent = float(
-                    re.search(r"(?<=probs\=)\s*\d*\.\d+", c).group(0)
-                )
+                quantile_percent = float(re.search(r"(?<=probs\=)\s*\d*\.\d+", c).group(0))
             else:
                 quantile_percent = float(re.search(r"(?<=,)\s*\d*\.\d+", c).group(0))
             if quantile_percent > 1:
@@ -342,9 +336,7 @@ def filter(
             result = c
         query_result.append(result)
     if is_pandas:
-        return (
-            data.query(" & ".join(query_result)).reset_index().drop(["index"], axis=1)
-        )
+        return data.query(" & ".join(query_result)).reset_index().drop(["index"], axis=1)
     else:
         return data.filter(" and ".join(query_result))
 
@@ -497,26 +489,17 @@ def mutate(
             if "df.cummean(" in after_equals:
                 after_equals = re.sub(
                     r"cummean\((.*?)\)",
-                    re.search(r"cummean\((.*?)\)", cols).group(1)
-                    + ".expanding().mean()",
+                    re.search(r"cummean\((.*?)\)", cols).group(1) + ".expanding().mean()",
                     after_equals,
                 )
             if "df.cummin(" in after_equals:
-                after_equals = re.sub(
-                    r"df.cummin", r"np.minimum.accumulate", after_equals
-                )
+                after_equals = re.sub(r"df.cummin", r"np.minimum.accumulate", after_equals)
             if "df.cummax(" in after_equals:
-                after_equals = re.sub(
-                    r"df.cummax", r"np.maximum.accumulate", after_equals
-                )
+                after_equals = re.sub(r"df.cummax", r"np.maximum.accumulate", after_equals)
             # Lead and Lag variables
             if "df.lag(" in after_equals:
-                if "," in re.search(
-                    r"(?<=lag\(df\.)[a-zA-Z0-9_,\s]*", after_equals
-                ).group(0):
-                    lag_string = re.search(
-                        r"(?<=lag\()[a-zA-Z0-9_,\s\.=]*", after_equals
-                    ).group(0)
+                if "," in re.search(r"(?<=lag\(df\.)[a-zA-Z0-9_,\s]*", after_equals).group(0):
+                    lag_string = re.search(r"(?<=lag\()[a-zA-Z0-9_,\s\.=]*", after_equals).group(0)
                     lag_string = re.sub(r"df\.", "", lag_string)
                     if len(lag_string.split(",")) > 2:
                         lag_string = ",".join(lag_string.split(",")[1:])
@@ -529,9 +512,9 @@ def mutate(
                     if len(lag_string.split(",")) == 2:
                         if "default" not in lag_string.split(",")[1]:
                             lag_string = re.sub(r",", ",fill_value=", lag_string)
-                    after_equals = re.sub(
-                        r",.*", "", re.sub("df\.lag\(", "", after_equals)
-                    ) + ".shift({})".format(lag_string)
+                    after_equals = re.sub(r",.*", "", re.sub("df\.lag\(", "", after_equals)) + ".shift({})".format(
+                        lag_string
+                    )
                 else:
                     after_equals = re.sub(
                         r"lag\((.*?)\)",
@@ -539,12 +522,8 @@ def mutate(
                         after_equals,
                     )
             if "df.lead(" in after_equals:
-                if "," in re.search(
-                    r"(?<=lead\(df\.)[a-zA-Z0-9_,\s]*", after_equals
-                ).group(0):
-                    lead_string = re.search(
-                        r"(?<=lead\()[a-zA-Z0-9_,\s\.=]*", after_equals
-                    ).group(0)
+                if "," in re.search(r"(?<=lead\(df\.)[a-zA-Z0-9_,\s]*", after_equals).group(0):
+                    lead_string = re.search(r"(?<=lead\()[a-zA-Z0-9_,\s\.=]*", after_equals).group(0)
                     lead_string = re.sub(r"df\.", "", lead_string)
                     if len(lead_string.split(",")) > 2:
                         lead_string = ",".join(lead_string.split(",")[1:])
@@ -559,9 +538,7 @@ def mutate(
                             lead_string = re.sub(r",", ",fill_value=", lead_string)
                         if "n=" not in lead_string.split(",")[0]:
                             lead_array = lead_string.split(",")
-                            lead_array[0] = str(
-                                "periods={}".format(-int(lead_array[0]))
-                            )
+                            lead_array[0] = str("periods={}".format(-int(lead_array[0])))
                             lead_string = ",".join(lead_array)
                     else:
                         if "fill_value=" in lead_string:
@@ -570,9 +547,9 @@ def mutate(
                             pass
                         else:
                             lead_string = str("periods=-{}".format(int(lead_string)))
-                    after_equals = re.sub(
-                        r",.*", "", re.sub("df\.lead\(", "", after_equals)
-                    ) + ".shift({})".format(lead_string)
+                    after_equals = re.sub(r",.*", "", re.sub("df\.lead\(", "", after_equals)) + ".shift({})".format(
+                        lead_string
+                    )
                 else:
                     after_equals = re.sub(
                         r"lead\((.*?)\)",
@@ -593,48 +570,34 @@ def mutate(
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[2])
                 after_equals_split_2 = re.sub("\)", "", after_equals_split_2)
                 if after_equals_split_1 not in data.columns:
-                    after_equals = re.sub(
-                        after_equals_split[1], after_equals_split_1, after_equals
-                    )
+                    after_equals = re.sub(after_equals_split[1], after_equals_split_1, after_equals)
                 if after_equals_split_2 not in data.columns:
-                    after_equals = after_equals.replace(
-                        after_equals_split[2], after_equals_split_2
-                    )
+                    after_equals = after_equals.replace(after_equals_split[2], after_equals_split_2)
                 if ")" not in after_equals:
                     after_equals += ")"
             if "df.recode(" in after_equals:
                 recode = {}
                 after_equals_split = after_equals.split(",")
-                after_equals_split_name = re.sub(
-                    "df.recode\(", "", after_equals_split[0]
-                )
+                after_equals_split_name = re.sub("df.recode\(", "", after_equals_split[0])
                 for i in range(1, len(after_equals_split)):
                     split_equals = after_equals_split[i].split("=")
                     var_to_be_changed = re.sub("df.", "", split_equals[0])
                     var_to_change = re.sub("df.", "", split_equals[1])
                     recode[var_to_be_changed] = var_to_change
-                after_equals = "{0}.replace({1})".format(
-                    after_equals_split_name, recode
-                )
+                after_equals = "{0}.replace({1})".format(after_equals_split_name, recode)
             # Handle missing values
             if "df.na_if(" in after_equals:
                 after_equals_split = after_equals.split(",")
                 after_equals_split_1 = re.sub("df.na_if\(", "", after_equals_split[0])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
                 after_equals_split_2 = re.sub("\)", "", after_equals_split_2)
-                after_equals = "{0}.replace({1}, np.nan)".format(
-                    after_equals_split_1, after_equals_split_2
-                )
+                after_equals = "{0}.replace({1}, np.nan)".format(after_equals_split_1, after_equals_split_2)
             if "df.coalesce(" in after_equals:
                 after_equals_split = after_equals.split(",")
-                after_equals_split_1 = re.sub(
-                    "df.coalesce\(", "", after_equals_split[0]
-                )
+                after_equals_split_1 = re.sub("df.coalesce\(", "", after_equals_split[0])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
                 after_equals_split_2 = re.sub("\)", "", after_equals_split_2)
-                after_equals = "{0}.fillna({1})".format(
-                    after_equals_split_1, after_equals_split_2
-                )
+                after_equals = "{0}.fillna({1})".format(after_equals_split_1, after_equals_split_2)
             after_equals = "lambda df: {}".format(after_equals)
             # Keep or drop columns
             if keep.casefold() in ["used", "unused"]:
@@ -653,9 +616,7 @@ def mutate(
         columns = _get_list_columns(data, cols, is_pandas)
 
 
-def transmute(
-    data, cols: Union[str, list, tuple, np.ndarray, dict]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def transmute(data, cols: Union[str, list, tuple, np.ndarray, dict]) -> Union[pd.DataFrame, ps.DataFrame]:
     """Add new variables while eliminating any columns not used to make our new columns
 
     Parameters
@@ -803,14 +764,10 @@ def relocate(
             else:
                 for i, col in enumerate(cols):
                     cols_to_move = data.pop(cols).values
-                    data.insert(
-                        data.columns.get_loc(after) + (i + 1), col, cols_to_move
-                    )
+                    data.insert(data.columns.get_loc(after) + (i + 1), col, cols_to_move)
             return_data = data.copy()
         else:
-            raise TypeError(
-                "One of before or after must be in string format, or both set to None"
-            )
+            raise TypeError("One of before or after must be in string format, or both set to None")
         return return_data
     else:
         ...

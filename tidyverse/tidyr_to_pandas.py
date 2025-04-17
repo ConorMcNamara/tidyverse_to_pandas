@@ -2,7 +2,7 @@ import pandas as pd
 import pyspark.sql as ps
 from pyspark.sql.functions import concat_ws
 from typing import Union, Optional
-from src.utils import (
+from tidyverse.utils import (
     _get_list_columns,
     _convert_numeric,
     _get_str_columns,
@@ -21,10 +21,10 @@ def pivot_longer(
     data: Union[pd.DataFrame, ps.DataFrame],
     cols: Union[list, tuple, np.ndarray, str],
     names_to: str = "name",
-    names_prefix: Optional[list, tuple, np.ndarray, str] = None,
-    names_sep: Optional[list, tuple, np.ndarray, str] = None,
-    names_pattern: Optional[list, tuple, np.ndarray, str] = None,
-    names_ptypes: [list, tuple, np.ndarray] = None,
+    names_prefix: Optional[Union[list, tuple, np.ndarray, str]] = None,
+    names_sep: Optional[Union[list, tuple, np.ndarray, str]] = None,
+    names_pattern: Optional[Union[list, tuple, np.ndarray, str]] = None,
+    names_ptypes: Union[list, tuple, np.ndarray] = None,
     names_repair: str = "check_unique",
     values_to: str = "value",
     values_drop_na: bool = True,
@@ -103,9 +103,7 @@ def pivot_longer(
             )
         else:
             # Here, we need to figure out what to name our variables as, as well as how to separate them.
-            melted_data = pd.melt(
-                data, id_vars=id_vars, value_vars=cols, value_name=values_to
-            )
+            melted_data = pd.melt(data, id_vars=id_vars, value_vars=cols, value_name=values_to)
             # Uses similar argumentation to separate
             if names_sep is not None:
                 melted_data = separate(
@@ -129,9 +127,7 @@ def pivot_longer(
                     convert=False,
                 )
             else:
-                raise ValueError(
-                    "Cannot determine how to separate into multiple columns"
-                )
+                raise ValueError("Cannot determine how to separate into multiple columns")
         # Drop NA values
         if values_drop_na:
             melted_data = melted_data.dropna(how="any", axis=0)
@@ -213,9 +209,7 @@ def pivot_wider(
         raise TypeError("Cannot determine value names to pivot off of")
     if is_pandas:
         if id_cols is None:
-            id_cols = data.columns.difference(
-                list(names_from) + list(values_from)
-            ).tolist()
+            id_cols = data.columns.difference(list(names_from) + list(values_from)).tolist()
         elif isinstance(id_cols, str):
             id_cols = _get_str_columns(data, id_cols, is_pandas=is_pandas)
         else:
@@ -245,25 +239,17 @@ def pivot_wider(
             )
             values_from = [new_col]
         if len(id_cols) > 1:
-            pivoted_data = pd.pivot_table(
-                data, index=id_cols, columns=names_from, values=values_from
-            )
+            pivoted_data = pd.pivot_table(data, index=id_cols, columns=names_from, values=values_from)
         else:
             # We take the 0th element from id_cols and names_from because pd.pivot() takes in strings as arguments, not
             # lists, so we need to get the string element within each list
-            pivoted_data = pd.pivot(
-                data, index=id_cols[0], columns=names_from[0], values=values_from
-            )
+            pivoted_data = pd.pivot(data, index=id_cols[0], columns=names_from[0], values=values_from)
         # Filling missing values
         if values_fill is not None:
             for column, fill_value in values_fill.items():
-                pivoted_data.loc[
+                pivoted_data.loc[:, pivoted_data.columns.get_level_values(0) == column] = pivoted_data.loc[
                     :, pivoted_data.columns.get_level_values(0) == column
-                ] = pivoted_data.loc[
-                    :, pivoted_data.columns.get_level_values(0) == column
-                ].fillna(
-                    fill_value
-                )
+                ].fillna(fill_value)
         # Flattening our columns names
         pivoted_data.columns = pivoted_data.columns.get_level_values(1)
         # Adding our id_cols back as variables instead of indexes, and resetting the index name to None
@@ -272,9 +258,7 @@ def pivot_wider(
         # Re-order our dataframe so that the values are in the order first seen in our names_from column
         pivoted_data = pivoted_data[id_cols + data[names_from[0]].unique().tolist()]
         # Adding prefixes to names
-        value_cols = [
-            names_prefix + col for col in pivoted_data.columns.difference(id_cols)
-        ]
+        value_cols = [names_prefix + col for col in pivoted_data.columns.difference(id_cols)]
         pivoted_data[pivoted_data.columns.difference(id_cols)].columns = value_cols
         # Check for repeated names
         pivoted_data = _check_unique(pivoted_data, how=names_repair)
@@ -330,18 +314,14 @@ def unnest_longer(
         # We have multiple columns to explode. Note that this assumes that these columns are all columns of lists
         # and that each list contains the same number of elements
         if isinstance(col, (tuple, list, (np.ndarray, np.generic))):
-            unnest_data = pd.concat(
-                [pd.DataFrame({x: np.concatenate(data[x].values)}) for x in col], axis=1
-            )
+            unnest_data = pd.concat([pd.DataFrame({x: np.concatenate(data[x].values)}) for x in col], axis=1)
             if indices_include:
                 idx = data.index.repeat(data[col[0]].str.len())
                 unnest_data.index = idx
                 unnest_data = unnest_data.reset_index()
             unnest_data = unnest_data.join(data.drop(col, axis=1), how="left")
             if simplify:
-                unnest_data[col] = unnest_data[col].apply(
-                    pd.to_numeric, errors="coerce"
-                )
+                unnest_data[col] = unnest_data[col].apply(pd.to_numeric, errors="coerce")
         elif isinstance(col, str):
             # Our column is in list format
             if (data[col].apply(type) == list).any():
@@ -352,17 +332,11 @@ def unnest_longer(
                 pivot_cols = list(unnest_data.columns)
                 # Data is in wide format, so we need to convert it to long format
                 unnest_data = unnest_data.join(data.drop(list(col), axis=1), how="left")
-                indices_to = (
-                    indices_to if indices_to is not None else "{}_id".format(col)
-                )
-                unnest_data = pivot_longer(
-                    unnest_data, pivot_cols, names_to=indices_to, values_to=col
-                )
+                indices_to = indices_to if indices_to is not None else "{}_id".format(col)
+                unnest_data = pivot_longer(unnest_data, pivot_cols, names_to=indices_to, values_to=col)
                 # Our pivot longer returns the ids first, then the values. However, unnest_longer returns values first,
                 # followed by id, so we need to reverse the column order to follow tidyr convention for this function
-                unnest_data = unnest_data[
-                    list(data.columns.difference(list(col))) + list(col) + [indices_to]
-                ]
+                unnest_data = unnest_data[list(data.columns.difference(list(col))) + list(col) + [indices_to]]
             if indices_include:
                 unnest_data = unnest_data.reset_index()
             if simplify:
@@ -435,9 +409,7 @@ def unnest_wider(
             if is_equal:
                 unnested_data = pd.concat(
                     [
-                        pd.DataFrame(data[x].tolist(), index=data.index).add_prefix(
-                            "{}{}".format(x, names_sep)
-                        )
+                        pd.DataFrame(data[x].tolist(), index=data.index).add_prefix("{}{}".format(x, names_sep))
                         for x in col
                     ],
                     axis=1,
@@ -445,9 +417,7 @@ def unnest_wider(
             else:
                 unnested_data = pd.concat(
                     [
-                        pd.DataFrame(
-                            data[x].apply(pd.Series), index=data.index
-                        ).add_prefix("{}{}".format(x, names_sep))
+                        pd.DataFrame(data[x].apply(pd.Series), index=data.index).add_prefix("{}{}".format(x, names_sep))
                         for x in col
                     ],
                     axis=1,
@@ -458,15 +428,9 @@ def unnest_wider(
                 # Similarly, we are checking if all the lists within the column are the same length. If they are, we can
                 # speed things up using data[col].tolist(). Else, we use data[col].apply(pd.Series).
                 if (data[col].str.len()[0] == data[col].str.len()[1:]).all():
-                    unnested_data = pd.DataFrame(data[col].tolist()).add_prefix(
-                        "{}{}".format(col, names_sep)
-                    )
+                    unnested_data = pd.DataFrame(data[col].tolist()).add_prefix("{}{}".format(col, names_sep))
                 else:
-                    unnested_data = (
-                        data[col]
-                        .apply(pd.Series)
-                        .add_prefix("{}{}".format(col, names_sep))
-                    )
+                    unnested_data = data[col].apply(pd.Series).add_prefix("{}{}".format(col, names_sep))
             # data is in dictionary format
             else:
                 unnested_data = pd.json_normalize(data[col])
@@ -527,11 +491,7 @@ def nest(
                 data.groupby(non_nested_cols).agg("count").iloc[0, 0]
                 == data.groupby(non_nested_cols).agg("count").iloc[1:, 0]
             ).all():
-                nested_df = (
-                    data.groupby(non_nested_cols)
-                    .apply(lambda x: x.to_dict())
-                    .reset_index()
-                )
+                nested_df = data.groupby(non_nested_cols).apply(lambda x: x.to_dict()).reset_index()
                 nested_df = nested_df.rename({0: "data"}, axis=1)
             # If our groups have different number of observations, then we need to iteratively add their dictionary
             # values as groupby and lambda will only select one value instead of all of them
@@ -555,11 +515,7 @@ def nest(
                 == data.groupby(non_nested_cols).agg("count").iloc[1:, 0]
             ).all():
                 for col_name, col_select in cols.items():
-                    nested_col = (
-                        data.groupby(non_nested_cols)[col_select]
-                        .apply(lambda x: x.to_dict())
-                        .reset_index()
-                    )
+                    nested_col = data.groupby(non_nested_cols)[col_select].apply(lambda x: x.to_dict()).reset_index()
                     nested_col.columns = non_nested_cols + [col_name]
                     nested_df[col_name] = nested_col[col_name]
             # Similar as before, we need to iteratively add the values to account for uneven group sizes
@@ -569,9 +525,7 @@ def nest(
                     for index, row in nested_df.iterrows():
                         group = row[non_nested_cols].values
                         filtered_data = data[(data[non_nested_cols] == group).values]
-                        nested_df.loc[index, col_name] = [
-                            filtered_data[col_select].to_dict()
-                        ]
+                        nested_df.loc[index, col_name] = [filtered_data[col_select].to_dict()]
         nested_df.index = np.arange(len(nested_df))
     else:
         pass
@@ -633,19 +587,14 @@ def unnest(
                 temp_df = pd.DataFrame(data[col][index])
                 # Rename the columns based on the outer columns, the separator and the inner column
                 if names_sep is not None:
-                    temp_df.columns = [
-                        "{}{}{}".format(col, names_sep, val) for val in temp_df.columns
-                    ]
+                    temp_df.columns = ["{}{}{}".format(col, names_sep, val) for val in temp_df.columns]
                 # If we haven't concatenated any data yet, we want to include our non_nested_columns at the beginning
                 # then we only need to concatenate regular values.
                 if len(unnested_df) == 0:
                     for nest_col in non_nested_cols:
                         temp_df[nest_col] = data.loc[index, nest_col]
                     # Re-order the dataset so that the non-nested columns appear first rather than last (or the middle)
-                    temp_df = temp_df[
-                        non_nested_cols.tolist()
-                        + list(temp_df.columns.difference(non_nested_cols))
-                    ]
+                    temp_df = temp_df[non_nested_cols.tolist() + list(temp_df.columns.difference(non_nested_cols))]
                 # Add all the temporary datasets row-wise
                 exploded_df = pd.concat([exploded_df, temp_df], axis=0)
             # Add all the exploded datasets column wise
@@ -754,9 +703,7 @@ def unchop(
             unchopped_cols = data.columns.difference(cols).values
             # This method is supposedly faster than others for exploding multiple columns, need to see it in action
             # to verify
-            unchopped_df = (
-                data.set_index(unchopped_cols).apply(pd.Series.explode).reset_index()
-            )
+            unchopped_df = data.set_index(unchopped_cols).apply(pd.Series.explode).reset_index()
         if not keep_empty:
             unchopped_df = unchopped_df.dropna(axis=0)
             # The issue with using dropna() is that any column with NA gets automatically converted to object type.
@@ -833,30 +780,18 @@ def separate(
             splits = data[col].str.split(pat=sep, n=num_times, expand=False)
             # Here, one issue is that str.split() returns NaN for splits with no result. However, NaN returns an error
             # when trying to calculate its length. So we are converting all instances of NaN to an empty list
-            splits = splits.apply(
-                lambda d: d
-                if isinstance(d, (list, tuple, (np.ndarray, np.generic)))
-                else []
-            )
+            splits = splits.apply(lambda d: d if isinstance(d, (list, tuple, (np.ndarray, np.generic))) else [])
             # For str.split(), if we specify that expand=False, our results are returned as a Series of lists instead
             # of a pandas DataFrame. Thus, we check if the length of each list in our Series is equal to the number
             # of column names we want to create. If it's less, we add NAs to the list until the lengths are equivalent,
             # with the fill() argument specifying where the NAs will be placed (either right or left of our non-NA values)
             if fill == "left":
-                splits = splits.apply(
-                    lambda x: x
-                    if len(x) == len(into)
-                    else [np.nan] * (len(into) - len(x)) + x
-                )
+                splits = splits.apply(lambda x: x if len(x) == len(into) else [np.nan] * (len(into) - len(x)) + x)
             else:
                 if fill == "warn":
                     warnings.warn("Filling values from right to left")
                 for i in range(len(splits)):
-                    splits = splits.apply(
-                        lambda x: x
-                        if len(x) == len(into)
-                        else x + [np.nan] * (len(into) - len(x))
-                    )
+                    splits = splits.apply(lambda x: x if len(x) == len(into) else x + [np.nan] * (len(into) - len(x)))
             # Turn our Series of lists into a DataFrame
             splits = pd.DataFrame(item for item in splits)
             # This accounts for the opposite problem, which is that the length of the lists in our Series is greater
@@ -881,28 +816,18 @@ def separate(
             # we need the number of column names to exactly match how many separations we are going to create
             if len(sep) != len(into) - 1:
                 raise AttributeError(
-                    "{} column names were expected but {} column names were received".format(
-                        len(into) - 1, len(sep)
-                    )
+                    "{} column names were expected but {} column names were received".format(len(into) - 1, len(sep))
                 )
             splits = pd.DataFrame()
             # str.slice() returns "" if there is no match, which will fail our covert condition, so we convert it to
             # NaN instead to represent that there was no match
             for index, name in enumerate(into):
                 if index == 0:
-                    splits[name] = (
-                        data[col].str.slice(stop=sep[index]).replace("", np.nan)
-                    )
+                    splits[name] = data[col].str.slice(stop=sep[index]).replace("", np.nan)
                 elif index == len(into) - 1:
-                    splits[name] = (
-                        data[col].str.slice(start=sep[index - 1]).replace("", np.nan)
-                    )
+                    splits[name] = data[col].str.slice(start=sep[index - 1]).replace("", np.nan)
                 else:
-                    splits[name] = (
-                        data[col]
-                        .str.slice(start=sep[index - 1], stop=sep[index])
-                        .replace("", np.nan)
-                    )
+                    splits[name] = data[col].str.slice(start=sep[index - 1], stop=sep[index]).replace("", np.nan)
         else:
             raise ValueError("Cannot determine method of splitting columns")
         if convert:
@@ -1029,12 +954,7 @@ def unite(
             # replacements means using regex to separate "a_" versus "a_b", which is less than ideal.
             # 2) replace the concatenated values after the fact. Since we don't need regex, seems like a much more stable
             # solution
-            data[col] = (
-                data[col]
-                .str.replace("NA_", "")
-                .str.replace("_NA", "")
-                .str.replace("NA", "")
-            )
+            data[col] = data[col].str.replace("NA_", "").str.replace("_NA", "").str.replace("NA", "")
         if remove:
             data = data.drop(input_cols, axis=1)
         data = data.replace("NA", np.nan)
@@ -1165,13 +1085,9 @@ def fill(
         elif direction == "up":
             data[cols_to_consider] = data[cols_to_consider].fillna(method="bfill")
         elif direction == "downup":
-            data[cols_to_consider] = (
-                data[cols_to_consider].fillna(method="ffill").fillna(method="bfill")
-            )
+            data[cols_to_consider] = data[cols_to_consider].fillna(method="ffill").fillna(method="bfill")
         else:
-            data[cols_to_consider] = (
-                data[cols_to_consider].fillna(method="bfill").fillna(method="ffill")
-            )
+            data[cols_to_consider] = data[cols_to_consider].fillna(method="bfill").fillna(method="ffill")
     else:
         # Pyspark has no native support for forwards or backwards filling, so need to create my own function to do it
         ...
@@ -1228,9 +1144,7 @@ def complete(
             nested_df = pd.DataFrame()
             # These are the columns that will have missing values as we convert them from implicitly missing to
             # explicitly missing
-            value_cols = data.columns.difference(
-                index_cols + nested_cols
-            ).values.tolist()
+            value_cols = data.columns.difference(index_cols + nested_cols).values.tolist()
             # Here, we iteratively go through each nesting_col and reindex it. We then merge it with the previously
             # created data frames to get our final result.
             for col in nested_cols:
@@ -1248,26 +1162,20 @@ def complete(
                 # We remove any duplicated columns that aren't going to be used for left joins, because otherwise we
                 # are going to get a lot of columns like group_x, group_y, group_z and it becomes very difficult to
                 # know which one(s) to remove and which one(s) to keep.
-                group_data = group_data.drop(
-                    [c for c in nested_cols if c != col], axis=1
-                )
+                group_data = group_data.drop([c for c in nested_cols if c != col], axis=1)
                 # If we haven't added anything to our nested_df, we can't merge on it (as it has no column to merge onto)
                 # so we add our existing data to it.
                 if len(nested_df) == 0:
                     nested_df = pd.concat([nested_df, group_data], axis=1)
                 # We rely on left joins to add new columns to our dataset
                 else:
-                    nested_df = pd.merge(
-                        nested_df, group_data, on=index_cols + value_cols, how="left"
-                    )
+                    nested_df = pd.merge(nested_df, group_data, on=index_cols + value_cols, how="left")
             data = nested_df.sort_values(index_cols).reset_index()
         # This one is much easier, as no nesting is required. Here, we apply everything as done above, but with no
         # worry about grouping or nesting.
         else:
             data = data.set_index(cols)
-            mux = pd.MultiIndex.from_product(
-                [data.index.levels[i] for i in range(len(cols))], names=cols
-            )
+            mux = pd.MultiIndex.from_product([data.index.levels[i] for i in range(len(cols))], names=cols)
             data = data.reindex(mux).reset_index()
         if fill is not None:
             data = data.fillna(fill)

@@ -16,7 +16,7 @@ from natsort import index_natsorted
 
 
 def str_length(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]
+    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
     """Calculates the length of each string
 
@@ -121,9 +121,7 @@ def str_dup(
     if isinstance(string, str):
         if not isinstance(num_dupes, int):
             raise TypeError(
-                "Cannot determine number of duplications using type {}. Use integer instead".format(
-                    type(num_dupes)
-                )
+                "Cannot determine number of duplications using type {}. Use integer instead".format(type(num_dupes))
             )
         else:
             return string * num_dupes
@@ -235,20 +233,14 @@ def str_trunc(
         elif side.casefold() == "left":
             return np.frompyfunc(lambda s: str(ellipsis) + s[-width:], 1, 1)(string)
         else:
-            return np.frompyfunc(
-                lambda s: s[: width // 2] + str(ellipsis) + s[-width // 2], 1, 1
-            )(string)
+            return np.frompyfunc(lambda s: s[: width // 2] + str(ellipsis) + s[-width // 2], 1, 1)(string)
     elif isinstance(string, pd.Series):
         if side.casefold() == "right":
             return string.str.slice(stop=width) + str(ellipsis)
         elif side.casefold() == "left":
             return string.str.slice(start=width) + str(ellipsis)
         else:
-            return (
-                string.str.slice(stop=width // 2)
-                + str(ellipsis)
-                + string.str.slice(start=width // 2)
-            )
+            return string.str.slice(stop=width // 2) + str(ellipsis) + string.str.slice(start=width // 2)
     elif isinstance(string, ps.Column):
         ...
     else:
@@ -313,11 +305,7 @@ def str_unique(
         if strength in [3, 4]:
             return "".join(dict.fromkeys(string).keys())
         elif strength == 2:
-            return "".join(
-                dict.fromkeys(
-                    unicodedata.normalize("NFC", _remove_accents(string))
-                ).keys()
-            )
+            return "".join(dict.fromkeys(unicodedata.normalize("NFC", _remove_accents(string))).keys())
         else:
             str_array = np.array(list(string))
             return "".join(
@@ -326,12 +314,7 @@ def str_unique(
                         np.sort(
                             np.unique(
                                 np.fromiter(
-                                    (
-                                        unicodedata.normalize(
-                                            "NFC", _remove_accents(xi)
-                                        ).casefold()
-                                        for xi in string
-                                    ),
+                                    (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
                                     dtype=str_array.dtype,
                                 ),
                                 return_index=True,
@@ -345,11 +328,7 @@ def str_unique(
         if strength in [3, 4]:
             return list(dict.fromkeys(string).keys())
         elif strength == 2:
-            return list(
-                dict.fromkeys(
-                    [unicodedata.normalize("NFC", _remove_accents(s)) for s in string]
-                ).keys()
-            )
+            return list(dict.fromkeys([unicodedata.normalize("NFC", _remove_accents(s)) for s in string]).keys())
         else:
             str_array = np.array(string)
             return list(
@@ -357,12 +336,7 @@ def str_unique(
                     np.sort(
                         np.unique(
                             np.fromiter(
-                                (
-                                    unicodedata.normalize(
-                                        "NFC", _remove_accents(xi)
-                                    ).casefold()
-                                    for xi in string
-                                ),
+                                (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
                                 dtype=str_array.dtype,
                             ),
                             return_index=True,
@@ -378,10 +352,7 @@ def str_unique(
                 np.sort(
                     np.unique(
                         np.fromiter(
-                            (
-                                unicodedata.normalize("NFC", _remove_accents(xi))
-                                for xi in string
-                            ),
+                            (unicodedata.normalize("NFC", _remove_accents(xi)) for xi in string),
                             dtype=string.dtype,
                         ),
                         return_index=True,
@@ -393,12 +364,7 @@ def str_unique(
                 np.sort(
                     np.unique(
                         np.fromiter(
-                            (
-                                unicodedata.normalize(
-                                    "NFC", _remove_accents(xi)
-                                ).casefold()
-                                for xi in string
-                            ),
+                            (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
                             dtype=string.dtype,
                         ),
                         return_index=True,
@@ -412,10 +378,7 @@ def str_unique(
             indices = np.sort(
                 np.unique(
                     np.fromiter(
-                        (
-                            unicodedata.normalize("NFC", _remove_accents(xi))
-                            for xi in string
-                        ),
+                        (unicodedata.normalize("NFC", _remove_accents(xi)) for xi in string),
                         dtype="<U8",
                     ),
                     return_index=True,
@@ -427,10 +390,7 @@ def str_unique(
             indices = np.sort(
                 np.unique(
                     np.fromiter(
-                        (
-                            unicodedata.normalize("NFC", _remove_accents(xi)).casefold()
-                            for xi in string
-                        ),
+                        (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
                         dtype="<U8",
                     ),
                     return_index=True,
@@ -449,7 +409,7 @@ def str_unique(
 
 
 def str_to_upper(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]
+    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
     """Converts all string to UPPERCASE
 
@@ -477,7 +437,7 @@ def str_to_upper(
 
 
 def str_to_title(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]
+    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
     """Converts all strings to title form
 
@@ -548,7 +508,7 @@ def str_to_lower(
 
 
 def str_to_sentence(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]
+    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
     """Convert all of our strings into sentence format
 
@@ -608,10 +568,7 @@ def str_order(
         if numeric:
             if na_last is True:
                 # For Python string comparisons, 9 is considered the highest for numbers
-                string = [
-                    val if val not in [np.nan, None] else "9" * max_str_length
-                    for val in string
-                ]
+                string = [val if val not in [np.nan, None] else "9" * max_str_length for val in string]
             elif na_last is False:
                 # Similarly, for Python string comparisons, 0 is considered the lowest for numbers
                 string = [val if val not in [np.nan, None] else "0" for val in string]
@@ -619,10 +576,7 @@ def str_order(
         else:
             if na_last is True:
                 # For Python string comparisons, 'z' is considered the highest for letters
-                string = [
-                    val if val not in [np.nan, None] else "z" * max_str_length
-                    for val in string
-                ]
+                string = [val if val not in [np.nan, None] else "z" * max_str_length for val in string]
             elif na_last is False:
                 # For Python string comparisons, 'A' is considered the lowest for letters
                 string = [val if val not in [np.nan, None] else "A" for val in string]
@@ -633,17 +587,13 @@ def str_order(
             string = string[string != None]
         if numeric:
             if na_last is True:
-                string = np.where(
-                    np.isin(string, [np.nan, None]), "9" * max_str_length, string
-                )
+                string = np.where(np.isin(string, [np.nan, None]), "9" * max_str_length, string)
             elif na_last is False:
                 string = np.where(np.isin(string, [np.nan, None]), "0", string)
             sorted_strings = np.array(index_natsorted(string))
         else:
             if na_last is True:
-                string = np.where(
-                    np.isin(string, [np.nan, None]), "z" * max_str_length, string
-                )
+                string = np.where(np.isin(string, [np.nan, None]), "z" * max_str_length, string)
             elif na_last is False:
                 string = np.where(np.isin(string, [np.nan, None]), "A", string)
             sorted_strings = np.argsort(string)
@@ -728,9 +678,7 @@ def str_equal(
         raise TypeError("x and y must be of the same type")
     if isinstance(x, str):
         if ignore_case:
-            return unicodedata.normalize("NFC", x.casefold()) == unicodedata.normalize(
-                "NFC", y.casefold()
-            )
+            return unicodedata.normalize("NFC", x.casefold()) == unicodedata.normalize("NFC", y.casefold())
         else:
             return unicodedata.normalize("NFC", x) == unicodedata.normalize("NFC", y)
     elif isinstance(x, pd.Series):
@@ -738,9 +686,7 @@ def str_equal(
             return pd.Series(
                 np.where(
                     x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
-                    == y.str.casefold().apply(
-                        lambda y: unicodedata.normalize("NFC", y)
-                    ),
+                    == y.str.casefold().apply(lambda y: unicodedata.normalize("NFC", y)),
                     True,
                     False,
                 )
@@ -757,15 +703,11 @@ def str_equal(
     elif isinstance(x, (list, tuple)):
         if ignore_case:
             return [
-                unicodedata.normalize("NFC", i.casefold())
-                == unicodedata.normalize("NFC", j.casefold())
+                unicodedata.normalize("NFC", i.casefold()) == unicodedata.normalize("NFC", j.casefold())
                 for i, j in zip(x, y)
             ]
         else:
-            return [
-                unicodedata.normalize("NFC", i) == unicodedata.normalize("NFC", j)
-                for i, j in zip(x, y)
-            ]
+            return [unicodedata.normalize("NFC", i) == unicodedata.normalize("NFC", j) for i, j in zip(x, y)]
     elif isinstance(x, (np.ndarray, np.generic)):
         if ignore_case:
             return np.compare_chararrays(
@@ -782,12 +724,8 @@ def str_equal(
             )
         else:
             return np.compare_chararrays(
-                np.fromiter(
-                    (unicodedata.normalize("NFC", xi) for xi in x), dtype=x.dtype
-                ),
-                np.fromiter(
-                    (unicodedata.normalize("NFC", yi) for yi in y), dtype=y.dtype
-                ),
+                np.fromiter((unicodedata.normalize("NFC", xi) for xi in x), dtype=x.dtype),
+                np.fromiter((unicodedata.normalize("NFC", yi) for yi in y), dtype=y.dtype),
                 "==",
                 True,
             )
@@ -832,11 +770,7 @@ def str_pad(
         else:
             padded_string = string.center(width, pad)
     else:
-        if (
-            isinstance(string, pd.Series)
-            and isinstance(pad, str)
-            and isinstance(width, int)
-        ):
+        if isinstance(string, pd.Series) and isinstance(pad, str) and isinstance(width, int):
             if side == "left":
                 padded_string = string.str.rjust(width, pad)
             elif side == "center":
@@ -866,45 +800,26 @@ def str_pad(
                         padded_string = [s.center(width, pad) for s in string]
                 else:
                     if side == "left":
-                        padded_string = [
-                            string[i].rjust(width, pad[i]) for i in range(len(pad))
-                        ]
+                        padded_string = [string[i].rjust(width, pad[i]) for i in range(len(pad))]
                     elif side == "right":
-                        padded_string = [
-                            string[i].ljust(width, pad[i]) for i in range(len(pad))
-                        ]
+                        padded_string = [string[i].ljust(width, pad[i]) for i in range(len(pad))]
                     else:
-                        padded_string = [
-                            string[i].center(width, pad[i]) for i in range(len(pad))
-                        ]
+                        padded_string = [string[i].center(width, pad[i]) for i in range(len(pad))]
             else:
                 if isinstance(pad, str):
                     if side == "left":
-                        padded_string = [
-                            string[i].rjust(width[i], pad) for i in range(len(width))
-                        ]
+                        padded_string = [string[i].rjust(width[i], pad) for i in range(len(width))]
                     elif side == "right":
-                        padded_string = [
-                            string[i].ljust(width[i], pad) for i in range(len(width))
-                        ]
+                        padded_string = [string[i].ljust(width[i], pad) for i in range(len(width))]
                     else:
-                        padded_string = [
-                            string[i].center(width[i], pad) for i in range(len(width))
-                        ]
+                        padded_string = [string[i].center(width[i], pad) for i in range(len(width))]
                 else:
                     if side == "left":
-                        padded_string = [
-                            string[i].rjust(width[i], pad[i]) for i in range(len(width))
-                        ]
+                        padded_string = [string[i].rjust(width[i], pad[i]) for i in range(len(width))]
                     elif side == "right":
-                        padded_string = [
-                            string[i].ljust(width[i], pad[i]) for i in range(len(width))
-                        ]
+                        padded_string = [string[i].ljust(width[i], pad[i]) for i in range(len(width))]
                     else:
-                        padded_string = [
-                            string[i].center(width[i], pad[i])
-                            for i in range(len(width))
-                        ]
+                        padded_string = [string[i].center(width[i], pad[i]) for i in range(len(width))]
             if isinstance(string, (np.ndarray, np.generic)):
                 # Testing it out, it turns out that it is significantly less efficient to initialize an array and
                 # then iteratively re-populate it than it is to call np.array on list comprehension, like an order of
@@ -974,7 +889,7 @@ def str_trim(
 
 
 def str_squish(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]
+    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
     """Squishes a string by removing leading and trailing whitespace as well as repeat whitespace inside a string
 
@@ -1088,16 +1003,12 @@ def str_count(
         if isinstance(pattern, str):
             string_counts = [len(re.findall(pattern, s)) for s in string]
         else:
-            string_counts = [
-                len(re.findall(pattern[i], string[i])) for i in range(len(pattern))
-            ]
+            string_counts = [len(re.findall(pattern[i], string[i])) for i in range(len(pattern))]
     elif isinstance(string, (np.ndarray, np.generic)):
         if isinstance(pattern, str):
             string_counts = np.char.count(string, pattern)
         else:
-            string_counts = np.array(
-                [len(re.findall(pattern[i], string[i])) for i in range(len(pattern))]
-            )
+            string_counts = np.array([len(re.findall(pattern[i], string[i])) for i in range(len(pattern))])
     elif isinstance(string, pd.Series):
         if isinstance(pattern, str):
             string_counts = string.str.count(pattern)
@@ -1250,20 +1161,12 @@ def _str_replace(
             if isinstance(string, (list, tuple)):
                 return [replacement if pattern in s else s for s in string]
             else:
-                return np.array(
-                    list(map(lambda v: replacement if pattern in v else v, string))
-                )
+                return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
         else:
             if isinstance(pattern, str):
-                match = [
-                    re.sub(pattern, replacement[i], string[i], count=count)
-                    for i in range(len(string))
-                ]
+                match = [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
             else:
-                match = [
-                    re.sub(pattern[i], replacement[i], string[i], count=count)
-                    for i in range(len(string))
-                ]
+                match = [re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))]
             if isinstance(string, (np.ndarray, np.generic)):
                 match = np.array(match)
             return match
@@ -1275,13 +1178,9 @@ def _str_replace(
             replacement_series.index = np.arange(len(string))
             for i in range(len(pattern)):
                 if isinstance(pattern, str):
-                    replacement_series[i] = re.sub(
-                        pattern, replacement[i], string[i], count=count
-                    )
+                    replacement_series[i] = re.sub(pattern, replacement[i], string[i], count=count)
                 else:
-                    replacement_series[i] = re.sub(
-                        pattern[i], replacement[i], string[i], count=count
-                    )
+                    replacement_series[i] = re.sub(pattern[i], replacement[i], string[i], count=count)
             return replacement_series
     elif isinstance(string, ps.Column):
         ...
@@ -1392,9 +1291,7 @@ def str_split(
         split_string = np.char.split(string, pattern, maxsplit=n)
         if simplify:
             length = max(map(len, split_string))
-            split_string = np.array(
-                [np.array(xi + [""] * (length - len(xi))) for xi in split_string]
-            )
+            split_string = np.array([np.array(xi + [""] * (length - len(xi))) for xi in split_string])
         return split_string
     elif isinstance(string, pd.Series):
         split_string = string.str.split(pattern, n=n, expand=simplify)
@@ -1569,9 +1466,7 @@ def str_extract(
             return None
     elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
         extract = [
-            re.search(pattern, s).group(0)
-            if s not in [None, np.nan] and re.search(pattern, s) is not None
-            else None
+            re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None
             for s in string
         ]
         if isinstance(string, (np.ndarray, np.generic)):
@@ -1633,9 +1528,7 @@ def str_extract_all(
         if simplify:
             if len(match.index) > 2:
                 if len(match.columns) == 1:
-                    match = pd.pivot(
-                        match.reset_index(), index="level_0", columns="match", values=0
-                    )
+                    match = pd.pivot(match.reset_index(), index="level_0", columns="match", values=0)
                 else:
                     value_cols = match.columns.difference(["level_0", "match"])
                     match = pd.pivot(
@@ -1681,9 +1574,7 @@ def str_match(
         if whole_match is None:
             return None
         else:
-            partial_match = list(
-                map(list, str_extract_all(whole_match, pattern, simplify=True))
-            )[0]
+            partial_match = list(map(list, str_extract_all(whole_match, pattern, simplify=True)))[0]
             return_match = [whole_match] + partial_match
     elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
         if isinstance(string, (np.ndarray, np.generic)):
@@ -1691,22 +1582,17 @@ def str_match(
         else:
             whole_match = [s if s is not None else "" for s in whole_match]
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = [
-            [a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)
-        ]
+        return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
         max_length = max(len(x) for x in return_match)
         return_match = [
-            val if len(val) == max_length else [None] * max_length
-            for index, val in enumerate(return_match)
+            val if len(val) == max_length else [None] * max_length for index, val in enumerate(return_match)
         ]
         if isinstance(string, (np.ndarray, np.generic)):
             return_match = np.array(return_match)
     elif isinstance(string, pd.Series):
         whole_match = whole_match.rename("whole_match")
         partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = pd.merge(
-            whole_match, partial_match, how="left", left_index=True, right_index=True
-        )
+        return_match = pd.merge(whole_match, partial_match, how="left", left_index=True, right_index=True)
         return_match = return_match.replace("", np.nan)
     elif isinstance(string, ps.Column):
         ...
@@ -1758,11 +1644,7 @@ def str_match_all(
                     whole_match.append("")
         if isinstance(string, pd.Series):
             whole_match = pd.Series(whole_match, name="whole_match")
-            partial_match = (
-                str_extract_all(whole_match, pattern)
-                .reset_index()
-                .drop(["match"], axis=1)
-            )
+            partial_match = str_extract_all(whole_match, pattern).reset_index().drop(["match"], axis=1)
             return_match = (
                 pd.merge(
                     whole_match,
@@ -1777,14 +1659,10 @@ def str_match_all(
             return_match.index = np.arange(len(return_match))
         else:
             partial_match = str_extract_all(whole_match, pattern, simplify=True)
-            return_match = [
-                [a] + [elem for elem in b[0]]
-                for a, b in zip(whole_match, partial_match)
-            ]
+            return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
             max_length = max(len(x) for x in return_match)
             return_match = [
-                val if len(val) == max_length else [""] * max_length
-                for index, val in enumerate(return_match)
+                val if len(val) == max_length else [""] * max_length for index, val in enumerate(return_match)
             ]
             if isinstance(string, (np.ndarray, np.generic)):
                 return_match = np.array(return_match)
@@ -1820,10 +1698,7 @@ def str_c(
         return_string = [""] * max_length
         for index, string in enumerate(strings):
             if len(string) < max_length:
-                strings[index] = (
-                    string * (max_length // len(string))
-                    + string[0 : max_length % len(string)]
-                )
+                strings[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
         for row, ss in enumerate(strings[0]):
             for col in range(1, len(strings)):
                 ss += sep + strings[col][row]
@@ -1856,4 +1731,4 @@ def _remove_accents(input_str: str) -> str:
     Our string, but with all accents removed
     """
     nfkd_form = unicodedata.normalize("NFKD", input_str)
-    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])

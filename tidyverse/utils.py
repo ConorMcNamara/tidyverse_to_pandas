@@ -10,7 +10,7 @@ from typing import Union, Optional
 def _get_str_columns(
     data: Union[pd.DataFrame, ps.DataFrame],
     str_arguments: str,
-    cols: Optional[list, tuple] = None,
+    cols: Optional[Union[list, tuple]] = None,
     is_pandas: bool = True,
 ) -> list:
     """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns
@@ -80,13 +80,11 @@ def _get_list_columns(
 
 
 def _convert_numeric(
-    data: Union[pd.DataFrame, ps.DataFrame]
+    data: Union[pd.DataFrame, ps.DataFrame],
 ) -> Union[pd.DataFrame, ps.DataFrame]:
     # We go column by column and see if the column contains only numeric characters. If it does, then we
     # can safely use pd.to_numeric(), which also handles if it gets converted to integer or float.
-    return data.apply(
-        lambda x: pd.to_numeric(x) if x.str.isnumeric().all() else x, axis=0
-    )
+    return data.apply(lambda x: pd.to_numeric(x) if x.str.isnumeric().all() else x, axis=0)
 
 
 def _check_df_type(data: Union[pd.DataFrame, ps.DataFrame], argument: str) -> bool:
@@ -98,9 +96,7 @@ def _check_df_type(data: Union[pd.DataFrame, ps.DataFrame], argument: str) -> bo
         raise Exception("Cannot perform {} on non-DataFrame".format(argument))
 
 
-def _check_unique(
-    data: Union[pd.DataFrame, ps.DataFrame], how: str = "unique"
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def _check_unique(data: Union[pd.DataFrame, ps.DataFrame], how: str = "unique") -> Union[pd.DataFrame, ps.DataFrame]:
     # Check for repeated names
     if len(set(data.columns)) != len(data.columns):
         if how.casefold() == "check_unique":
@@ -109,8 +105,7 @@ def _check_unique(
             cols = pd.Series(data.columns)
             for dup in cols[cols.duplicated()].unique():
                 cols[cols[cols == dup].index.values.tolist()] = [
-                    dup + "." + str(i) if i != 0 else dup
-                    for i in range(sum(cols == dup))
+                    dup + "." + str(i) if i != 0 else dup for i in range(sum(cols == dup))
                 ]
             data.columns = cols
             return data

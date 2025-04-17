@@ -2,7 +2,7 @@ import pandas as pd
 import pyspark.sql as ps
 
 from typing import Union
-from src.utils import _check_df_type
+from tidyverse.utils import _check_df_type
 
 
 def everything(data: Union[pd.DataFrame, ps.DataFrame]) -> list:

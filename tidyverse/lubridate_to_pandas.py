@@ -36,12 +36,7 @@ def ymd(
     elif isinstance(dates, (np.ndarray, np.generic)):
         if tz is None:
             return_date = np.array(
-                [
-                    dateutil.parser.parse(
-                        date, yearfirst=True, dayfirst=False
-                    ).strftime("%Y-%m-%d")
-                    for date in dates
-                ],
+                [dateutil.parser.parse(date, yearfirst=True, dayfirst=False).strftime("%Y-%m-%d") for date in dates],
                 dtype="datetime64",
             )
         else:
@@ -53,27 +48,20 @@ def ymd(
     elif isinstance(dates, (list, tuple)):
         if tz is None:
             return_date = [
-                dateutil.parser.parse(date, yearfirst=True, dayfirst=False).strftime(
-                    "%Y-%m-%d"
-                )
-                for date in dates
+                dateutil.parser.parse(date, yearfirst=True, dayfirst=False).strftime("%Y-%m-%d") for date in dates
             ]
         else:
             return_date = [
-                zone.localize(
-                    dateutil.parser.parse(date, yearfirst=True, dayfirst=False)
-                ).strftime("%Y-%m-%d %Z")
+                zone.localize(dateutil.parser.parse(date, yearfirst=True, dayfirst=False)).strftime("%Y-%m-%d %Z")
                 for date in dates
             ]
     elif isinstance(dates, str):
         if tz is None:
-            return_date = dateutil.parser.parse(
-                dates, yearfirst=True, dayfirst=False
-            ).strftime("%Y-%m-%d")
+            return_date = dateutil.parser.parse(dates, yearfirst=True, dayfirst=False).strftime("%Y-%m-%d")
         else:
-            return_date = zone.localize(
-                dateutil.parser.parse(dates, yearfirst=True, dayfirst=False)
-            ).strftime("%Y-%m-%d %Z")
+            return_date = zone.localize(dateutil.parser.parse(dates, yearfirst=True, dayfirst=False)).strftime(
+                "%Y-%m-%d %Z"
+            )
     else:
         raise TypeError("Cannot identify date variable")
     return return_date
@@ -104,12 +92,7 @@ def ydm(
     elif isinstance(dates, (np.ndarray, np.generic)):
         if tz is None:
             return_date = np.array(
-                [
-                    dateutil.parser.parse(date, dayfirst=True, yearfirst=True).strftime(
-                        "%Y-%m-%d"
-                    )
-                    for date in dates
-                ],
+                [dateutil.parser.parse(date, dayfirst=True, yearfirst=True).strftime("%Y-%m-%d") for date in dates],
                 dtype="datetime64",
             )
         else:
@@ -121,27 +104,20 @@ def ydm(
     elif isinstance(dates, (list, tuple)):
         if tz is None:
             return_date = [
-                dateutil.parser.parse(date, dayfirst=True, yearfirst=True).strftime(
-                    "%Y-%m-%d"
-                )
-                for date in dates
+                dateutil.parser.parse(date, dayfirst=True, yearfirst=True).strftime("%Y-%m-%d") for date in dates
             ]
         else:
             return_date = [
-                zone.localize(
-                    dateutil.parser.parse(date, dayfirst=True, yearfirst=True)
-                ).strftime("%Y-%m-%d %Z")
+                zone.localize(dateutil.parser.parse(date, dayfirst=True, yearfirst=True)).strftime("%Y-%m-%d %Z")
                 for date in dates
             ]
     elif isinstance(dates, str):
         if tz is None:
-            return_date = dateutil.parser.parse(
-                dates, dayfirst=True, yearfirst=True
-            ).strftime("%Y-%m-%d")
+            return_date = dateutil.parser.parse(dates, dayfirst=True, yearfirst=True).strftime("%Y-%m-%d")
         else:
-            return_date = zone.localize(
-                dateutil.parser.parse(dates, dayfirst=True, yearfirst=True)
-            ).strftime("%Y-%m-%d %Z")
+            return_date = zone.localize(dateutil.parser.parse(dates, dayfirst=True, yearfirst=True)).strftime(
+                "%Y-%m-%d %Z"
+            )
     else:
         raise TypeError("Cannot identify date variable")
     return return_date
@@ -172,12 +148,7 @@ def mdy(
     elif isinstance(dates, (np.ndarray, np.generic)):
         if tz is None:
             return_date = np.array(
-                [
-                    dateutil.parser.parse(
-                        date, dayfirst=False, yearfirst=False
-                    ).strftime("%Y-%m-%d")
-                    for date in dates
-                ],
+                [dateutil.parser.parse(date, dayfirst=False, yearfirst=False).strftime("%Y-%m-%d") for date in dates],
                 dtype="datetime64",
             )
         else:
@@ -189,27 +160,20 @@ def mdy(
     elif isinstance(dates, (list, tuple)):
         if tz is None:
             return_date = [
-                dateutil.parser.parse(date, dayfirst=False, yearfirst=False).strftime(
-                    "%Y-%m-%d"
-                )
-                for date in dates
+                dateutil.parser.parse(date, dayfirst=False, yearfirst=False).strftime("%Y-%m-%d") for date in dates
             ]
         else:
             return_date = [
-                zone.localize(
-                    dateutil.parser.parse(date, dayfirst=False, yearfirst=False)
-                ).strftime("%Y-%m-%d %Z")
+                zone.localize(dateutil.parser.parse(date, dayfirst=False, yearfirst=False)).strftime("%Y-%m-%d %Z")
                 for date in dates
             ]
     elif isinstance(dates, str):
         if tz is None:
-            return_date = dateutil.parser.parse(
-                dates, dayfirst=False, yearfirst=False
-            ).strftime("%Y-%m-%d")
+            return_date = dateutil.parser.parse(dates, dayfirst=False, yearfirst=False).strftime("%Y-%m-%d")
         else:
-            return_date = zone.localize(
-                dateutil.parser.parse(dates, dayfirst=False, yearfirst=False)
-            ).strftime("%Y-%m-%d %Z")
+            return_date = zone.localize(dateutil.parser.parse(dates, dayfirst=False, yearfirst=False)).strftime(
+                "%Y-%m-%d %Z"
+            )
     else:
         raise TypeError("Cannot identify date variable")
     return return_date
@@ -298,9 +262,7 @@ def myd(dates, tz=None):
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(
-            dates.apply(lambda x: _myd(x).strftime("%Y-%m-%d"))
-        )
+        return_date = pd.to_datetime(dates.apply(lambda x: _myd(x).strftime("%Y-%m-%d")))
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -308,9 +270,7 @@ def myd(dates, tz=None):
             return_date = np.array(list(map(_myd, dates)), dtype="datetime64[D]")
         else:
             return_date = (
-                pd.to_datetime(
-                    pd.Series(dates).apply(lambda x: _myd(x).strftime("%Y-%m-%d"))
-                )
+                pd.to_datetime(pd.Series(dates).apply(lambda x: _myd(x).strftime("%Y-%m-%d")))
                 .dt.tz_localize(tz=zone)
                 .to_numpy(dtype="datetime64")
             )
@@ -318,9 +278,7 @@ def myd(dates, tz=None):
         if tz is None:
             return_date = [_myd(date).strftime("%Y-%m-%d") for date in dates]
         else:
-            return_date = [
-                zone.localize(_myd(date)).strftime("%Y-%m-%d %Z") for date in dates
-            ]
+            return_date = [zone.localize(_myd(date)).strftime("%Y-%m-%d %Z") for date in dates]
     elif isinstance(dates, str):
         if tz is None:
             return_date = _myd(dates).strftime("%Y-%m-%d")
@@ -356,12 +314,7 @@ def dmy(
     elif isinstance(dates, (np.ndarray, np.generic)):
         if tz is None:
             return_date = np.array(
-                [
-                    dateutil.parser.parse(
-                        date, dayfirst=True, yearfirst=False
-                    ).strftime("%Y-%m-%d")
-                    for date in dates
-                ],
+                [dateutil.parser.parse(date, dayfirst=True, yearfirst=False).strftime("%Y-%m-%d") for date in dates],
                 dtype="datetime64",
             )
         else:
@@ -373,27 +326,20 @@ def dmy(
     elif isinstance(dates, (list, tuple)):
         if tz is None:
             return_date = [
-                dateutil.parser.parse(date, dayfirst=True, yearfirst=False).strftime(
-                    "%Y-%m-%d"
-                )
-                for date in dates
+                dateutil.parser.parse(date, dayfirst=True, yearfirst=False).strftime("%Y-%m-%d") for date in dates
             ]
         else:
             return_date = [
-                zone.localize(
-                    dateutil.parser.parse(date, dayfirst=True, yearfirst=False)
-                ).strftime("%Y-%m-%d %Z")
+                zone.localize(dateutil.parser.parse(date, dayfirst=True, yearfirst=False)).strftime("%Y-%m-%d %Z")
                 for date in dates
             ]
     elif isinstance(dates, str):
         if tz is None:
-            return_date = dateutil.parser.parse(
-                dates, dayfirst=True, yearfirst=False
-            ).strftime("%Y-%m-%d")
+            return_date = dateutil.parser.parse(dates, dayfirst=True, yearfirst=False).strftime("%Y-%m-%d")
         else:
-            return_date = zone.localize(
-                dateutil.parser.parse(dates, dayfirst=True, yearfirst=False)
-            ).strftime("%Y-%m-%d %Z")
+            return_date = zone.localize(dateutil.parser.parse(dates, dayfirst=True, yearfirst=False)).strftime(
+                "%Y-%m-%d %Z"
+            )
     else:
         raise TypeError("Cannot identify date variable")
     return return_date
@@ -483,9 +429,7 @@ def dym(
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(
-            dates.apply(lambda x: _dym(x).strftime("%Y-%m-%d"))
-        )
+        return_date = pd.to_datetime(dates.apply(lambda x: _dym(x).strftime("%Y-%m-%d")))
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -493,9 +437,7 @@ def dym(
             return_date = np.array(list(map(_dym, dates)), dtype="datetime64[D]")
         else:
             return_date = (
-                pd.to_datetime(
-                    pd.Series(dates).apply(lambda x: _dym(x).strftime("%Y-%m-%d"))
-                )
+                pd.to_datetime(pd.Series(dates).apply(lambda x: _dym(x).strftime("%Y-%m-%d")))
                 .dt.tz_localize(tz=zone)
                 .to_numpy(dtype="datetime64")
             )
@@ -503,9 +445,7 @@ def dym(
         if tz is None:
             return_date = [_dym(date).strftime("%Y-%m-%d") for date in dates]
         else:
-            return_date = [
-                zone.localize(_dym(date)).strftime("%Y-%m-%d %Z") for date in dates
-            ]
+            return_date = [zone.localize(_dym(date)).strftime("%Y-%m-%d %Z") for date in dates]
     elif isinstance(dates, str):
         if tz is None:
             return_date = _dym(dates).strftime("%Y-%m-%d")
@@ -537,13 +477,11 @@ def ymd_hms(dates, tz=None):
         ...
     elif isinstance(dates, str):
         if tz is None:
-            return_date = dateutil.parser.parse(
-                dates, dayfirst=True, yearfirst=False
-            ).strftime("%Y-%m-%d %H:%m:%S")
+            return_date = dateutil.parser.parse(dates, dayfirst=True, yearfirst=False).strftime("%Y-%m-%d %H:%m:%S")
         else:
-            return_date = zone.localize(
-                dateutil.parser.parse(dates, dayfirst=True, yearfirst=False)
-            ).strftime("%Y-%m-%d %Z")
+            return_date = zone.localize(dateutil.parser.parse(dates, dayfirst=True, yearfirst=False)).strftime(
+                "%Y-%m-%d %Z"
+            )
     else:
         raise TypeError("Cannot identify date variable")
     return return_date
