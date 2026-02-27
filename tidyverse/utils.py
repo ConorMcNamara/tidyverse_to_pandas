@@ -4,7 +4,7 @@ import pandas as pd
 import pyspark.sql as ps
 import warnings
 
-from typing import Union, Optional
+from typing import Any, Union, Optional
 
 
 def _get_str_columns(
@@ -35,7 +35,9 @@ def _get_str_columns(
         if is_pandas:
             cols = data.columns.tolist()
         else:
-            cols = data.columns
+            cols = list(data.columns)
+    else:
+        cols = list(cols)
     if ":" in str_arguments:
         start_col, end_col = str_arguments.split(":")
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
@@ -73,7 +75,7 @@ def _get_list_columns(
         cols = data.columns.tolist()
     else:
         cols = data.columns
-    return_cols = []
+    return_cols: list[Any] = []
     for column in list_cols:
         return_cols = return_cols + _get_str_columns(data, column, cols=cols)
     return list(unique_everseen(return_cols))
@@ -104,10 +106,11 @@ def _check_unique(data: Union[pd.DataFrame, ps.DataFrame], how: str = "unique") 
         elif how.casefold() == "unique":
             cols = pd.Series(data.columns)
             for dup in cols[cols.duplicated()].unique():
-                cols[cols[cols == dup].index.values.tolist()] = [
-                    dup + "." + str(i) if i != 0 else dup for i in range(sum(cols == dup))
-                ]
-            data.columns = cols
+                dup_indices = cols[cols == dup].index.tolist()
+                new_names = [dup + "." + str(i) if i != 0 else dup for i in range(sum(cols == dup))]
+                for idx, name in zip(dup_indices, new_names):
+                    cols[idx] = name
+            data.columns = pd.Index(cols)
             return data
         else:
             warnings.warn("Not all columns have unique names")

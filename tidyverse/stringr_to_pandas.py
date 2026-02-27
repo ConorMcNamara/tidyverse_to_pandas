@@ -3,7 +3,7 @@ import unicodedata
 
 from itertools import compress
 from string import capwords
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -35,10 +35,10 @@ def str_length(
         return [len(s) for s in string]
     elif isinstance(string, pd.Series):
         return string.str.len()
-    elif isinstance(string, (np.ndarray, np.generic)):
-        return np.char.str_len(string)
+    elif isinstance(string, np.ndarray):
+        return np.char.str_len(np.asarray(string))
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to calculate string length")
 
@@ -78,15 +78,12 @@ def str_sub(
             return [s[start:] for s in string]
         else:
             return [s[start:end] for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
         # to all elements of the array
         if end is None:
-            np.frompyfunc(lambda x: x[start:], 1, 1)(string)
-        elif end > 0 and start > 0:
-            b = string.view((str, 1)).reshape(len(string), -1)[:, start:end]
-            return np.fromstring(b.tostring(), dtype=(str, end - start))
+            return np.frompyfunc(lambda x: x[start:], 1, 1)(string)
         else:
             return np.frompyfunc(lambda x: x[start:end], 1, 1)(string)
     elif isinstance(string, pd.Series):
@@ -95,7 +92,7 @@ def str_sub(
         else:
             return string.str.slice(start, end)
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string subset")
 
@@ -133,11 +130,12 @@ def str_dup(
             for index in range(len(string)):
                 duplicates.append(string[index] * num_dupes[index])
             return duplicates
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # While I know I could follow a similar procedure above and simply return np.array(duplicates), it didn't feel
         # like in the spirit of numpy so I looked into using a numpy solution myself. Unfortunately, numpy has no way of
         # natively concatenating the values within an array unless they are all the same shape, which we cannot
         # guarantee, so it ends with us calling np.array on list comprehension
+        cum_dupes: Union[list[int], np.ndarray]
         if isinstance(num_dupes, int):
             cum_dupes = [num_dupes]
         else:
@@ -149,9 +147,9 @@ def str_dup(
         else:
             return np.array(["".join(row) for row in split_repeat])
     elif isinstance(string, pd.Series):
-        return string.str.repeat(repeats=num_dupes)
+        return string.str.repeat(repeats=list(num_dupes) if isinstance(num_dupes, np.ndarray) else num_dupes)
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string duplication")
 
@@ -177,12 +175,14 @@ def str_flatten(
         return string
     elif isinstance(string, (list, tuple)):
         return "{}".format(collapse).join([char for char in string])
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # Ironically, we can call this for both pandas and lists, but I wanted to show the various ways of doing it
         # rather than simply calling the iterable.
         return "{}".format(collapse).join(string)
     elif isinstance(string, pd.Series):
-        return "{}".format(collapse).join(string.values.flatten())
+        return "{}".format(collapse).join(string.to_numpy())
+    else:
+        raise TypeError("Cannot determine how to flatten string")
 
 
 def str_trunc(
@@ -224,7 +224,7 @@ def str_trunc(
             return [str(ellipsis) + s[-width:] for s in string]
         else:
             return [s[: width // 2] + str(ellipsis) + s[-width // 2 :] for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
         # to all elements of the array
@@ -242,7 +242,7 @@ def str_trunc(
         else:
             return string.str.slice(stop=width // 2) + str(ellipsis) + string.str.slice(start=width // 2)
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to perform string truncation")
 
@@ -268,14 +268,14 @@ def str_replace_na(
         string = replacement
     elif isinstance(string, (list, tuple)):
         string = [replacement if s in [None, np.nan] else s for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # numpy has no native way of detecting None except by using the == operator
         string[string == None] = replacement
         string[string != string] = replacement
     elif isinstance(string, pd.Series):
         string = string.fillna(replacement)
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to convert NAs/None to string")
     return string
@@ -308,21 +308,14 @@ def str_unique(
             return "".join(dict.fromkeys(unicodedata.normalize("NFC", _remove_accents(string))).keys())
         else:
             str_array = np.array(list(string))
-            return "".join(
-                (
-                    str_array[
-                        np.sort(
-                            np.unique(
-                                np.fromiter(
-                                    (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
-                                    dtype=str_array.dtype,
-                                ),
-                                return_index=True,
-                            )[1]
-                        )
-                    ]
-                )
+            _, idx = np.unique(  # type: ignore[call-overload]
+                np.fromiter(
+                    (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
+                    dtype=str_array.dtype,
+                ),
+                return_index=True,
             )
+            return "".join(str_array[np.sort(idx)])
 
     elif isinstance(string, (list, tuple)):
         if strength in [3, 4]:
@@ -331,76 +324,61 @@ def str_unique(
             return list(dict.fromkeys([unicodedata.normalize("NFC", _remove_accents(s)) for s in string]).keys())
         else:
             str_array = np.array(string)
-            return list(
-                str_array[
-                    np.sort(
-                        np.unique(
-                            np.fromiter(
-                                (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
-                                dtype=str_array.dtype,
-                            ),
-                            return_index=True,
-                        )[1]
-                    )
-                ]
+            _, idx = np.unique(  # type: ignore[call-overload]
+                np.fromiter(
+                    (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
+                    dtype=str_array.dtype,
+                ),
+                return_index=True,
             )
-    elif isinstance(string, (np.ndarray, np.generic)):
+            return list(str_array[np.sort(idx)])
+    elif isinstance(string, np.ndarray):
         if strength in [3, 4]:
             return np.unique(string)
         elif strength == 2:
-            return string[
-                np.sort(
-                    np.unique(
-                        np.fromiter(
-                            (unicodedata.normalize("NFC", _remove_accents(xi)) for xi in string),
-                            dtype=string.dtype,
-                        ),
-                        return_index=True,
-                    )[1]
-                )
-            ]
+            _, idx = np.unique(  # type: ignore[call-overload]
+                np.fromiter(
+                    (unicodedata.normalize("NFC", _remove_accents(xi)) for xi in string),
+                    dtype=string.dtype,
+                ),
+                return_index=True,
+            )
+            return string[np.sort(idx)]
         else:
-            return string[
-                np.sort(
-                    np.unique(
-                        np.fromiter(
-                            (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
-                            dtype=string.dtype,
-                        ),
-                        return_index=True,
-                    )[1]
-                )
-            ]
+            _, idx = np.unique(  # type: ignore[call-overload]
+                np.fromiter(
+                    (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
+                    dtype=string.dtype,
+                ),
+                return_index=True,
+            )
+            return string[np.sort(idx)]
     elif isinstance(string, pd.Series):
         if strength in [3, 4]:
             return pd.Series(string.unique())
         elif strength == 2:
-            indices = np.sort(
-                np.unique(
-                    np.fromiter(
-                        (unicodedata.normalize("NFC", _remove_accents(xi)) for xi in string),
-                        dtype="<U8",
-                    ),
-                    return_index=True,
-                )[1]
+            _, idx2 = np.unique(  # type: ignore[call-overload]
+                np.fromiter(
+                    (unicodedata.normalize("NFC", _remove_accents(xi)) for xi in string),
+                    dtype="<U8",
+                ),
+                return_index=True,
             )
-            series = string[indices]
+            series = string[np.sort(idx2)]
             series.index = list(np.arange(len(series)))
         else:
-            indices = np.sort(
-                np.unique(
-                    np.fromiter(
-                        (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
-                        dtype="<U8",
-                    ),
-                    return_index=True,
-                )[1]
+            _, idx2 = np.unique(  # type: ignore[call-overload]
+                np.fromiter(
+                    (unicodedata.normalize("NFC", _remove_accents(xi)).casefold() for xi in string),
+                    dtype="<U8",
+                ),
+                return_index=True,
             )
-            series = string[indices]
+            series = string[np.sort(idx2)]
             series.index = np.arange(len(series))
         return series
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot identify value for str_unique")
 
@@ -426,12 +404,12 @@ def str_to_upper(
         return string.upper()
     elif isinstance(string, (list, tuple)):
         return [s.upper() for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         return np.char.upper(string)
     elif isinstance(string, pd.Series):
         return string.str.upper()
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string uppercase")
 
@@ -454,12 +432,12 @@ def str_to_title(
         return capwords(string)
     elif isinstance(string, (list, tuple)):
         return [s.title() for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         return np.char.title(string)
     elif isinstance(string, pd.Series):
         return string.str.title()
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to titleize strings")
 
@@ -491,7 +469,7 @@ def str_to_lower(
             return [s.casefold() for s in string]
         else:
             return [s.lower() for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         if locale == "en":
             return np.array(list(map(lambda v: v.casefold(), string)))
         else:
@@ -502,7 +480,7 @@ def str_to_lower(
         else:
             return string.str.lower()
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to lower strings")
 
@@ -525,12 +503,12 @@ def str_to_sentence(
         return string.capitalize()
     elif isinstance(string, (tuple, list)):
         return [s.capitalize() for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         return np.char.capitalize(string)
     elif isinstance(string, pd.Series):
         return string.str.capitalize()
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to capitalize string")
 
@@ -581,21 +559,21 @@ def str_order(
                 # For Python string comparisons, 'A' is considered the lowest for letters
                 string = [val if val not in [np.nan, None] else "A" for val in string]
             sorted_strings = sorted(range(len(string)), key=string.__getitem__)
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         if na_last is None:
             string = string[~np.isnan(string)]
             string = string[string != None]
         if numeric:
             if na_last is True:
-                string = np.where(np.isin(string, [np.nan, None]), "9" * max_str_length, string)
+                string = np.where(np.isin(string, np.array([np.nan, None], dtype=object)), "9" * max_str_length, string)
             elif na_last is False:
-                string = np.where(np.isin(string, [np.nan, None]), "0", string)
+                string = np.where(np.isin(string, np.array([np.nan, None], dtype=object)), "0", string)
             sorted_strings = np.array(index_natsorted(string))
         else:
             if na_last is True:
-                string = np.where(np.isin(string, [np.nan, None]), "z" * max_str_length, string)
+                string = np.where(np.isin(string, np.array([np.nan, None], dtype=object)), "z" * max_str_length, string)
             elif na_last is False:
-                string = np.where(np.isin(string, [np.nan, None]), "A", string)
+                string = np.where(np.isin(string, np.array([np.nan, None], dtype=object)), "A", string)
             sorted_strings = np.argsort(string)
     elif isinstance(string, pd.Series):
         if na_last is None:
@@ -613,7 +591,7 @@ def str_order(
                 string = string.fillna("A")
             sorted_strings = string.argsort()
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to order string")
     if decreasing:
@@ -649,11 +627,18 @@ def str_sort(
     else:
         indices = str_order(string, decreasing, na_last, numeric)
         if isinstance(string, (list, tuple)):
+            assert isinstance(indices, (list, range))
             return list((map(string.__getitem__, indices)))
-        elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
+        elif isinstance(string, np.ndarray):
+            assert isinstance(indices, np.ndarray)
+            return string[indices]
+        elif isinstance(string, pd.Series):
+            assert isinstance(indices, pd.Series)
             return string[indices]
         elif isinstance(string, ps.Column):
-            ...
+            raise NotImplementedError("PySpark support not yet implemented")
+        else:
+            raise TypeError("Cannot determine how to sort string")
 
 
 def str_equal(
@@ -677,16 +662,19 @@ def str_equal(
     if type(x) != type(y):
         raise TypeError("x and y must be of the same type")
     if isinstance(x, str):
+        y_str = cast(str, y)
         if ignore_case:
-            return unicodedata.normalize("NFC", x.casefold()) == unicodedata.normalize("NFC", y.casefold())
+            return unicodedata.normalize("NFC", x.casefold()) == unicodedata.normalize("NFC", y_str.casefold())
         else:
-            return unicodedata.normalize("NFC", x) == unicodedata.normalize("NFC", y)
+            return unicodedata.normalize("NFC", x) == unicodedata.normalize("NFC", y_str)
     elif isinstance(x, pd.Series):
+        x_series = cast(pd.Series, x)
+        y_series = cast(pd.Series, y)
         if ignore_case:
             return pd.Series(
                 np.where(
-                    x.str.casefold().apply(lambda x: unicodedata.normalize("NFC", x))
-                    == y.str.casefold().apply(lambda y: unicodedata.normalize("NFC", y)),
+                    x_series.str.casefold().apply(lambda xi: unicodedata.normalize("NFC", xi))
+                    == y_series.str.casefold().apply(lambda yi: unicodedata.normalize("NFC", yi)),
                     True,
                     False,
                 )
@@ -694,8 +682,8 @@ def str_equal(
         else:
             return pd.Series(
                 np.where(
-                    x.apply(lambda x: unicodedata.normalize("NFC", x))
-                    == y.apply(lambda y: unicodedata.normalize("NFC", y)),
+                    x_series.apply(lambda xi: unicodedata.normalize("NFC", xi))
+                    == y_series.apply(lambda yi: unicodedata.normalize("NFC", yi)),
                     True,
                     False,
                 )
@@ -708,29 +696,19 @@ def str_equal(
             ]
         else:
             return [unicodedata.normalize("NFC", i) == unicodedata.normalize("NFC", j) for i, j in zip(x, y)]
-    elif isinstance(x, (np.ndarray, np.generic)):
+    elif isinstance(x, np.ndarray):
+        x_arr = cast(np.ndarray, x)
+        y_arr = cast(np.ndarray, y)
         if ignore_case:
-            return np.compare_chararrays(
-                np.fromiter(
-                    (unicodedata.normalize("NFC", xi) for xi in np.char.upper(x)),
-                    dtype=x.dtype,
-                ),
-                np.fromiter(
-                    (unicodedata.normalize("NFC", yi) for yi in np.char.upper(y)),
-                    dtype=y.dtype,
-                ),
-                "==",
-                True,
-            )
+            return np.vectorize(
+                lambda xi, yi: unicodedata.normalize("NFC", xi.upper()) == unicodedata.normalize("NFC", yi.upper())
+            )(x_arr, y_arr)
         else:
-            return np.compare_chararrays(
-                np.fromiter((unicodedata.normalize("NFC", xi) for xi in x), dtype=x.dtype),
-                np.fromiter((unicodedata.normalize("NFC", yi) for yi in y), dtype=y.dtype),
-                "==",
-                True,
-            )
+            return np.vectorize(
+                lambda xi, yi: unicodedata.normalize("NFC", xi) == unicodedata.normalize("NFC", yi)
+            )(x_arr, y_arr)
     else:
-        ...
+        raise TypeError("Cannot determine how to compare strings")
 
 
 # Whitespace Manipulation
@@ -762,6 +740,7 @@ def str_pad(
     side = side.casefold()
     if side not in ["right", "left", "center"]:
         raise ValueError("Cannot determine where to pad string")
+    padded_string: Union[str, list, np.ndarray, pd.Series]
     if isinstance(string, str) and isinstance(width, int) and isinstance(pad, str):
         if side == "left":
             padded_string = string.rjust(width, pad)
@@ -777,7 +756,7 @@ def str_pad(
                 padded_string = string.str.ljust(width, pad)
             else:
                 padded_string = string.str.center(width, pad)
-        elif isinstance(string, (np.ndarray, np.generic)):
+        elif isinstance(string, np.ndarray):
             if side == "left":
                 padded_string = np.char.rjust(string, width, pad)
             elif side == "right":
@@ -820,7 +799,7 @@ def str_pad(
                         padded_string = [string[i].ljust(width[i], pad[i]) for i in range(len(width))]
                     else:
                         padded_string = [string[i].center(width[i], pad[i]) for i in range(len(width))]
-            if isinstance(string, (np.ndarray, np.generic)):
+            if isinstance(string, np.ndarray):
                 # Testing it out, it turns out that it is significantly less efficient to initialize an array and
                 # then iteratively re-populate it than it is to call np.array on list comprehension, like an order of
                 # magnitude slower.
@@ -868,7 +847,7 @@ def str_trim(
             return [s.lstrip() for s in string]
         else:
             return [s.rstrip() for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         if side == "both":
             return np.char.strip(string)
         elif side == "right":
@@ -883,7 +862,7 @@ def str_trim(
         else:
             return string.str.rstrip()
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise ValueError("Cannot determine method for squishing strings")
 
@@ -902,11 +881,12 @@ def str_squish(
     -------
     Our squished string
     """
+    squished_string: Union[str, list, np.ndarray, pd.Series]
     if isinstance(string, str):
         squished_string = " ".join(string.split())
     elif isinstance(string, (list, tuple)):
         squished_string = [" ".join(s.split()) for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # Using np.char.split() results in splits for every whitespace for every character, meaning we would have to
         # rejoin them together, which is less efficient than using calling np.array() on list comprehension.
         squished_string = np.array([" ".join(s.split()) for s in string])
@@ -915,7 +895,7 @@ def str_squish(
         # would have to rejoin them together, which is less efficient overall.
         squished_string = pd.Series([" ".join(s.split()) for s in string])
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise ValueError("Cannot determine method of squishing strings")
     return squished_string
@@ -948,6 +928,7 @@ def str_detect(
     -------
     Whether our pattern could be found within the string
     """
+    match: Union[bool, list, np.ndarray, pd.Series]
     if isinstance(string, str):
         if negate:
             match = re.search(pattern, string) is None
@@ -958,7 +939,7 @@ def str_detect(
             match = [re.search(pattern, s) is None for s in string]
         else:
             match = [re.search(pattern, s) is not None for s in string]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         # Unfortunately, numpy has no native methods for doing re.search, so you'll need to rely on either list
         # comprehension or pandas Series in order to get it to run properly
         if negate:
@@ -970,7 +951,7 @@ def str_detect(
         if negate:
             match = ~match
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string detection")
     return match
@@ -997,14 +978,18 @@ def str_count(
     -------
     The number of non-overlapping instances our pattern was found within the string
     """
+    string_counts: Union[int, list, np.ndarray, pd.Series]
     if isinstance(string, str):
-        string_counts = len(re.findall(pattern, string))
+        if isinstance(pattern, str):
+            string_counts = len(re.findall(pattern, string))
+        else:
+            raise TypeError("pattern must be str when string is str")
     elif isinstance(string, (list, tuple)):
         if isinstance(pattern, str):
             string_counts = [len(re.findall(pattern, s)) for s in string]
         else:
             string_counts = [len(re.findall(pattern[i], string[i])) for i in range(len(pattern))]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         if isinstance(pattern, str):
             string_counts = np.char.count(string, pattern)
         else:
@@ -1018,7 +1003,7 @@ def str_count(
             for i in range(len(pattern)):
                 string_counts[i] = len(re.findall(pattern[i], string[i]))
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string count")
     return string_counts
@@ -1055,10 +1040,16 @@ def str_subset(
             return ""
     elif isinstance(string, (list, tuple)):
         return list(compress(string, str_detect(string, pattern, negate)))
+    elif isinstance(string, np.ndarray):
+        mask_arr = cast(np.ndarray, str_detect(string, pattern, negate))
+        return string[mask_arr]
+    elif isinstance(string, pd.Series):
+        mask_series = cast(pd.Series, str_detect(string, pattern, negate))
+        return string[mask_series]
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
-        return string[str_detect(string, pattern, negate)]
+        raise TypeError("Cannot determine how to do string subset")
 
 
 def str_which(
@@ -1093,12 +1084,13 @@ def str_which(
             return None
     elif isinstance(string, (list, tuple)):
         return [i for i, val in enumerate(string_loc) if val]
-    elif isinstance(string, (np.ndarray, np.generic)):
+    elif isinstance(string, np.ndarray):
         return np.where(string_loc)[0]
     elif isinstance(string, pd.Series):
-        return pd.Series(string[string_loc.isin([True])].index)
+        string_loc_series = cast(pd.Series, string_loc)
+        return pd.Series(string[string_loc_series.isin([True])].index)
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise ValueError("Cannot determine how to do string which")
 
@@ -1140,39 +1132,58 @@ def _str_replace(
     else:
         count = 1
     if isinstance(string, str):
+        if not isinstance(pattern, str):
+            raise TypeError("pattern must be str when string is str")
         if replacement is None or replacement is np.nan:
             return replacement if pattern in string else string
         else:
-            return re.sub(pattern, replacement, string, count=count)
-    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
+            return re.sub(pattern, cast(str, replacement), string, count=count)
+    elif isinstance(string, (list, tuple, np.ndarray)):
         if isinstance(replacement, str):
             if isinstance(string, (list, tuple)):
-                return [re.sub(pattern, replacement, s, count=count) for s in string]
+                if isinstance(pattern, str):
+                    return [re.sub(pattern, replacement, s, count=count) for s in string]
+                else:
+                    return [re.sub(cast(str, pattern[i]), replacement, s, count=count) for i, s in enumerate(string)]
             else:
-                return np.array(
-                    list(
-                        map(
-                            lambda v: re.sub(pattern, replacement, v, count=count),
-                            string,
+                if isinstance(pattern, str):
+                    return np.array(
+                        list(
+                            map(
+                                lambda v: re.sub(pattern, replacement, v, count=count),
+                                string,
+                            )
                         )
                     )
-                )
+                else:
+                    return np.array(
+                        [re.sub(cast(str, pattern[i]), replacement, string[i], count=count) for i in range(len(string))]
+                    )
         elif replacement is None or replacement is np.nan:
             if isinstance(string, (list, tuple)):
-                return [replacement if pattern in s else s for s in string]
+                if isinstance(pattern, str):
+                    return [replacement if pattern in s else s for s in string]
+                else:
+                    return [replacement if cast(str, pattern[i]) in s else s for i, s in enumerate(string)]
             else:
-                return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
+                if isinstance(pattern, str):
+                    return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
+                else:
+                    return np.array([replacement if cast(str, pattern[i]) in string[i] else string[i] for i in range(len(string))])
         else:
+            match_list: list = []
             if isinstance(pattern, str):
-                match = [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
+                match_list = [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
             else:
-                match = [re.sub(pattern[i], replacement[i], string[i], count=count) for i in range(len(string))]
-            if isinstance(string, (np.ndarray, np.generic)):
-                match = np.array(match)
-            return match
+                match_list = [re.sub(cast(str, pattern[i]), replacement[i], string[i], count=count) for i in range(len(string))]
+            if isinstance(string, np.ndarray):
+                return np.array(match_list)
+            return match_list
     elif isinstance(string, pd.Series):
         if isinstance(replacement, str) or replacement is None or replacement is np.nan:
-            return string.str.replace(pattern, replacement, regex=True, n=-1)
+            if not isinstance(pattern, str):
+                raise TypeError("pattern must be str when string is pd.Series with scalar replacement")
+            return string.str.replace(pattern, cast(str, replacement), regex=True, n=-1)
         else:
             replacement_series = pd.Series([""] * len(string))
             replacement_series.index = np.arange(len(string))
@@ -1183,7 +1194,7 @@ def _str_replace(
                     replacement_series[i] = re.sub(pattern[i], replacement[i], string[i], count=count)
             return replacement_series
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string replace")
 
@@ -1287,19 +1298,22 @@ def str_split(
             length = max(map(len, split_string))
             split_string = [xi + [""] * (length - len(xi)) for xi in split_string]
         return split_string
-    elif isinstance(string, (np.ndarray, np.generic)):
-        split_string = np.char.split(string, pattern, maxsplit=n)
+    elif isinstance(string, np.ndarray):
+        split_string_arr: np.ndarray = np.char.split(string, pattern, maxsplit=n)
         if simplify:
-            length = max(map(len, split_string))
-            split_string = np.array([np.array(xi + [""] * (length - len(xi))) for xi in split_string])
-        return split_string
+            length = max(map(len, split_string_arr))
+            split_string_arr = np.array([np.array(xi + [""] * (length - len(xi))) for xi in split_string_arr])
+        return split_string_arr
     elif isinstance(string, pd.Series):
-        split_string = string.str.split(pattern, n=n, expand=simplify)
         if simplify:
-            split_string = split_string.fillna("")
-        return split_string
+            split_string_df = string.str.split(pattern, n=n, expand=True)
+            split_string_df = split_string_df.fillna("")
+            return split_string_df
+        else:
+            split_string_series = string.str.split(pattern, n=n, expand=False)
+            return split_string_series
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string splitting")
 
@@ -1358,27 +1372,31 @@ def str_split_n(
     """
     split_string = str_split(string, pattern, n=-1, simplify=True)
     if isinstance(string, str):
-        if n >= len(split_string):
+        split_string_list = cast(list, split_string)
+        if n >= len(split_string_list):
             return None
         else:
-            return split_string[n]
+            return split_string_list[n]
     elif isinstance(string, (list, tuple)):
-        length = len(split_string[0])
+        split_string_list2 = cast(list, split_string)
+        length = len(split_string_list2[0])
         if n >= length:
             raise ValueError("Index greater than number of elements")
-        return [el[n] if el[n] != "" else None for el in split_string]
-    elif isinstance(string, (np.ndarray, np.generic)):
-        length = len(split_string[0])
+        return [el[n] if el[n] != "" else None for el in split_string_list2]
+    elif isinstance(string, np.ndarray):
+        split_string_arr = cast(np.ndarray, split_string)
+        length = len(split_string_arr[0])
         if n >= length:
             raise ValueError("Index greater than number of elements")
-        split_string = split_string.flatten()
-        return pd.Series(split_string[n::length]).replace("", np.nan).to_numpy()
+        split_string_flat = split_string_arr.flatten()
+        return pd.Series(split_string_flat[n::length]).replace("", np.nan).to_numpy()
     elif isinstance(string, (pd.Series, pd.DataFrame)):
-        if n >= len(split_string.columns):
+        split_string_df = cast(pd.DataFrame, split_string)
+        if n >= len(split_string_df.columns):
             raise ValueError("Index greater than number of elements")
-        return split_string.iloc[:, n].replace("", np.nan)
+        return split_string_df.iloc[:, n].replace("", np.nan)
     elif isinstance(string, (ps.Column, ps.DataFrame)):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine how to do string splitting for fixed n")
 
@@ -1460,29 +1478,32 @@ def str_extract(
     First match within each string
     """
     if isinstance(string, str):
-        if re.search(pattern, string) is not None:
-            return re.search(pattern, string).group(0)
+        m = re.search(pattern, string)
+        if m is not None:
+            return m.group(0)
         else:
             return None
-    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
-        extract = [
-            re.search(pattern, s).group(0) if s not in [None, np.nan] and re.search(pattern, s) is not None else None
+    elif isinstance(string, (list, tuple, np.ndarray)):
+        extract: list = [
+            (lambda m: m.group(0) if m is not None else None)(re.search(pattern, s))
+            if s not in [None, np.nan]
+            else None
             for s in string
         ]
-        if isinstance(string, (np.ndarray, np.generic)):
-            extract = np.array(extract)
+        if isinstance(string, np.ndarray):
+            return np.array(extract)
         return extract
     elif isinstance(string, pd.Series):
         return pd.Series(
             [
-                re.search(pattern, s[1]).group(0)
-                if s[1] not in [None, np.nan] and re.search(pattern, s[1]) is not None
+                (lambda m: m.group(0) if m is not None else None)(re.search(pattern, s[1]))
+                if s[1] not in [None, np.nan]
                 else None
                 for s in string.iteritems()
             ]
         )
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         raise TypeError("Cannot determine method of string extraction")
 
@@ -1511,16 +1532,19 @@ def str_extract_all(
     -------
     All non-overlapping matches within each string
     """
+    match: Union[list, np.ndarray, pd.DataFrame, pd.Series]
     if isinstance(string, str):
         match = re.findall(pattern, string)
-    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
-        match = [re.findall(pattern, s) for s in string]
+    elif isinstance(string, (list, tuple, np.ndarray)):
+        match_list: list = [re.findall(pattern, s) for s in string]
         if simplify:
-            length = max(map(len, match))
-            match = [xi + [""] * (length - len(xi)) for xi in match]
-            match = ["" if x is None else x for x in match]
-        if isinstance(string, (np.ndarray, np.generic)):
-            match = np.array(match, dtype="object")
+            length = max(map(len, match_list))
+            match_list = [xi + [""] * (length - len(xi)) for xi in match_list]
+            match_list = ["" if x is None else x for x in match_list]
+        if isinstance(string, np.ndarray):
+            match = np.array(match_list, dtype="object")
+        else:
+            match = match_list
     elif isinstance(string, pd.Series):
         if "(" not in pattern:
             pattern = "(" + pattern + ")"
@@ -1535,7 +1559,7 @@ def str_extract_all(
                         match.reset_index(),
                         index="level_0",
                         columns="match",
-                        values=value_cols,
+                        values=list(value_cols),
                     )
                 match = match.fillna("")
             else:
@@ -1545,7 +1569,7 @@ def str_extract_all(
                 )
                 match = flat_match
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     return match
 
 
@@ -1570,32 +1594,39 @@ def str_match(
     A container with our first matched groups, and None/np.nan if no match detected
     """
     whole_match = str_extract(string, pattern)
+    return_match: Union[list, np.ndarray, pd.DataFrame, pd.Series]
     if isinstance(string, str):
         if whole_match is None:
             return None
         else:
-            partial_match = list(map(list, str_extract_all(whole_match, pattern, simplify=True)))[0]
-            return_match = [whole_match] + partial_match
-    elif isinstance(string, (list, tuple, np.ndarray, np.generic)):
-        if isinstance(string, (np.ndarray, np.generic)):
-            whole_match[whole_match == None] = ""
+            whole_match_str = cast(str, whole_match)
+            partial_match = list(map(list, str_extract_all(whole_match_str, pattern, simplify=True)))[0]
+            return_match = [whole_match_str] + partial_match
+    elif isinstance(string, (list, tuple, np.ndarray)):
+        if isinstance(string, np.ndarray):
+            whole_match_arr = cast(np.ndarray, whole_match)
+            whole_match_arr[whole_match_arr == None] = ""  # noqa: E711
+            whole_match_seq: Union[list, np.ndarray] = whole_match_arr
         else:
-            whole_match = [s if s is not None else "" for s in whole_match]
-        partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
-        max_length = max(len(x) for x in return_match)
-        return_match = [
-            val if len(val) == max_length else [None] * max_length for index, val in enumerate(return_match)
+            whole_match_seq = [s if s is not None else "" for s in cast(list, whole_match)]
+        partial_match2: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(Union[list, np.ndarray, pd.DataFrame, pd.Series], str_extract_all(whole_match_seq, pattern, simplify=True))
+        return_match_list = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match_seq, partial_match2)]
+        max_length = max(len(x) for x in return_match_list)
+        return_match_list = [
+            val if len(val) == max_length else [None] * max_length for index, val in enumerate(return_match_list)
         ]
-        if isinstance(string, (np.ndarray, np.generic)):
-            return_match = np.array(return_match)
+        if isinstance(string, np.ndarray):
+            return_match = np.array(return_match_list)
+        else:
+            return_match = return_match_list
     elif isinstance(string, pd.Series):
-        whole_match = whole_match.rename("whole_match")
-        partial_match = str_extract_all(whole_match, pattern, simplify=True)
-        return_match = pd.merge(whole_match, partial_match, how="left", left_index=True, right_index=True)
-        return_match = return_match.replace("", np.nan)
+        whole_match_series = cast(pd.Series, whole_match)
+        whole_match_series = whole_match_series.rename("whole_match")
+        partial_match3: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(Union[list, np.ndarray, pd.DataFrame, pd.Series], str_extract_all(whole_match_series, pattern, simplify=True))
+        return_match = pd.merge(whole_match_series, cast(pd.DataFrame, partial_match3), how="left", left_index=True, right_index=True)
+        return_match = cast(pd.DataFrame, return_match).replace("", np.nan)
     elif isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     return return_match
 
 
@@ -1620,35 +1651,37 @@ def str_match_all(
     A container with all our matched groups, and None/np.nan if no match detected
     """
     if isinstance(string, ps.Column):
-        ...
+        raise NotImplementedError("PySpark support not yet implemented")
     else:
         # One issue we have is that str_extract only finds the first total instance of a capture group in our string,
         # while str_extract_all finds all the inner capture groups within our string. This works for str_match, where
         # we need the first total match and all its inner matches, but doesn't work for str_match_all, where we need all
         # total matches. So we need to iteratively go through the string, save all total matches and then get all
         # inner matches
-        whole_match = []
+        whole_match_list: list = []
         if isinstance(string, str):
             if string not in [np.nan, None] and re.search(pattern, string) is not None:
-                whole_match = []
+                whole_match_list = []
                 for match in re.finditer(pattern, string):
-                    whole_match.append(match.group(0))
+                    whole_match_list.append(match.group(0))
             else:
                 return ""
         else:
             for s in string:
                 if s not in [np.nan, None] and re.search(pattern, s) is not None:
                     for match in re.finditer(pattern, s):
-                        whole_match.append(match.group(0))
+                        whole_match_list.append(match.group(0))
                 else:
-                    whole_match.append("")
+                    whole_match_list.append("")
+        return_match: Union[list, np.ndarray, pd.DataFrame]
         if isinstance(string, pd.Series):
-            whole_match = pd.Series(whole_match, name="whole_match")
-            partial_match = str_extract_all(whole_match, pattern).reset_index().drop(["match"], axis=1)
+            whole_match_series = pd.Series(whole_match_list, name="whole_match")
+            partial_match = str_extract_all(whole_match_series, pattern)
+            partial_match_df = cast(pd.DataFrame, partial_match).reset_index().drop(["match"], axis=1)
             return_match = (
                 pd.merge(
-                    whole_match,
-                    partial_match,
+                    whole_match_series,
+                    partial_match_df,
                     left_index=True,
                     right_on="level_0",
                     how="left",
@@ -1658,14 +1691,16 @@ def str_match_all(
             )
             return_match.index = np.arange(len(return_match))
         else:
-            partial_match = str_extract_all(whole_match, pattern, simplify=True)
-            return_match = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match, partial_match)]
-            max_length = max(len(x) for x in return_match)
-            return_match = [
-                val if len(val) == max_length else [""] * max_length for index, val in enumerate(return_match)
+            partial_match = str_extract_all(whole_match_list, pattern, simplify=True)
+            return_match_list2: list = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match_list, partial_match)]
+            max_length = max(len(x) for x in return_match_list2)
+            return_match_list2 = [
+                val if len(val) == max_length else [""] * max_length for index, val in enumerate(return_match_list2)
             ]
-            if isinstance(string, (np.ndarray, np.generic)):
-                return_match = np.array(return_match)
+            if isinstance(string, np.ndarray):
+                return_match = np.array(return_match_list2)
+            else:
+                return_match = return_match_list2
     return return_match
 
 
@@ -1676,7 +1711,7 @@ def str_c(
     strings: Union[Sequence[str], np.ndarray, pd.Series, ps.Column],
     sep: str = "",
     collapse: Optional[str] = None,
-) -> str:
+) -> Union[str, list]:
     """
 
     Parameters
@@ -1693,29 +1728,33 @@ def str_c(
     If `collapse=None`, a character vector with length equal to the longest input. Else, a
     character vector of length 1.
     """
+    return_string: Union[list, np.ndarray]
     if isinstance(strings, (list, tuple)):
-        max_length = max([len(s) for s in strings])
+        strings_list = list(strings)
+        max_length = max([len(s) for s in strings_list])
         return_string = [""] * max_length
-        for index, string in enumerate(strings):
+        for index, string in enumerate(strings_list):
             if len(string) < max_length:
-                strings[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
-        for row, ss in enumerate(strings[0]):
-            for col in range(1, len(strings)):
-                ss += sep + strings[col][row]
+                strings_list[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
+        for row, ss in enumerate(strings_list[0]):
+            for col in range(1, len(strings_list)):
+                ss += sep + strings_list[col][row]
             return_string[row] = ss
-    elif isinstance(strings, (np.generic, np.ndarray)):
+    elif isinstance(strings, np.ndarray):
         max_length = max(map(len, strings))
         return_string = np.repeat("", max_length)
         ...
     elif isinstance(strings, pd.DataFrame):
+        return_string = []
         ...
     elif isinstance(strings, ps.DataFrame):
+        return_string = []
         ...
     else:
         raise TypeError("Cannot identify character vector")
     if collapse is not None:
-        return collapse.join(return_string)
-    return return_string
+        return collapse.join(list(return_string))
+    return list(return_string)
 
 
 def _remove_accents(input_str: str) -> str:

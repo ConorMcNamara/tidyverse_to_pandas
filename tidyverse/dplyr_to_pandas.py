@@ -455,9 +455,9 @@ def summarise(data, *args):
             if n_number > len(data):
                 raise Exception("Cannot access {} element of DataFrame with {} elements".format(n_number, len(data)))
             if n_number < -len(data):
-                raise Exception("Cannot access {} element of DataFrame with {} elements".format(
-                    len(data) + n_number, len(data)
-                ))
+                raise Exception(
+                    "Cannot access {} element of DataFrame with {} elements".format(len(data) + n_number, len(data))
+                )
             if n_number < 0:
                 val = data.iloc[n_number, :][nth_col]
             else:
