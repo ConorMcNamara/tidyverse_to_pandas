@@ -324,7 +324,7 @@ def unnest_longer(
                 unnest_data[col] = unnest_data[col].apply(pd.to_numeric, errors="coerce")
         elif isinstance(col, str):
             # Our column is in list format
-            if (data[col].apply(type) == list).any():
+            if (data[col].apply(type).apply(lambda t: t is list)).any():
                 unnest_data = data.explode(col)
             # Our column is in json/dict format
             else:
@@ -424,7 +424,7 @@ def unnest_wider(
                 )
         elif isinstance(col, str):
             # data is in list format
-            if (data[col].apply(type) == list).any():
+            if (data[col].apply(type).apply(lambda t: t is list)).any():
                 # Similarly, we are checking if all the lists within the column are the same length. If they are, we can
                 # speed things up using data[col].tolist(). Else, we use data[col].apply(pd.Series).
                 if (data[col].str.len()[0] == data[col].str.len()[1:]).all():

@@ -4,7 +4,7 @@ import re
 from tidyverse.utils import _check_df_type, _get_list_columns, _get_str_columns
 import pyspark.sql as ps
 
-from typing import Union, Optional
+from typing import Union
 
 
 # One Table Verbs
@@ -613,7 +613,7 @@ def mutate(
                 pass
         return data
     elif isinstance(cols, list):
-        columns = _get_list_columns(data, cols, is_pandas)
+        _get_list_columns(data, cols, is_pandas)
 
 
 def transmute(data, cols: Union[str, list, tuple, np.ndarray, dict]) -> Union[pd.DataFrame, ps.DataFrame]:

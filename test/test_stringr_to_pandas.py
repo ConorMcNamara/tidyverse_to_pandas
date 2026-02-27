@@ -831,7 +831,7 @@ class TestStrStarts:
     @staticmethod
     def test_strStarts_string() -> None:
         string = "guinea pigs and farts"
-        assert stp.str_starts(string, "guinea") == True
+        assert stp.str_starts(string, "guinea")
 
     @staticmethod
     def test_strStarts_list() -> None:

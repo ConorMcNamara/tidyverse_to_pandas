@@ -38,5 +38,5 @@ def last_col(data: Union[pd.DataFrame, ps.DataFrame], offset: int = 0) -> str:
     -------
     The `nth` last column from our data
     """
-    is_pandas = _check_df_type(data, "last_col")
+    _check_df_type(data, "last_col")
     return data.columns[-(offset + 1)]

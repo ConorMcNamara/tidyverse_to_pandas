@@ -270,7 +270,7 @@ def str_replace_na(
         string = [replacement if s in [None, np.nan] else s for s in string]
     elif isinstance(string, np.ndarray):
         # numpy has no native way of detecting None except by using the == operator
-        string[string == None] = replacement
+        string[string is None] = replacement
         string[string != string] = replacement
     elif isinstance(string, pd.Series):
         string = string.fillna(replacement)
@@ -562,7 +562,7 @@ def str_order(
     elif isinstance(string, np.ndarray):
         if na_last is None:
             string = string[~np.isnan(string)]
-            string = string[string != None]
+            string = string[string is not None]
         if numeric:
             if na_last is True:
                 string = np.where(np.isin(string, np.array([np.nan, None], dtype=object)), "9" * max_str_length, string)
@@ -659,7 +659,7 @@ def str_equal(
     -------
     Whether or not the strings are equal
     """
-    if type(x) != type(y):
+    if type(x) is not type(y):
         raise TypeError("x and y must be of the same type")
     if isinstance(x, str):
         y_str = cast(str, y)
@@ -704,9 +704,9 @@ def str_equal(
                 lambda xi, yi: unicodedata.normalize("NFC", xi.upper()) == unicodedata.normalize("NFC", yi.upper())
             )(x_arr, y_arr)
         else:
-            return np.vectorize(
-                lambda xi, yi: unicodedata.normalize("NFC", xi) == unicodedata.normalize("NFC", yi)
-            )(x_arr, y_arr)
+            return np.vectorize(lambda xi, yi: unicodedata.normalize("NFC", xi) == unicodedata.normalize("NFC", yi))(
+                x_arr, y_arr
+            )
     else:
         raise TypeError("Cannot determine how to compare strings")
 
@@ -1169,13 +1169,17 @@ def _str_replace(
                 if isinstance(pattern, str):
                     return np.array(list(map(lambda v: replacement if pattern in v else v, string)))
                 else:
-                    return np.array([replacement if cast(str, pattern[i]) in string[i] else string[i] for i in range(len(string))])
+                    return np.array(
+                        [replacement if cast(str, pattern[i]) in string[i] else string[i] for i in range(len(string))]
+                    )
         else:
             match_list: list = []
             if isinstance(pattern, str):
                 match_list = [re.sub(pattern, replacement[i], string[i], count=count) for i in range(len(string))]
             else:
-                match_list = [re.sub(cast(str, pattern[i]), replacement[i], string[i], count=count) for i in range(len(string))]
+                match_list = [
+                    re.sub(cast(str, pattern[i]), replacement[i], string[i], count=count) for i in range(len(string))
+                ]
             if isinstance(string, np.ndarray):
                 return np.array(match_list)
             return match_list
@@ -1609,7 +1613,9 @@ def str_match(
             whole_match_seq: Union[list, np.ndarray] = whole_match_arr
         else:
             whole_match_seq = [s if s is not None else "" for s in cast(list, whole_match)]
-        partial_match2: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(Union[list, np.ndarray, pd.DataFrame, pd.Series], str_extract_all(whole_match_seq, pattern, simplify=True))
+        partial_match2: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(
+            Union[list, np.ndarray, pd.DataFrame, pd.Series], str_extract_all(whole_match_seq, pattern, simplify=True)
+        )
         return_match_list = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match_seq, partial_match2)]
         max_length = max(len(x) for x in return_match_list)
         return_match_list = [
@@ -1622,8 +1628,13 @@ def str_match(
     elif isinstance(string, pd.Series):
         whole_match_series = cast(pd.Series, whole_match)
         whole_match_series = whole_match_series.rename("whole_match")
-        partial_match3: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(Union[list, np.ndarray, pd.DataFrame, pd.Series], str_extract_all(whole_match_series, pattern, simplify=True))
-        return_match = pd.merge(whole_match_series, cast(pd.DataFrame, partial_match3), how="left", left_index=True, right_index=True)
+        partial_match3: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(
+            Union[list, np.ndarray, pd.DataFrame, pd.Series],
+            str_extract_all(whole_match_series, pattern, simplify=True),
+        )
+        return_match = pd.merge(
+            whole_match_series, cast(pd.DataFrame, partial_match3), how="left", left_index=True, right_index=True
+        )
         return_match = cast(pd.DataFrame, return_match).replace("", np.nan)
     elif isinstance(string, ps.Column):
         raise NotImplementedError("PySpark support not yet implemented")
