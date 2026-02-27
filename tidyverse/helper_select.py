@@ -10,7 +10,7 @@ def everything(data: Union[pd.DataFrame, ps.DataFrame]) -> list:
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
 
     Returns
@@ -29,9 +29,9 @@ def last_col(data: Union[pd.DataFrame, ps.DataFrame], offset: int = 0) -> str:
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    offset: int, default=0
+    offset : int, default=0
         Set it to `n` to select the nth var from the end
 
     Returns

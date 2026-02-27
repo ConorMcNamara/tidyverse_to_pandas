@@ -14,10 +14,10 @@ def arrange(
     """Arrange rows by column values
 
     Parameters
-    ---------
-    data: pandas or pyspark DataFrame
+    ----------
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list
+    cols : str or list
         The columns we are sorting the dataframe on
 
     Returns
@@ -73,20 +73,20 @@ def count(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list
+    cols : str or list
          Optional variables to use when determining uniqueness. If there are multiple rows for a given combination of inputs,
          only the first row will be preserved. If None, will use all variables.
-    wt: str or list, default is None
+    wt : str or list, default is None
          Frequency weights. Can be a variable (or combination of variables) or None. wt is computed once for each unique
          combination of the counted variables.
-    sort: bool, default is False
+    sort : bool, default is False
         If True, will show the largest groups at the top.
-    name: str, default is None
+    name : str, default is None
         The name of the new column in the output. If omitted, it will default to n. If there's already a column called n,
         it will error, and require you to specify the name.
-    drop: bool, default is True
+    drop : bool, default is True
         If False will include counts for empty groups (i.e. for levels of factors that don't exist in the data)
 
     Returns
@@ -147,17 +147,17 @@ def add_count(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list
+    cols : str or list
          Optional variables to use when determining uniqueness. If there are multiple rows for a given combination of inputs,
          only the first row will be preserved. If None, will use all variables.
-    wt: str or list, default is None
+    wt : str or list, default is None
          Frequency weights. Can be a variable (or combination of variables) or None. wt is computed once for each unique
          combination of the counted variables.
-    sort: bool, default is False
+    sort : bool, default is False
         If True, will show the largest groups at the top.
-    name: str, default is None
+    name : str, default is None
         The name of the new column in the output. If omitted, it will default to n. If there's already a column called n,
         it will error, and require you to specify the name.
 
@@ -208,12 +208,12 @@ def distinct(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list, default is None
+    cols : str or list, default is None
          Optional variables to use when determining uniqueness. If there are multiple rows for a given combination of inputs,
          only the first row will be preserved. If None, will use all variables.
-    keep_all: bool, default is False
+    keep_all : bool, default is False
         If True, keep all variables in data. If a combination of cols is not distinct, this keeps the first row of values.
 
     Returns
@@ -258,14 +258,14 @@ def filter(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         The dataframe for which we are filtering the data on
-    cols: str or list
+    cols : str or list
         The filter conditions we are applying on our dataframe
 
     Returns
     -------
-    filtered_data: pandas DataFrame
+    filtered_data : pandas DataFrame
         The dataframe, after we've applied all filtering conditions
 
     For example, suppose we had a dataframe like
@@ -350,15 +350,15 @@ def mutate(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str, list or dict
+    cols : str, list or dict
         Name-value pairs. The name gives the name of the column in the output. The value can be:
             A vector of length 1, which will be recycled to the correct length.
             A vector the same length as the current group (or the whole data frame if ungrouped).
             NULL, to remove the column.
             A data frame or tibble, to create multiple columns in the output.
-    keep: str, default is all
+    keep : str, default is all
         Allows you to control which columns from data are retained in the output:
             "all", the default, retains all variables.
             "used" keeps any variables used to make new variables; it's useful for checking your work as it displays inputs and outputs side-by-side.
@@ -512,7 +512,7 @@ def mutate(
                     if len(lag_string.split(",")) == 2:
                         if "default" not in lag_string.split(",")[1]:
                             lag_string = re.sub(r",", ",fill_value=", lag_string)
-                    after_equals = re.sub(r",.*", "", re.sub("df\.lag\(", "", after_equals)) + ".shift({})".format(
+                    after_equals = re.sub(r",.*", "", re.sub("df\\.lag\\(", "", after_equals)) + ".shift({})".format(
                         lag_string
                     )
                 else:
@@ -547,7 +547,7 @@ def mutate(
                             pass
                         else:
                             lead_string = str("periods=-{}".format(int(lead_string)))
-                    after_equals = re.sub(r",.*", "", re.sub("df\.lead\(", "", after_equals)) + ".shift({})".format(
+                    after_equals = re.sub(r",.*", "", re.sub("df\\.lead\\(", "", after_equals)) + ".shift({})".format(
                         lead_string
                     )
                 else:
@@ -568,7 +568,7 @@ def mutate(
                 after_equals_split = after_equals.split(",")
                 after_equals_split_1 = re.sub("df.", "", after_equals_split[1])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[2])
-                after_equals_split_2 = re.sub("\)", "", after_equals_split_2)
+                after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
                 if after_equals_split_1 not in data.columns:
                     after_equals = re.sub(after_equals_split[1], after_equals_split_1, after_equals)
                 if after_equals_split_2 not in data.columns:
@@ -578,7 +578,7 @@ def mutate(
             if "df.recode(" in after_equals:
                 recode = {}
                 after_equals_split = after_equals.split(",")
-                after_equals_split_name = re.sub("df.recode\(", "", after_equals_split[0])
+                after_equals_split_name = re.sub("df.recode\\(", "", after_equals_split[0])
                 for i in range(1, len(after_equals_split)):
                     split_equals = after_equals_split[i].split("=")
                     var_to_be_changed = re.sub("df.", "", split_equals[0])
@@ -588,15 +588,15 @@ def mutate(
             # Handle missing values
             if "df.na_if(" in after_equals:
                 after_equals_split = after_equals.split(",")
-                after_equals_split_1 = re.sub("df.na_if\(", "", after_equals_split[0])
+                after_equals_split_1 = re.sub("df.na_if\\(", "", after_equals_split[0])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
-                after_equals_split_2 = re.sub("\)", "", after_equals_split_2)
+                after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
                 after_equals = "{0}.replace({1}, np.nan)".format(after_equals_split_1, after_equals_split_2)
             if "df.coalesce(" in after_equals:
                 after_equals_split = after_equals.split(",")
-                after_equals_split_1 = re.sub("df.coalesce\(", "", after_equals_split[0])
+                after_equals_split_1 = re.sub("df.coalesce\\(", "", after_equals_split[0])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
-                after_equals_split_2 = re.sub("\)", "", after_equals_split_2)
+                after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
                 after_equals = "{0}.fillna({1})".format(after_equals_split_1, after_equals_split_2)
             after_equals = "lambda df: {}".format(after_equals)
             # Keep or drop columns
@@ -621,9 +621,9 @@ def transmute(data, cols: Union[str, list, tuple, np.ndarray, dict]) -> Union[pd
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str, list or dict
+    cols : str, list or dict
         Name-value pairs. The name gives the name of the column in the output. The value can be:
             A vector of length 1, which will be recycled to the correct length.
             A vector the same length as the current group (or the whole data frame if ungrouped).
@@ -646,14 +646,14 @@ def pull(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    var: int or str
+    var : int or str
         A variable specified as:
             * a literal variable name
             * a positive integer, giving the position counting from the left
             * a negative integer, giving the position counting from the right.
-    name: int or str, default is None
+    name : int or str, default is None
         An optional parameter that specifies the column to be used as names for a named vector.
         Specified in a similar manner as var.
 
@@ -686,9 +686,9 @@ def rename(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list
+    cols : str or list
         The columns we are renaming, and the name we are changing them to
 
     Returns
@@ -724,13 +724,13 @@ def relocate(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list
+    cols : str or list
          Columns to move
-    before: str, default=None
+    before : str, default=None
         Destination of columns. Default is to move to the very left.
-    after: str, default=None
+    after : str, default=None
         Destination of columns. Default is to move to the very left.
 
     Returns
@@ -780,9 +780,9 @@ def select(
 
     Parameters
     ----------
-    data: pandas or pyspark DataFrame
+    data : pandas or pyspark DataFrame
         A dataframe
-    cols: str or list
+    cols : str or list
          Columns to move
 
     Returns

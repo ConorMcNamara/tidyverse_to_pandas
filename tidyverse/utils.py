@@ -17,14 +17,14 @@ def _get_str_columns(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         Our data frame for determining applicable column names
-    str_arguments: str
+    str_arguments : str
         The arguments for selecting columns. Currently supported are the name itself, "x", everything but the column
         listed, "-x", and every column in-between, "x:y".
-    cols: optional, list of column names, default is None
+    cols : optional, list of column names, default is None
         If given, we use these instead of calculating the names ourselves. Mostly used to simplify _get_list_columns
-    is_pandas: bool, default is True
+    is_pandas : bool, default is True
         Whether our DataFrame is in pandas or pyspark format
 
     Returns
@@ -43,7 +43,7 @@ def _get_str_columns(
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
     elif "-" in str_arguments:
-        col_to_remove = str_arguments[str_arguments.find("-") + 1 :]
+        col_to_remove = str_arguments[str_arguments.find("-") + 1:]
         cols.remove(col_to_remove)
     else:
         cols = [str_arguments]
@@ -59,12 +59,12 @@ def _get_list_columns(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         Our data frame for determining applicable column names
-    list_cols: list, tuple or numpy array
+    list_cols : list, tuple or numpy array
         The arguments for selecting columns. Currently supported are the name itself, "x", everything but the column
         listed, "-x", and every column in-between, "x:y".
-    is_pandas: bool, default is True
+    is_pandas : bool, default is True
         Whether our DataFrame is in pandas or pyspark format
 
     Returns

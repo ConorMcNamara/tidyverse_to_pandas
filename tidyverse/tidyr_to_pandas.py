@@ -30,42 +30,42 @@ def pivot_longer(
     values_drop_na: bool = True,
     values_ptypes: [list, tuple, np.ndarray] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """pivot_longer() "lengthens" data, increasing the number of rows and decreasing the number of columns.
+    """Pivot_longer() "lengthens" data, increasing the number of rows and decreasing the number of columns.
 
     Parameters
     ----------
-    data: pandas or pyspark data frame
+    data : pandas or pyspark data frame
         A data frame to pivot.
-    cols: str or list
+    cols : str or list
         Columns to pivot into longer format.
-    names_to: str or list, default is "name"
+    names_to : str or list, default is "name"
         A string specifying the name of the column to create from the data stored in the column names of data.
         Can be a list, creating multiple columns, if names_sep or names_pattern is provided.
-    names_prefix: str, default is None
+    names_prefix : str, default is None
         A regular expression used to remove matching text from the start of each variable name.
-    names_sep: list or str, default is None
+    names_sep : list or str, default is None
         If names_to contains multiple values, these arguments control how the column name is broken up.
         names_sep takes the same specification as separate(), and can either be a numeric vector (specifying positions
         to break on), or a single string (specifying a regular expression to split on).
-    names_pattern: list or str, default is None
+    names_pattern : list or str, default is None
         If names_to contains multiple values, these arguments control how the column name is broken up.
         names_pattern takes the same specification as extract(), a regular expression containing matching groups (()).
-    names_ptypes: list, default is None
+    names_ptypes : list, default is None
         A list of column name-prototype pairs. A prototype (or ptype for short) is a zero-length vector
         (like integer() or numeric()) that defines the type, class, and attributes of a vector.
 
         If not specified, the type of the columns generated from names_to will be character.
-    names_repair: str, default is "check_unique"
+    names_repair : str, default is "check_unique"
         What happen if the output has invalid column names?
         The default, "check_unique" is to error if the columns are duplicated.
         Use "minimal" to allow duplicates in the output, or "unique" to de-duplicated by adding numeric suffixes.
-    values_to: str, default is None
+    values_to : str, default is None
         A string specifying the name of the column to create from the data stored in cell values.
         If names_to is None this value will be ignored, and the name of the value column will be "value".
-    values_drop_na: bool, default is True
+    values_drop_na : bool, default is True
         If True, will drop rows that contain only NAs in the value_to column. This effectively converts explicit missing values
         to implicit missing values, and should generally be used only when missing values in data were created by its structure.
-    values_ptypes: list, default is None
+    values_ptypes : list, default is None
         The type of data our values_to column will be. Examples include int, str, np.int16 or bool.
 
         If not specified, the type of the variables generated from values_to will be the common type of the input columns
@@ -160,33 +160,33 @@ def pivot_wider(
     values_fill: Optional[dict] = None,
     values_fn: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """pivot_wider() "widens" data, increasing the number of columns and decreasing the number of rows.
+    """Pivot_wider() "widens" data, increasing the number of columns and decreasing the number of rows.
     The inverse transformation is pivot_longer().
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame to pivot.
-    id_cols: str or list, default is None
+    id_cols : str or list, default is None
         A set of columns that uniquely identifies each observation.
         Defaults to all columns in data except for the columns specified in names_from and values_from.
         Typically used when you have additional variables that is directly related.
-    names_from: str, default is "name"
+    names_from : str, default is "name"
         Describes which column to get the name of the output column.
-    names_prefix: str, default is ""
+    names_prefix : str, default is ""
         String added to the start of every variable name. This is particularly useful if names_from is a numeric vector
         and you want to create syntactic variable names.
-    names_sep: str, default is "_"
+    names_sep : str, default is "_"
         If names_from or values_from contains multiple variables, this will be used to join their values together
         into a single string to use as a column name.
-    names_repair: str, default is "check_unique"
+    names_repair : str, default is "check_unique"
         What happen if the output has invalid column names? The default, "check_unique" is to error if the columns are duplicated.
         Use "minimal" to allow duplicates in the output, or "unique" to de-duplicated by adding numeric suffixes.
-    values_from: str or list, default is "name"
+    values_from : str or list, default is "name"
         Describes which column (or columns) to get the cell values from.
-    values_fill: dict, default is None
+    values_fill : dict, default is None
         Optionally, a dictionary specifying what each value should be filled in with when missing.
-    values_fn: dict, default is None
+    values_fn : dict, default is None
         Optionally, a dictionary providing a function that will be applied to the value in each cell in the output.
         You will typically use this when the combination of id_cols and value column does not uniquely identify an observation.
 
@@ -284,24 +284,24 @@ def unnest_longer(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    col: str or list
+    col : str or list
         Column to extract components from
-    values_to: str or list, default is None
+    values_to : str or list, default is None
         Name of column to store vector values. If None, use col
-    indices_to: str, default is None
+    indices_to : str, default is None
         A string giving the name of column which will contain the inner names or position (if not named) of the values.
         If None, use col with _id suffix
-    indices_include: bool, default is False
+    indices_include : bool, default is False
         Add an index column? Defaults to False when col has inner names.
-    names_repair: str, default is check_unique
+    names_repair : str, default is check_unique
         "minimal": no name repair or checks, beyond basic existence,
         "unique": make sure names are unique and not empty,
         "check_unique": (the default), no name repair, but check they are unique
-    simplify: bool, default is False
+    simplify : bool, default is False
         If True, will attempt to simplify lists of length-1 vectors to an atomic vector
-    ptype: dict, default is None
+    ptype : dict, default is None
         Optionally, supply a dictionary for the output cols, overriding the default that will be guessed from
         the combination of individual values.
 
@@ -371,21 +371,21 @@ def unnest_wider(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame.
-    col: str or list
+    col : str or list
         List-column to extract components from.
-    names_sep: str, default is None
+    names_sep : str, default is None
         If None, the default, the names of new columns will come directly from the inner json.
         If a string, the names of the new columns will be formed by pasting together the outer column name with the
          inner names, separated by names_sep.
-    simplify: bool, default is False
+    simplify : bool, default is False
         If True, will attempt to simplify lists of length-1 vectors to an atomic vector
-    names_repair: str, default is check_unique
+    names_repair : str, default is check_unique
         "minimal": no name repair or checks, beyond basic existence,
         "unique": make sure names are unique and not empty,
         "check_unique": (the default), no name repair, but check they are unique
-    ptype: dict, default is None
+    ptype : dict, default is None
         Optionally, supply a dictionary for the output cols, overriding the default that will be guessed from
         the combination of individual values.
 
@@ -460,9 +460,9 @@ def nest(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    cols: str or list or dict
+    cols : str or list or dict
         Names of columns to nest. If dict, also specifies what the new column names will be.
 
     Returns
@@ -544,24 +544,24 @@ def unnest(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    cols: str or list
+    cols : str or list
         Names of columns to unnest. If you unnest() multiple columns, parallel entries must be of compatible sizes, i.e.
         they're either equal or length 1 (following the standard tidyverse recycling rules).
-    keep_empty: bool, default is False
+    keep_empty : bool, default is False
         By default, you get one row of output for each element of the list you're unnesting. This means that
         if there's a size-0 element (like NA or an empty dictionary), that entire row will be dropped from the output.
         If you want to preserve all rows, use keep_empty=True to replace size-0 elements with a single row of missing
         values.
-    ptype: dict, default is None
+    ptype : dict, default is None
         Optionally, supply a dict for the output cols, overriding the default that will be guessed from the combination
         of individual values.
-    names_sep: str, default is None
+    names_sep : str, default is None
         If None, the default, the names of new columns will come directly from the inner data frame.
         If a string, the names of the new columns will be formed by pasting together the outer column name with the
         inner names, separated by names_sep.
-    names_repair: str, default is "check_unique"
+    names_repair : str, default is "check_unique"
         Used to check that output data frame has valid names. Must be one of the following options:
             "minimal": no name repair or checks, beyond basic existence,
             "unique": make sure names are unique and not empty,
@@ -619,9 +619,9 @@ def chop(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame.
-    cols: str or list
+    cols : str or list
         Column to chop. This should be a list-column containing generalised vectors (e.g. any mix of list, numpy array,
         a tuple, or data frames).
 
@@ -665,22 +665,22 @@ def unchop(
     keep_empty: bool = False,
     ptype: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """unchop() makes df longer by expanding list-columns so that each element of the list-column gets its own row in
+    """Unchop() makes df longer by expanding list-columns so that each element of the list-column gets its own row in
     the output.
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    cols: str or list
+    cols : str or list
         Column to unchop.This should be a list-column containing generalised vectors (e.g. any mix of list, numpy array,
         a tuple, or data frames).
-    keep_empty: bool, default is False
+    keep_empty : bool, default is False
         By default, you get one row of output for each element of the list you're unchopping.
         This means that if there's a size-0 element (like NA or an empty data frame), that entire row will be dropped
         from the output. If you want to preserve all rows, use keep_empty=True to replace size-0 elements with a single
         row of missing values.
-    ptype: dict, default is None
+    ptype : dict, default is None
         Optionally, supply a dictionary for the output cols, overriding the default that will be guessed from
         the combination of individual values.
 
@@ -739,29 +739,29 @@ def separate(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    col: str
+    col : str
         Column name or position.
-    into: list
+    into : list
         Names of new variables to create as character vector. Use "NA" to omit the variable in the output, e.g.
         ['NA', 'B']
-    sep: str or int
+    sep : str or int
         Separator between columns.
         If character, is interpreted as a regular expression. The default value is a regular expression that matches any
         sequence of non-alphanumeric values.
         If list or tuple, interpreted as positions to split at. Positive values start at 0 at the far-left of the string;
         negative value start at -1 at the far-right of the string. The length of sep should be one less than into.
-    remove: bool, default is True
+    remove : bool, default is True
         If True, remove input column from output data frame.
-    convert: bool, default is False
+    convert : bool, default is False
         If True, will run pd.to_numeric() if applicable on new columns.
         This is useful if the component columns are integer, numeric or logical.
-    extra: str, options are {"warn", "drop", "merge"}, default is "warn"
+    extra : str, options are {"warn", "drop", "merge"}, default is "warn"
         "warn" (the default): emit a warning and drop extra values.
         "drop": drop any extra values without a warning.
         "merge": only splits at most len(into) - 1 times
-    fill: str, options are {"warn", "right", "left"}, default is "warn"
+    fill : str, options are {"warn", "right", "left"}, default is "warn"
         "warn" (the default): emit a warning and fill from the right
         "right": fill with missing values on the right
         "left": fill with missing values on the left
@@ -784,7 +784,8 @@ def separate(
             # For str.split(), if we specify that expand=False, our results are returned as a Series of lists instead
             # of a pandas DataFrame. Thus, we check if the length of each list in our Series is equal to the number
             # of column names we want to create. If it's less, we add NAs to the list until the lengths are equivalent,
-            # with the fill() argument specifying where the NAs will be placed (either right or left of our non-NA values)
+            # with the fill() argument specifying where the NAs will be placed (either
+            # right or left of our non-NA values)
             if fill == "left":
                 splits = splits.apply(lambda x: x if len(x) == len(into) else [np.nan] * (len(into) - len(x)) + x)
             else:
@@ -857,19 +858,19 @@ def extract(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame.
-    col: str
+    col : str
         Column name or position
-    into: list
+    into : list
         Names of new variables to create as character vector. Use "NA" to omit the variable in the output, e.g.
         ["NA", "B"]
-    regex: str, default is all alpha-numeric characters
+    regex : str, default is all alpha-numeric characters
         A regular expression used to extract the desired values.
         There should be one capture group (defined by ()) for each element of into.
-    remove: bool, default is True
+    remove : bool, default is True
         If True, remove input column from output DataFrame
-    convert: bool, default is False
+    convert : bool, default is False
         If True, will run pd.to_numeric() if applicable on new columns.
         This is useful if the component columns are integer, numeric or logical.
 
@@ -884,7 +885,7 @@ def extract(
         # If our regex extracts more columns column names provided, then we are keeping the first n columns,
         # where n is the number of column names provided
         if len(into) < splits.shape[1]:
-            splits = splits.iloc[:, 0 : len(into)]
+            splits = splits.iloc[:, 0: len(into)]
         splits.columns = into
         # If user specifies they want certain columns to be dropped
         if "NA" in splits.columns:
@@ -914,18 +915,18 @@ def unite(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame.
-    col: str
+    col : str
         The name of our new column
-    input_cols: list, default is None
+    input_cols : list, default is None
         A selection of columns. If None, all variables are selected. You can supply bare variable names,
         select all variables between x and z with x:z, or exclude y with -y
-    sep: str, default is '_'
+    sep : str, default is '_'
         Separator to use between values.
-    remove: bool, default is True
+    remove : bool, default is True
         If True, remove input columns from output data frame.
-    na_rm: bool, default is False
+    na_rm : bool, default is False
         If True, missing values will be remove prior to uniting each value.
 
     Returns
@@ -979,9 +980,9 @@ def drop_na(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame.
-    cols: list of str or str, default is None
+    cols : list of str or str, default is None
         A selection of columns. If None, all variables are selected.
         If in string format, expected to either be a singular column, such as "x" or "-y" or in "x:z" format if
         selecting multiple columns. Note that for "x:y", we are assuming every character prior to : is the column name,
@@ -1019,9 +1020,9 @@ def replace_na(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    replace: str or int or dict
+    replace : str or int or dict
         If str or int, then replacing every instance of a NA with given value
         If dict, then replacing each given column (identified as the key)'s NA with the value pair.
 
@@ -1048,15 +1049,15 @@ def fill(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    cols: str or list, default is None
+    cols : str or list, default is None
         A selection of columns. If None, nothing happens.
         If in string format, expected to either be a singular column, such as "x" or "-y" or in "x:z" format if
         selecting multiple columns. Note that for "x:y", we are assuming every character prior to : is the column name,
         so "x :z" will expect the column to be named "x ".
         If in list format, expected to be a list of strings containing column names, such as ["x", "y"] or ["x", "-y"]
-    direction: str, options are {"down", "up", "downup", "updown"}, default is 'down'
+    direction : str, options are {"down", "up", "downup", "updown"}, default is 'down'
         Direction in which to fill missing values. Currently either "down" (the default), "up",
         "downup" (i.e. first down and then up) or "updown" (first up and then down).
 
@@ -1103,11 +1104,11 @@ def complete(
 
     Parameters
     ----------
-    data: pandas or pyspark column
+    data : pandas or pyspark column
         A data frame
-    cols: list, default is None
+    cols : list, default is None
         Specification of columns to expand
-    fill: dictionary, default is None
+    fill : dictionary, default is None
         A dictionary that for each variable supplies a single value to use instead of NA for missing combinations.
 
     Returns

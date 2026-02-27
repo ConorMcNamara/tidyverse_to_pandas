@@ -11,14 +11,14 @@ def mutate(data, *args):
 
     Parameters
     ----------
-    data: pandas DataFrame
+    data : pandas DataFrame
         The data frame for which we are creating new variables using mutate()
-    *args: str
+    *args : str
         The variable functions, for example "new_col = col_1 / col_2"
 
     Returns
     -------
-    data: pandas DataFrame
+    data : pandas DataFrame
         The data frame, with the new columns created using mutate
 
     For example, suppose we had a dataframe like
@@ -57,14 +57,14 @@ def transmute(data, *args):
 
     Parameters
     ----------
-    data: pandas DataFrame
+    data : pandas DataFrame
         The data frame for which we are creating new variables using transmute()
-    *args: str
+    *args : str
         The variable functions, for example "new_col = col_1 / col_2"
 
     Returns
     -------
-    data: pandas DataFrame
+    data : pandas DataFrame
         The data frame, with only the new columns created using transmute
 
     For example, suppose we had a dataframe like
@@ -107,16 +107,9 @@ def transmute(data, *args):
 def rename(data, *args):
     """Renames columns using the 'x = x_1' arguments, and keeps all the available columns.
 
-    Parameter
-    ---------
-    data: pandas DataFrame
-        The data frame for which we are renaming current columns
-    *args: str
-        The columns we are renaming, for example, "x = x_1"
-
     Returns
     -------
-    data: pandas DataFrame
+    data : pandas DataFrame
         The DataFrame, but with the columns renamed
 
     For example, suppose we had a dataframe like
@@ -130,6 +123,13 @@ def rename(data, *args):
     1     2
     3     4
     5     6
+
+    Parameter
+    ---------
+    data: pandas DataFrame
+        The data frame for which we are renaming current columns
+    *args: str
+        The columns we are renaming, for example, "x = x_1"
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use rename on a non-DataFrame")
@@ -168,16 +168,9 @@ def contains(column_name, match, ignore_case=True):
 def select(data, *args):
     """Selects columns based on criteria in args
 
-    Parameter
-    ---------
-    data: pandas DataFrame
-        The data frame for which we are renaming current columns
-    *args: str
-        The columns we are selecting, for example, "x" or "x_1"
-
     Returns
     -------
-    new_data: pandas DataFrame
+    new_data : pandas DataFrame
         A DataFrame with only the selected columns
 
     For example, suppose we had a dataframe like
@@ -191,6 +184,13 @@ def select(data, *args):
     1
     3
     5
+
+    Parameter
+    ---------
+    data: pandas DataFrame
+        The data frame for which we are renaming current columns
+    *args: str
+        The columns we are selecting, for example, "x" or "x_1"
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use rename on a non-DataFrame")
@@ -302,14 +302,14 @@ def filter(data, *args):
 
     Parameters
     ----------
-    data: pandas DataFrame
+    data : pandas DataFrame
         The dataframe for which we are filtering the data on
-    *args: str
+    *args : str
         The filter conditions we are applying on our dataframe
 
     Returns
     -------
-    filtered_data: pandas DataFrame
+    filtered_data : pandas DataFrame
         The dataframe, after we've applied all filtering conditions
 
     For example, suppose we had a dataframe like
@@ -376,15 +376,15 @@ def summarise(data, *args):
     """Summarises data based on arguments from args
 
     Parameters
-    ---------
-    data: pandas DataFrame
+    ----------
+    data : pandas DataFrame
         The dataframe for which we are trying to summarise the data on
-    *args: str
+    *args : str
         The columns we are performing summary calculations on, as well as type of summary calculations
 
     Returns
     -------
-    summarised_data: pandas DataFrame
+    summarised_data : pandas DataFrame
         The dataframe containing our summarised results
 
     For example, suppose we had a dataframe like
@@ -482,15 +482,15 @@ def arrange(data, *args):
     """Sorts the data based on columns provided, as well as if they're in 'desc()'
 
     Parameters
-    ---------
-    data: pandas DataFrame
+    ----------
+    data : pandas DataFrame
         The dataframe for which we are trying to sort the data on
-    *args: str
+    *args : str
         The columns we are sorting the dataframe on
 
     Returns
     -------
-    sorted_data: pandas DataFrame
+    sorted_data : pandas DataFrame
         The sorted data based on arguments provided in *args
 
     For example, suppose we had a dataframe like

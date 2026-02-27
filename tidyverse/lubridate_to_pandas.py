@@ -18,9 +18,9 @@ def ymd(
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
@@ -74,9 +74,9 @@ def ydm(
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
@@ -130,9 +130,9 @@ def mdy(
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
@@ -250,9 +250,9 @@ def myd(dates, tz=None):
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
@@ -296,9 +296,9 @@ def dmy(
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
@@ -417,9 +417,9 @@ def dym(
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
@@ -462,14 +462,14 @@ def ymd_hms(dates, tz=None):
 
     Parameters
     ----------
-    dates: str or array-like format
+    dates : str or array-like format
         A character or an array-like of suspected dates
-    tz: str
+    tz : str
         Time zone indicator. If None (default), a Date object is returned. Otherwise a POSIXct with time zone attribute set to tz.
 
     Returns
     -------
-    Our suspected dates converted to %Y-%m-%d %H:%M:%S format
+    Our suspected dates converted to %Y-%m-%d %H : %M:%S format
     """
     if tz is not None:
         zone = timezone(tz)

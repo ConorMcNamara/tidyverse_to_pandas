@@ -22,7 +22,7 @@ def str_length(
 
     Parameters
     ----------
-    string: str or list or numpy array or pandas Series or pyspark column
+    string : str or list or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
 
     Returns
@@ -57,11 +57,11 @@ def str_sub(
 
     Parameters
     ----------
-    string: str or list or numpy array or pandas Series or pyspark column
+    string : str or list or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one
-    start: int
+    start : int
         Our starting point
-    end: int, default is None
+    end : int, default is None
         Our end point. If None, then it's the very end of the string
 
     Returns
@@ -105,9 +105,9 @@ def str_dup(
 
     Parameters
     ----------
-    string: str or list or numpy array or pandas Series or pyspark column
+    string : str or list or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one
-    num_dupes: int or list/tuple or numpy array
+    num_dupes : int or list/tuple or numpy array
         Number of duplications. An integer implies equal number of duplications while a list/tuple or array specifies
         the number of duplications per entry
 
@@ -162,9 +162,9 @@ def str_flatten(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    collapse: str
+    collapse : str
         String to insert between each piece
 
     Returns
@@ -195,13 +195,13 @@ def str_trunc(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    width: int
+    width : int
         Maximum width of string. In this case, the number of elements we want to display
-    side: str, {right, left, center}, default is right
+    side : str, {right, left, center}, default is right
         Location of ellipsis that indicates content has been removed.
-    ellipsis: str, default is ...
+    ellipsis : str, default is ...
         Content of ellipsis that indicates content has been removed.
 
     Returns
@@ -216,14 +216,14 @@ def str_trunc(
         elif side.casefold() == "left":
             return str(ellipsis) + string[-width:]
         else:
-            return string[: width // 2] + ellipsis + string[-width // 2 :]
+            return string[: width // 2] + ellipsis + string[-width // 2:]
     elif isinstance(string, (list, tuple)):
         if side.casefold() == "right":
             return [s[:width] + str(ellipsis) for s in string]
         elif side.casefold() == "left":
             return [str(ellipsis) + s[-width:] for s in string]
         else:
-            return [s[: width // 2] + str(ellipsis) + s[-width // 2 :] for s in string]
+            return [s[: width // 2] + str(ellipsis) + s[-width // 2:] for s in string]
     elif isinstance(string, np.ndarray):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
@@ -255,9 +255,9 @@ def str_replace_na(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    replacement: str
+    replacement : str
         A single string.
 
     Returns
@@ -289,9 +289,9 @@ def str_unique(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         A character vector to return unique strings
-    strength: [1, 2, 3, 4]
+    strength : [1, 2, 3, 4]
         Single integer which defines collation strength; `1` for the most permissive collation rules, `4` for the
         strictest ones
 
@@ -393,7 +393,7 @@ def str_to_upper(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
 
     Returns
@@ -421,7 +421,7 @@ def str_to_title(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
 
     Returns
@@ -450,9 +450,9 @@ def str_to_lower(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    locale: str, default is en
+    locale : str, default is en
         Used to distinguish if we're dealing with non-English strings, such as Greek or Chinese
 
     Returns
@@ -492,7 +492,7 @@ def str_to_sentence(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
 
     Returns
@@ -524,13 +524,13 @@ def str_order(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    decreasing: bool, default is False
+    decreasing : bool, default is False
         If False, sorts from lowest to highest; if True sorts from highest to lowest.
-    na_last: bool, default is True
+    na_last : bool, default is True
         Where should NA go? True at the end, False at the beginning, None dropped.
-    numeric: bool, default is False
+    numeric : bool, default is False
         If True, will sort digits numerically, instead of as strings.
 
     Returns
@@ -609,13 +609,13 @@ def str_sort(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    decreasing: bool, default is False
+    decreasing : bool, default is False
         If False, sorts from lowest to highest; if True sorts from highest to lowest.
-    na_last: bool, default is True
+    na_last : bool, default is True
         Where should NA go? True at the end, False at the beginning, None dropped.
-    numeric: bool, default is False
+    numeric : bool, default is False
         If True, will sort digits numerically, instead of as strings.
 
     Returns
@@ -650,9 +650,9 @@ def str_equal(
 
     Parameters
     ----------
-    x, y: str or list/tuple or numpy array or pandas Series or pyspark column
+    x, y : str or list/tuple or numpy array or pandas Series or pyspark column
         A pair of character vectors
-    ignore_case: bool, default=False
+    ignore_case : bool, default=False
         Ignore case when comparing strings?
 
     Returns
@@ -724,13 +724,13 @@ def str_pad(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    width: int or list/tuple/numpy array/pandas Series
+    width : int or list/tuple/numpy array/pandas Series
         Minimum width of padded strings
-    side: str, default is right
+    side : str, default is right
         Side on which padding character is added (left, right or both).
-    pad: str or list/tuple/numpy array/pandas Series, default is " "
+    pad : str or list/tuple/numpy array/pandas Series, default is " "
         Single padding character (default is a space).
 
     Returns
@@ -821,9 +821,9 @@ def str_trim(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    side: str, {left, right, both}, default is both
+    side : str, {left, right, both}, default is both
         Side on which to remove whitespace.
 
     Returns
@@ -874,7 +874,7 @@ def str_squish(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
 
     Returns
@@ -913,15 +913,15 @@ def str_detect(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    negate: bool, default is False
+    negate : bool, default is False
         If True, return non-matching elements.
 
     Returns
@@ -965,9 +965,9 @@ def str_count(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str or list
+    pattern : str or list
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -1018,15 +1018,15 @@ def str_subset(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    negate: bool, default is False
+    negate : bool, default is False
         If True, return non-matching elements.
 
     Returns
@@ -1061,15 +1061,15 @@ def str_which(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    negate: bool, default is False
+    negate : bool, default is False
         If True, return non-matching elements.
 
     Returns
@@ -1105,22 +1105,22 @@ def _str_replace(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str or list
+    pattern : str or list
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    replacement: str or list
+    replacement : str or list
         A character vector of replacements. Should be either length one, or the same length as string or pattern.
         References of the form \1, \2, etc will be replaced with the contents of the respective matched group (created by ()).
         To perform multiple replacements in each element of string, pass a named vector (c(pattern1 = replacement1)) to
         str_replace_all. Alternatively, pass a function to replacement: it will be called once for each match and its
         return value will be used to replace the match. To replace the complete string with NA, use
         replacement = None.
-    how: str, default is 'all'
+    how : str, default is 'all'
         Whether we are replacing all matches or only the first
 
     Returns
@@ -1228,9 +1228,9 @@ def str_remove(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -1251,9 +1251,9 @@ def str_remove_all(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -1277,17 +1277,17 @@ def str_split(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str, default is " "
+    pattern : str, default is " "
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    n: int, default is -1
+    n : int, default is -1
         Number of pieces to return. Default -1 uses all possible split positions.
-    simplify: bool, default is False
+    simplify : bool, default is False
         If False, the default, returns a list of character vectors. If True, returns a character matrix.
 
     Returns
@@ -1331,15 +1331,15 @@ def str_split_fixed(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str, default is " "
+    pattern : str, default is " "
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    n: int, default is -1
+    n : int, default is -1
         For str_split_fixed, if n is greater than the number of pieces, the result will be padded with empty strings.
 
     Returns
@@ -1358,15 +1358,15 @@ def str_split_n(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str, default is " "
+    pattern : str, default is " "
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    n: int, default is 0
+    n : int, default is 0
         For str_split_n, n is the desired index of each element of the split string. When there are fewer pieces than n,
         return np.nan.
 
@@ -1414,15 +1414,15 @@ def str_starts(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    negate: bool, default is False
+    negate : bool, default is False
         If True, return non-matching elements.
 
     Returns
@@ -1442,15 +1442,15 @@ def str_ends(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    negate: bool, default is False
+    negate : bool, default is False
         If True, return non-matching elements.
 
     Returns
@@ -1468,9 +1468,9 @@ def str_extract(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -1521,15 +1521,15 @@ def str_extract_all(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
         respects character matching rules for the specified locale. Match character, word, line and sentence boundaries
         with boundary(). An empty pattern, "", is equivalent to boundary("character").
-    simplify: bool, default is True
+    simplify : bool, default is True
         If False, the default, returns a list of character vectors. If True returns a character matrix.
 
     Returns
@@ -1584,9 +1584,9 @@ def str_match(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -1648,9 +1648,9 @@ def str_match_all(
 
     Parameters
     ----------
-    string: str or list/tuple or numpy array or pandas Series or pyspark column
+    string : str or list/tuple or numpy array or pandas Series or pyspark column
         Input vector. Either a character vector, or something coercible to one.
-    pattern: str
+    pattern : str
         Pattern to look for. The default interpretation is a regular expression, as described in
         stringi::stringi-search-regex. Control options with regex(). Match a fixed string (i.e. by comparing only bytes),
         using fixed(). This is fast, but approximate. Generally, for matching human text, you'll want coll() which
@@ -1724,14 +1724,13 @@ def str_c(
     collapse: Optional[str] = None,
 ) -> Union[str, list]:
     """
-
     Parameters
     ----------
-    strings: list of lists or array of arrays or pandas DataFrame
+    strings : list of lists or array of arrays or pandas DataFrame
         One or more character vectors
-    sep: str, default=""
+    sep : str, default=""
         String to insert between input vectors
-    collapse: str, default=None
+    collapse : str, default=None
         Optional string used to combine outputs into a single string
 
     Returns
@@ -1746,7 +1745,7 @@ def str_c(
         return_string = [""] * max_length
         for index, string in enumerate(strings_list):
             if len(string) < max_length:
-                strings_list[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
+                strings_list[index] = string * (max_length // len(string)) + string[0: max_length % len(string)]
         for row, ss in enumerate(strings_list[0]):
             for col in range(1, len(strings_list)):
                 ss += sep + strings_list[col][row]
@@ -1773,7 +1772,7 @@ def _remove_accents(input_str: str) -> str:
 
     Parameters
     ----------
-    input_str: string
+    input_str : string
         The string we wish to remove accents from
 
     Returns
