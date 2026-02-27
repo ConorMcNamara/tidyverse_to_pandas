@@ -15,7 +15,7 @@ def arrange(
 
     Parameters
     ---------
-    data: pandas or pysparkDataFrame
+    data: pandas or pyspark DataFrame
         A dataframe
     cols: str or list
         The columns we are sorting the dataframe on
@@ -47,7 +47,7 @@ def arrange(
     ascending_cols = []
     for c in columns:
         if re.search("desc()", c):
-            # Here, we are removing the des() from our string, but not whitespace as we may have a column like ' col1'
+            # Here, we are removing the desc() from our string, but not whitespace as we may have a column like ' col1'
             sorting_cols.append(re.sub(r"desc|\(|\)|\s+", r"", c))
             ascending_cols.append(False)
         else:
@@ -259,7 +259,7 @@ def filter(
     Parameters
     ----------
     data: pandas or pyspark DataFrame
-        The dataframe for which we filtering the data on
+        The dataframe for which we are filtering the data on
     cols: str or list
         The filter conditions we are applying on our dataframe
 
@@ -731,7 +731,7 @@ def relocate(
     before: str, default=None
         Destination of columns. Default is to move to the very left.
     after: str, default=None
-        Destination of columns. Default is to move the very left.
+        Destination of columns. Default is to move to the very left.
 
     Returns
     -------

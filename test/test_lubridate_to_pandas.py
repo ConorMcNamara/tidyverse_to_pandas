@@ -72,7 +72,7 @@ class TestYDM:
         assert ltp.ydm(date, timezone) == expected_date
 
     @staticmethod
-    def test_ymd_list() -> None:
+    def test_ydm_list() -> None:
         date = ["20-02-01"]
         expected_date = ["2020-01-02"]
         np.testing.assert_array_equal(expected_date, ltp.ydm(date))
@@ -82,7 +82,7 @@ class TestYDM:
         np.testing.assert_array_equal(expected_date, ltp.ydm(date, timezone))
 
     @staticmethod
-    def test_ymd_numpy() -> None:
+    def test_ydm_numpy() -> None:
         date = np.array(["20 Jan 1"])
         expected_date = np.array(["2020-01-01"], dtype="datetime64[D]")
         np.testing.assert_array_equal(expected_date, ltp.ydm(date))
@@ -92,7 +92,7 @@ class TestYDM:
         np.testing.assert_array_equal(expected_date, ltp.ydm(date, timezone))
 
     @staticmethod
-    def test_ymd_pandas() -> None:
+    def test_ydm_pandas() -> None:
         date = pd.Series(["20 02 01"])
         expected_date = pd.Series(["2020-01-02"], dtype="datetime64[ns]")
         pd.testing.assert_series_equal(expected_date, ltp.ydm(date))

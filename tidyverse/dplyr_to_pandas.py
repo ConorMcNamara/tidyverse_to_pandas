@@ -303,7 +303,7 @@ def filter(data, *args):
     Parameters
     ----------
     data: pandas DataFrame
-        The dataframe for which we filtering the data on
+        The dataframe for which we are filtering the data on
     *args: str
         The filter conditions we are applying on our dataframe
 
@@ -455,9 +455,9 @@ def summarise(data, *args):
             if n_number > len(data):
                 raise Exception("Cannot access {} element of DataFrame with {} elements".format(n_number, len(data)))
             if n_number < -len(data):
-                raise Exception("Cannot access {} element of DataFrame with {} elements").format(
+                raise Exception("Cannot access {} element of DataFrame with {} elements".format(
                     len(data) + n_number, len(data)
-                )
+                ))
             if n_number < 0:
                 val = data.iloc[n_number, :][nth_col]
             else:

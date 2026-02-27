@@ -81,7 +81,7 @@ def ydm(
 
     Returns
     -------
-    Our suspected dates converted to %Y-%d-%m format
+    Our suspected dates converted to %Y-%m-%d format
     """
     if tz is not None:
         zone = timezone(tz)
@@ -137,7 +137,7 @@ def mdy(
 
     Returns
     -------
-    Our suspected dates converted to %Y-%d-%m format
+    Our suspected dates converted to %Y-%m-%d format
     """
     if tz is not None:
         zone = timezone(tz)
@@ -257,7 +257,7 @@ def myd(dates, tz=None):
 
     Returns
     -------
-    Our suspected dates converted to %Y-%d-%m format
+    Our suspected dates converted to %Y-%m-%d format
     """
     if tz is not None:
         zone = timezone(tz)
@@ -303,7 +303,7 @@ def dmy(
 
     Returns
     -------
-    Our suspected dates converted to %Y-%d-%m format
+    Our suspected dates converted to %Y-%m-%d format
     """
     if tz is not None:
         zone = timezone(tz)
@@ -424,7 +424,7 @@ def dym(
 
     Returns
     -------
-    Our suspected dates converted to %Y-%d-%m format
+    Our suspected dates converted to %Y-%m-%d format
     """
     if tz is not None:
         zone = timezone(tz)
@@ -458,7 +458,7 @@ def dym(
 
 # Year, month, day, hour, minute and second parsing
 def ymd_hms(dates, tz=None):
-    """Converts our suspected dates in ymd_hms format to %Y-%m-%d %h:%m:%s
+    """Converts our suspected dates in ymd_hms format to %Y-%m-%d %H:%M:%S
 
     Parameters
     ----------
@@ -469,7 +469,7 @@ def ymd_hms(dates, tz=None):
 
     Returns
     -------
-    Our suspected dates converted to %Y-%m-%d %h:%m:%s format
+    Our suspected dates converted to %Y-%m-%d %H:%M:%S format
     """
     if tz is not None:
         zone = timezone(tz)

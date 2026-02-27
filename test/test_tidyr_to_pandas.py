@@ -382,7 +382,7 @@ class TestTidyrToPandas:
         actual = fill(data, "Year", direction="down")
         pd.testing.assert_frame_equal(actual, expected)
 
-    # Compete
+    # Complete
 
     def test_complete_pandas(self) -> None:
         data = pd.DataFrame(
@@ -406,7 +406,7 @@ class TestTidyrToPandas:
         actual = complete(data, ["group", "nesting(item_id, item_name)"])
         pd.testing.assert_frame_equal(actual, expected)
 
-    def test_compete_pandasFill(self) -> None:
+    def test_complete_pandasFill(self) -> None:
         data = pd.DataFrame(
             {
                 "group": [1, 2, 1],

@@ -66,7 +66,7 @@ def str_sub(
 
     Returns
     -------
-    The substring of each string wtihin our data
+    The substring of each string within our data
     """
     if isinstance(string, str):
         if end is None:
@@ -461,7 +461,7 @@ def str_to_title(
     elif isinstance(string, ps.Column):
         ...
     else:
-        raise TypeError("Cannot determine to how titalize strings")
+        raise TypeError("Cannot determine how to titleize strings")
 
 
 def str_to_lower(
@@ -652,7 +652,7 @@ def str_sort(
             return list((map(string.__getitem__, indices)))
         elif isinstance(string, (np.ndarray, np.generic, pd.Series)):
             return string[indices]
-        elif isinstance(ps.Column):
+        elif isinstance(string, ps.Column):
             ...
 
 

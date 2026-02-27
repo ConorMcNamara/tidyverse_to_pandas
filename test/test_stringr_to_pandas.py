@@ -195,7 +195,7 @@ class TestStrToLower:
         pd.testing.assert_series_equal(stp.str_to_lower(string), pd.Series(["why", "is", "this", "happening"]))
 
 
-class StrToTitle:
+class TestStrToTitle:
     # String To Title
     @staticmethod
     def test_strToTitle_string() -> None:
@@ -218,7 +218,7 @@ class StrToTitle:
         pd.testing.assert_series_equal(stp.str_to_title(string), pd.Series(["Guinea Pigs", "And Farts"]))
 
 
-class StrToSentence:
+class TestStrToSentence:
     # String To Sentence
     @staticmethod
     def test_strToSentence_string() -> None:
@@ -319,7 +319,7 @@ class TestStrSort:
         assert stp.str_sort(string, na_last=False) == [None, "a", "b", "c"]
 
 
-class StrPad:
+class TestStrPad:
     # String Pad
     @staticmethod
     def test_strPad_string() -> None:
@@ -384,7 +384,7 @@ class TestStrTrim:
         )
 
     @staticmethod
-    def test_strTrime_series() -> None:
+    def test_strTrim_series() -> None:
         string = pd.Series(
             [
                 "\n\nString with trailing and leading white space\n\n",
@@ -402,7 +402,7 @@ class TestStrTrim:
         )
 
 
-class StrSquish:
+class TestStrSquish:
     # String Squish
     @staticmethod
     def test_strSquish_string() -> None:
@@ -457,7 +457,7 @@ class StrSquish:
         )
 
 
-class StrDefect:
+class TestStrDetect:
     # String Detect
     @staticmethod
     def test_strDetect_string() -> None:
@@ -486,7 +486,7 @@ class StrDefect:
         )
 
 
-class StrCount:
+class TestStrCount:
     # String Count
     @staticmethod
     def test_strCount_string() -> None:
@@ -509,7 +509,7 @@ class StrCount:
         pd.testing.assert_series_equal(stp.str_count(fruit, ["a", "b", "p", "p"]), pd.Series([1, 1, 1, 3]))
 
 
-class StrSubset:
+class TestStrSubset:
     # String Subset
     @staticmethod
     def test_strSubset_string() -> None:
@@ -540,7 +540,7 @@ class StrSubset:
         pd.testing.assert_series_equal(stp.str_subset(string, "o"), expected)
 
 
-class StrWhich:
+class TestStrWhich:
     # String Which
     @staticmethod
     def test_strWhich_string() -> None:
@@ -564,7 +564,7 @@ class StrWhich:
         pd.testing.assert_series_equal(stp.str_which(string, "o"), expected)
 
 
-class StrReplace:
+class TestStrReplace:
     # String Replace
     @staticmethod
     def test_strReplace_string() -> None:
@@ -595,7 +595,7 @@ class StrReplace:
         pd.testing.assert_series_equal(stp.str_replace(fruits, ["one", "two", "three"], ["1", "2", "3"]), expected)
 
 
-class StrReplaceAll:
+class TestStrReplaceAll:
     # String Replace All
     @staticmethod
     def test_strReplaceAll_string() -> None:
@@ -629,7 +629,7 @@ class StrReplaceAll:
         )
 
 
-class StrRemove:
+class TestStrRemove:
     # String Remove
     @staticmethod
     def test_strRemove_string() -> None:
@@ -658,7 +658,7 @@ class StrRemove:
         pd.testing.assert_series_equal(stp.str_remove(lyrics, "[iI]"), expected)
 
 
-class StrRemoveAll:
+class TestStrRemoveAll:
     # String Remove All
     @staticmethod
     def test_strRemoveAll_string() -> None:

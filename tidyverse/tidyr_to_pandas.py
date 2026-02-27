@@ -496,7 +496,7 @@ def nest(
             # If our groups have different number of observations, then we need to iteratively add their dictionary
             # values as groupby and lambda will only select one value instead of all of them
             else:
-                # Ensures that we don't have any unnecesary copies
+                # Ensures that we don't have any unnecessary copies
                 nested_df = data[non_nested_cols].drop_duplicates()
                 nested_df["data"] = 0
                 for index, row in nested_df.iterrows():
@@ -550,7 +550,7 @@ def unnest(
         Names of columns to unnest. If you unnest() multiple columns, parallel entries must be of compatible sizes, i.e.
         they're either equal or length 1 (following the standard tidyverse recycling rules).
     keep_empty: bool, default is False
-        By default, you get one row of output for each element of the list you're nnesting. This means that
+        By default, you get one row of output for each element of the list you're unnesting. This means that
         if there's a size-0 element (like NA or an empty dictionary), that entire row will be dropped from the output.
         If you want to preserve all rows, use keep_empty=True to replace size-0 elements with a single row of missing
         values.
@@ -745,7 +745,7 @@ def separate(
         Column name or position.
     into: list
         Names of new variables to create as character vector. Use "NA" to omit the variable in the output, e.g.
-        ['NA', 'B]
+        ['NA', 'B']
     sep: str or int
         Separator between columns.
         If character, is interpreted as a regular expression. The default value is a regular expression that matches any
@@ -832,7 +832,7 @@ def separate(
             raise ValueError("Cannot determine method of splitting columns")
         if convert:
             splits = _convert_numeric(splits)
-        # We add the splitted values to our dataframe
+        # We add the split values to our dataframe
         data = pd.concat([data, splits], axis=1)
         if remove:
             data = data.drop([col], axis=1)
@@ -921,11 +921,11 @@ def unite(
     input_cols: list, default is None
         A selection of columns. If None, all variables are selected. You can supply bare variable names,
         select all variables between x and z with x:z, or exclude y with -y
-    sep: str, default is '_"
+    sep: str, default is '_'
         Separator to use between values.
     remove: bool, default is True
         If True, remove input columns from output data frame.
-    na_rm: bool, default is True
+    na_rm: bool, default is False
         If True, missing values will be remove prior to uniting each value.
 
     Returns
