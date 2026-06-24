@@ -888,7 +888,7 @@ def extract(
         # If our regex extracts more columns column names provided, then we are keeping the first n columns,
         # where n is the number of column names provided
         if len(into) < splits.shape[1]:
-            splits = splits.iloc[:, 0 : len(into)]
+            splits = splits.iloc[:, 0: len(into)]
         splits.columns = into
         # If user specifies they want certain columns to be dropped
         if "NA" in splits.columns:

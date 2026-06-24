@@ -45,7 +45,7 @@ def _get_str_columns(
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
     elif "-" in str_arguments:
-        col_to_remove = str_arguments[str_arguments.find("-") + 1 :]
+        col_to_remove = str_arguments[str_arguments.find("-") + 1:]
         cols.remove(col_to_remove)
     else:
         cols = [str_arguments]

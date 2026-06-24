@@ -218,14 +218,14 @@ def str_trunc(
         elif side.casefold() == "left":
             return str(ellipsis) + string[-width:]
         else:
-            return string[: width // 2] + ellipsis + string[-width // 2 :]
+            return string[: width // 2] + ellipsis + string[-width // 2:]
     elif isinstance(string, (list, tuple)):
         if side.casefold() == "right":
             return [s[:width] + str(ellipsis) for s in string]
         elif side.casefold() == "left":
             return [str(ellipsis) + s[-width:] for s in string]
         else:
-            return [s[: width // 2] + str(ellipsis) + s[-width // 2 :] for s in string]
+            return [s[: width // 2] + str(ellipsis) + s[-width // 2:] for s in string]
     elif isinstance(string, np.ndarray):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
@@ -1748,7 +1748,7 @@ def str_c(
         return_string = [""] * max_length
         for index, string in enumerate(strings_list):
             if len(string) < max_length:
-                strings_list[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
+                strings_list[index] = string * (max_length // len(string)) + string[0: max_length % len(string)]
         for row, ss in enumerate(strings_list[0]):
             for col in range(1, len(strings_list)):
                 ss += sep + strings_list[col][row]
