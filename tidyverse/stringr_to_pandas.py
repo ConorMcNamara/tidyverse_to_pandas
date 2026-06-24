@@ -1,3 +1,5 @@
+"""Convert stringr string-manipulation syntax to pandas equivalents."""
+
 import re
 import unicodedata
 
@@ -18,7 +20,7 @@ from natsort import index_natsorted
 def str_length(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
-    """Calculates the length of each string
+    """Calculate the length of each string.
 
     Parameters
     ----------
@@ -48,7 +50,7 @@ def str_sub(
     start: int,
     end: Optional[int] = None,
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Extract substrings from a character vector
+    """Extract substrings from a character vector.
 
     One important note is that R and Python have vastly different indexing rules. R is [start, end] whereas Python is
     [start, end). Additionally, R has its indexes start at 1 and end at len(string), whereas Python has its indexes
@@ -101,7 +103,7 @@ def str_dup(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     num_dupes: Union[int, Sequence[int], np.ndarray],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Duplicates our string
+    """Duplicates our string.
 
     Parameters
     ----------
@@ -158,7 +160,7 @@ def str_flatten(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     collapse: str = "",
 ) -> str:
-    """Turns a collection of strings into a single, flattened string
+    """Turn a collection of strings into a single, flattened string.
 
     Parameters
     ----------
@@ -191,7 +193,7 @@ def str_trunc(
     side: str = "right",
     ellipsis: str = "...",
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Truncate a character string
+    """Truncate a character string.
 
     Parameters
     ----------
@@ -251,7 +253,7 @@ def str_replace_na(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     replacement: str = "NA",
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Converts NaNs and None into strings
+    """Convert NaNs and None into strings.
 
     Parameters
     ----------
@@ -285,7 +287,7 @@ def str_unique(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     strength: int = 1,
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Keeps unique strings only
+    """Keep unique strings only.
 
     Parameters
     ----------
@@ -389,7 +391,7 @@ def str_unique(
 def str_to_upper(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Converts all string to UPPERCASE
+    """Convert all string to UPPERCASE.
 
     Parameters
     ----------
@@ -417,7 +419,7 @@ def str_to_upper(
 def str_to_title(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Converts all strings to title form
+    """Convert all strings to title form.
 
     Parameters
     ----------
@@ -446,7 +448,7 @@ def str_to_lower(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     locale: str = "en",
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Converts all of our strings into lowercase
+    """Convert all of our strings into lowercase.
 
     Parameters
     ----------
@@ -488,7 +490,7 @@ def str_to_lower(
 def str_to_sentence(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Convert all of our strings into sentence format
+    """Convert all of our strings into sentence format.
 
     Parameters
     ----------
@@ -520,7 +522,7 @@ def str_order(
     na_last: bool = True,
     numeric: bool = False,
 ) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
-    """Returns the string(s) with the indices marking the order of the string
+    """Return the string(s) with the indices marking the order of the string.
 
     Parameters
     ----------
@@ -605,7 +607,7 @@ def str_sort(
     na_last: bool = True,
     numeric: bool = False,
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Sorts our strings based off the results of str_order
+    """Sorts our strings based off the results of str_order.
 
     Parameters
     ----------
@@ -646,7 +648,7 @@ def str_equal(
     y: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     ignore_case: bool = False,
 ) -> Union[bool, Sequence[bool], np.ndarray, pd.Series, ps.Column]:
-    """Determines if two strings are equivalent
+    """Determine if two strings are equivalent.
 
     Parameters
     ----------
@@ -720,7 +722,7 @@ def str_pad(
     side: str = "right",
     pad: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column] = " ",
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Pad a string
+    """Pad a string.
 
     Parameters
     ----------
@@ -817,7 +819,7 @@ def str_trim(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     side: str = "both",
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Removes leading and trailing whitespace in our string
+    """Remove leading and trailing whitespace in our string.
 
     Parameters
     ----------
@@ -870,7 +872,7 @@ def str_trim(
 def str_squish(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Squishes a string by removing leading and trailing whitespace as well as repeat whitespace inside a string
+    """Squishes a string by removing leading and trailing whitespace as well as repeat whitespace inside a string.
 
     Parameters
     ----------
@@ -909,7 +911,7 @@ def str_detect(
     pattern: str,
     negate: bool = False,
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Determines if each string contains the regular expression
+    """Determine if each string contains the regular expression.
 
     Parameters
     ----------
@@ -961,7 +963,7 @@ def str_count(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
     pattern: Union[str, Sequence],
 ) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
-    """Count instances of pattern occurring within string
+    """Count instances of pattern occurring within string.
 
     Parameters
     ----------
@@ -1014,7 +1016,7 @@ def str_subset(
     pattern: str,
     negate: bool = False,
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Filters our string based on str_detect
+    """Filter our string based on str_detect.
 
     Parameters
     ----------
@@ -1057,7 +1059,7 @@ def str_which(
     pattern: str,
     negate: bool = False,
 ) -> Optional[Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]]:
-    """Filters our string based on str_detect
+    """Filter our string based on str_detect.
 
     Parameters
     ----------
@@ -1101,7 +1103,7 @@ def _str_replace(
     replacement: Union[str, Sequence[str]],
     how: str = "all",
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Replaces either the first or all instance(s) of pattern in string with replacement
+    r"""Replace either the first or all instance(s) of pattern in string with replacement.
 
     Parameters
     ----------
@@ -1208,7 +1210,7 @@ def str_replace(
     pattern: Union[str, Sequence[str]],
     replacement: Union[str, Sequence[str]],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Replaces the first instance of pattern in string with replacement"""
+    """Replace the first instance of pattern in string with replacement."""
     return _str_replace(string, pattern, replacement, how="first")
 
 
@@ -1217,14 +1219,14 @@ def str_replace_all(
     pattern: Union[str, Sequence[str]],
     replacement: Union[str, Sequence[str]],
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Replaces all instances of pattern in string with replacement"""
+    """Replace all instances of pattern in string with replacement."""
     return _str_replace(string, pattern, replacement, how="all")
 
 
 def str_remove(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Remove the first pattern in our string
+    """Remove the first pattern in our string.
 
     Parameters
     ----------
@@ -1247,7 +1249,7 @@ def str_remove(
 def str_remove_all(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Remove all patterns in our string
+    """Remove all patterns in our string.
 
     Parameters
     ----------
@@ -1273,7 +1275,7 @@ def str_split(
     n: int = -1,
     simplify: bool = False,
 ) -> Union[Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Split a string into pieces
+    """Split a string into pieces.
 
     Parameters
     ----------
@@ -1327,7 +1329,7 @@ def str_split_fixed(
     pattern: str = " ",
     n: int = -1,
 ) -> Union[Sequence[str], np.ndarray, pd.DataFrame, ps.DataFrame]:
-    """Returns a character matrix. Essentially a wrapper for str_split with simplify=True
+    """Return a character matrix. Essentially a wrapper for str_split with simplify=True.
 
     Parameters
     ----------
@@ -1354,7 +1356,7 @@ def str_split_n(
     pattern: str = " ",
     n: int = 0,
 ) -> Optional[Union[Sequence[str], np.ndarray, pd.Series, ps.Column]]:
-    """Returns the nth index of a split string
+    """Return the nth index of a split string.
 
     Parameters
     ----------
@@ -1410,7 +1412,7 @@ def str_starts(
     pattern: str,
     negate: bool = False,
 ) -> Union[bool, Sequence[bool], np.ndarray, pd.Series, ps.Column]:
-    """Detect the presence or absence of a pattern at the beginning of a string
+    """Detect the presence or absence of a pattern at the beginning of a string.
 
     Parameters
     ----------
@@ -1438,7 +1440,7 @@ def str_ends(
     pattern: str,
     negate: bool = False,
 ) -> Union[bool, Sequence[bool], np.ndarray, pd.Series, ps.Column]:
-    """Detect the presence or absence of a pattern at the end of a string
+    """Detect the presence or absence of a pattern at the end of a string.
 
     Parameters
     ----------
@@ -1464,7 +1466,7 @@ def str_ends(
 def str_extract(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
 ) -> Optional[Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]]:
-    """Extract first matching patterns from a string
+    """Extract first matching patterns from a string.
 
     Parameters
     ----------
@@ -1517,7 +1519,7 @@ def str_extract_all(
     pattern: str,
     simplify: bool = False,
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
-    """Extract all matching patterns from a string
+    """Extract all matching patterns from a string.
 
     Parameters
     ----------
@@ -1580,7 +1582,7 @@ def str_extract_all(
 def str_match(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
 ) -> Optional[Union[Sequence[str], np.ndarray, pd.DataFrame, ps.DataFrame]]:
-    """Extract first matched group from a string
+    """Extract first matched group from a string.
 
     Parameters
     ----------
@@ -1644,7 +1646,7 @@ def str_match(
 def str_match_all(
     string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
 ) -> Optional[Union[Sequence[str], np.ndarray, pd.DataFrame, ps.DataFrame]]:
-    """Extract all matched groups from a string
+    """Extract all matched groups from a string.
 
     Parameters
     ----------
@@ -1723,7 +1725,8 @@ def str_c(
     sep: str = "",
     collapse: Optional[str] = None,
 ) -> Union[str, list]:
-    """
+    """Join multiple character vectors into a single string.
+
     Parameters
     ----------
     strings : list of lists or array of arrays or pandas DataFrame
@@ -1768,7 +1771,7 @@ def str_c(
 
 
 def _remove_accents(input_str: str) -> str:
-    """Removes all accents from a string
+    """Remove all accents from a string.
 
     Parameters
     ----------

@@ -1,3 +1,5 @@
+"""Helper functions for selecting and deselecting DataFrame columns, mirroring dplyr's tidyselect helpers."""
+
 import pandas as pd
 import pyspark.sql as ps
 
@@ -6,7 +8,7 @@ from tidyverse.utils import _check_df_type
 
 
 def everything(data: Union[pd.DataFrame, ps.DataFrame]) -> list:
-    """Selects all variables
+    """Select all variables.
 
     Parameters
     ----------
@@ -25,7 +27,7 @@ def everything(data: Union[pd.DataFrame, ps.DataFrame]) -> list:
 
 
 def last_col(data: Union[pd.DataFrame, ps.DataFrame], offset: int = 0) -> str:
-    """Selects the `nth` last column
+    """Select the `nth` last column.
 
     Parameters
     ----------

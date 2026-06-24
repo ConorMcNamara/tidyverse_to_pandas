@@ -1,4 +1,4 @@
-"""The goal of this is to convert dplyr syntax to pandas"""
+"""The goal of this is to convert dplyr syntax to pandas."""
 
 import pandas as pd
 import re
@@ -7,7 +7,7 @@ import re
 
 
 def mutate(data, *args):
-    """Converts a string function into an assignment for pandas dataframe
+    """Convert a string function into an assignment for pandas dataframe.
 
     Parameters
     ----------
@@ -53,7 +53,7 @@ def mutate(data, *args):
 
 
 def transmute(data, *args):
-    """Converts a string function into an assignment for pandas DataFrame
+    """Convert a string function into an assignment for pandas DataFrame.
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ def transmute(data, *args):
 
 
 def rename(data, *args):
-    """Renames columns using the 'x = x_1' arguments, and keeps all the available columns.
+    """Rename columns using the 'x = x_1' arguments, and keeps all the available columns.
 
     Returns
     -------
@@ -145,6 +145,22 @@ def rename(data, *args):
 
 
 def starts_with(column_name, match, ignore_case=True):
+    """Test whether ``column_name`` starts with ``match``.
+
+    Parameters
+    ----------
+    column_name : str
+        The column name being tested against the ``match`` pattern
+    match : str
+        The substring or pattern searched for at the start of ``column_name``
+    ignore_case : bool, default is True
+        If True, the comparison is performed case-insensitively
+
+    Returns
+    -------
+    re.Match or None
+        The match object if ``column_name`` starts with ``match``, otherwise None
+    """
     if ignore_case:
         return re.search(r"(^{}.*)".format(match.casefold()), column_name.casefold())
     else:
@@ -152,6 +168,22 @@ def starts_with(column_name, match, ignore_case=True):
 
 
 def ends_with(column_name, match, ignore_case=True):
+    """Test whether ``column_name`` ends with ``match``.
+
+    Parameters
+    ----------
+    column_name : str
+        The column name being tested against the ``match`` pattern
+    match : str
+        The substring or pattern searched for at the end of ``column_name``
+    ignore_case : bool, default is True
+        If True, the comparison is performed case-insensitively
+
+    Returns
+    -------
+    re.Match or None
+        The match object if ``column_name`` ends with ``match``, otherwise None
+    """
     if ignore_case:
         return re.search(r"({}$)".format(match.casefold()), column_name.casefold())
     else:
@@ -159,6 +191,22 @@ def ends_with(column_name, match, ignore_case=True):
 
 
 def contains(column_name, match, ignore_case=True):
+    """Test whether ``column_name`` contains ``match``.
+
+    Parameters
+    ----------
+    column_name : str
+        The column name being tested against the ``match`` pattern
+    match : str
+        The substring or pattern searched for anywhere within ``column_name``
+    ignore_case : bool, default is True
+        If True, the comparison is performed case-insensitively
+
+    Returns
+    -------
+    re.Match or None
+        The match object if ``column_name`` contains ``match``, otherwise None
+    """
     if ignore_case:
         return re.search(r"({})".format(match.casefold()), column_name.casefold())
     else:
@@ -166,7 +214,7 @@ def contains(column_name, match, ignore_case=True):
 
 
 def select(data, *args):
-    """Selects columns based on criteria in args
+    """Select columns based on criteria in args.
 
     Returns
     -------
@@ -298,7 +346,7 @@ def select(data, *args):
 
 
 def filter(data, *args):
-    """Filters data based on arguments from args
+    """Filter data based on arguments from args.
 
     Parameters
     ----------
@@ -373,7 +421,7 @@ def filter(data, *args):
 
 
 def summarise(data, *args):
-    """Summarises data based on arguments from args
+    """Summarises data based on arguments from args.
 
     Parameters
     ----------
@@ -479,7 +527,7 @@ def summarise(data, *args):
 
 
 def arrange(data, *args):
-    """Sorts the data based on columns provided, as well as if they're in 'desc()'
+    """Sorts the data based on columns provided, as well as if they're in 'desc()'.
 
     Parameters
     ----------

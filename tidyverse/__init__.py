@@ -1,4 +1,4 @@
-"""Creating Tidyverse equivalents in Python"""
+"""Creating Tidyverse equivalents in Python."""
 
 __version__ = "0.1.0"
 
