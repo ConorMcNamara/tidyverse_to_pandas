@@ -14,12 +14,15 @@ import numpy as np
 import pytest
 
 
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
 class TestDplyrToPandas:
     # Arrange
     def test_arrange_pandas(self) -> None:
-        cars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/mtcars.csv"
-        )
+        cars = pd.read_csv(DATA_DIR / "mtcars.csv")
         cars = cars.rename({"Unnamed: 0": "car"}, axis=1)
         expected = pd.DataFrame(
             {
@@ -47,9 +50,7 @@ class TestDplyrToPandas:
         pd.testing.assert_frame_equal(expected, actual)
 
     def test_arrange_pandasDesc(self) -> None:
-        cars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/mtcars.csv"
-        )
+        cars = pd.read_csv(DATA_DIR / "mtcars.csv")
         cars = cars.rename({"Unnamed: 0": "car"}, axis=1)
         actual = arrange(cars, "desc(disp)").head()
         expected = pd.DataFrame(
@@ -78,20 +79,18 @@ class TestDplyrToPandas:
 
     # Count
     def test_count_pandas(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
-                "sex": ["male", "female", "none", "none", "hermaphroditic"],
+                "sex": ["male", "female", "none", "hermaphroditic", "none"],
                 "gender": [
                     "masculine",
                     "feminine",
                     "masculine",
-                    "feminine",
                     "masculine",
+                    "feminine",
                 ],
-                "n": [60.0, 16.0, 5.0, 1.0, 1.0],
+                "n": [60, 16, 5, 1, 1],
             }
         )
         expected["sex"] = expected["sex"].astype("category")
@@ -159,9 +158,7 @@ class TestDplyrToPandas:
 
     # Filter
     def test_filter_pandas(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
                 "name": ["Jabba Desilijic Tiure"],
@@ -177,13 +174,11 @@ class TestDplyrToPandas:
                 "species": ["Hutt"],
             }
         )
-        expected["hair_color"] = expected["hair_color"].astype("object")
+        expected["hair_color"] = expected["hair_color"].astype("str")
         pd.testing.assert_frame_equal(expected, filter(starwars, "mass > 1000"))
 
     def test_filter_pandasMean(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
                 "name": [
@@ -214,9 +209,7 @@ class TestDplyrToPandas:
         pd.testing.assert_frame_equal(expected, filter(starwars, "mass > mean(mass)").head())
 
     def test_filter_pandasMedian(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
                 "name": [
@@ -247,9 +240,7 @@ class TestDplyrToPandas:
         pd.testing.assert_frame_equal(expected, filter(starwars, "mass > median(mass)").head())
 
     def test_filter_pandasMax(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
                 "name": ["Jabba Desilijic Tiure"],
@@ -265,13 +256,11 @@ class TestDplyrToPandas:
                 "species": ["Hutt"],
             }
         )
-        expected["hair_color"] = expected["hair_color"].astype("object")
+        expected["hair_color"] = expected["hair_color"].astype("str")
         pd.testing.assert_frame_equal(expected, filter(starwars, "mass == max(mass)"))
 
     def test_filter_pandasMin(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
                 "name": ["Ratts Tyerell"],
@@ -290,9 +279,7 @@ class TestDplyrToPandas:
         pd.testing.assert_frame_equal(expected, filter(starwars, "mass == min(mass)"))
 
     def test_filter_pandasQuantile(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         pd.testing.assert_frame_equal(
             filter(starwars, "mass==median(mass)"),
             filter(starwars, "mass==quantile(mass, 0.5)"),
@@ -483,16 +470,12 @@ class TestDplyrToPandas:
 
     # Pull
     def test_pull_pandas(self) -> None:
-        cars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/mtcars.csv"
-        )
+        cars = pd.read_csv(DATA_DIR / "mtcars.csv")
         expected = pd.Series([4, 4, 1, 1, 2], name="carb")
         pd.testing.assert_series_equal(expected, pull(cars, -1).head())
 
     def test_pull_pandasName(self) -> None:
-        starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
-        )
+        starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.Series([172.0, 167.0, 96.0, 202.0, 150.0], name="height")
         expected.index = pd.Series(
             ["Luke Skywalker", "C-3PO", "R2-D2", "Darth Vader", "Leia Organa"],

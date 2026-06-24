@@ -1,7 +1,7 @@
 """Helper functions for selecting and deselecting DataFrame columns, mirroring dplyr's tidyselect helpers."""
 
 import pandas as pd
-import pyspark.sql as ps
+from tidyverse._optional_pyspark import ps
 
 from typing import Union
 from tidyverse.utils import _check_df_type

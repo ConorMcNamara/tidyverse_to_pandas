@@ -20,19 +20,20 @@ from tidyverse.tidyr_to_pandas import (
 import pytest
 
 
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
 class TestTidyrToPandas:
     # Pivot Longer
     def test_pivotLonger_pandas(self) -> None:
-        religion = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/religion.csv"
-        )
+        religion = pd.read_csv(DATA_DIR / "religion.csv")
         pivot_religion = pivot_longer(religion, "-religion", names_to="income", values_to="count")
         assert pivot_religion.shape == (180, 3)
 
     def test_pivotLonger_pandas_valuesDrop(self) -> None:
-        billboard = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/billboard.csv"
-        )
+        billboard = pd.read_csv(DATA_DIR / "billboard.csv")
         pivot_billboard = pivot_longer(
             billboard,
             cols="wk1:wk76",
@@ -44,9 +45,7 @@ class TestTidyrToPandas:
         assert pivot_billboard.shape == (5307, 5)
 
     def test_pivotLonger_pandas_namesPattern(self) -> None:
-        who = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/who.csv"
-        )
+        who = pd.read_csv(DATA_DIR / "who.csv")
         pivot_who = pivot_longer(
             who,
             cols="new_sp_m014:newrel_f65",
@@ -59,9 +58,7 @@ class TestTidyrToPandas:
 
     # Pivot Wider
     def test_pivotWider_pandas(self) -> None:
-        fish_encounters = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/fish_encounters.csv"
-        )
+        fish_encounters = pd.read_csv(DATA_DIR / "fish_encounters.csv")
         pivot_fish = pivot_wider(fish_encounters, names_from="station", values_from="seen")
         expected = pd.DataFrame(
             {
@@ -82,9 +79,7 @@ class TestTidyrToPandas:
         pd.testing.assert_frame_equal(pivot_fish.head(), expected)
 
     def test_pivotWider_fillNA_pandas(self) -> None:
-        fish_encounters = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/fish_encounters.csv"
-        )
+        fish_encounters = pd.read_csv(DATA_DIR / "fish_encounters.csv")
         pivot_fish = pivot_wider(
             fish_encounters,
             names_from="station",
@@ -202,27 +197,21 @@ class TestTidyrToPandas:
         pd.testing.assert_frame_equal(actual, expected)
 
     def test_nest_pandasIris(self) -> None:
-        data = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/iris.csv"
-        )
+        data = pd.read_csv(DATA_DIR / "iris.csv")
         actual = nest(data, "-Species")
         assert actual.shape == (3, 2)
 
     # Unnest
 
     def test_unnest_pandasIris(self) -> None:
-        data = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/iris.csv"
-        )
+        data = pd.read_csv(DATA_DIR / "iris.csv")
         nested_data = nest(data, "-Species")
         actual = unnest(nested_data, "data")
         data = data[["Species"] + list(data.columns.difference(["Species"]))]
         pd.testing.assert_frame_equal(actual, data)
 
     def test_unnest_multipleColumnsPandasIris(self) -> None:
-        data = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/iris.csv"
-        )
+        data = pd.read_csv(DATA_DIR / "iris.csv")
         nested_data = nest(
             data,
             {

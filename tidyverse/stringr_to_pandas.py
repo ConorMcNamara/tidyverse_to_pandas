@@ -9,7 +9,7 @@ from typing import Optional, Sequence, Union, cast
 
 import numpy as np
 import pandas as pd
-import pyspark.sql as ps
+from tidyverse._optional_pyspark import ps
 
 from natsort import index_natsorted
 
@@ -218,14 +218,14 @@ def str_trunc(
         elif side.casefold() == "left":
             return str(ellipsis) + string[-width:]
         else:
-            return string[: width // 2] + ellipsis + string[-width // 2:]
+            return string[: width // 2] + ellipsis + string[-width // 2 :]
     elif isinstance(string, (list, tuple)):
         if side.casefold() == "right":
             return [s[:width] + str(ellipsis) for s in string]
         elif side.casefold() == "left":
             return [str(ellipsis) + s[-width:] for s in string]
         else:
-            return [s[: width // 2] + str(ellipsis) + s[-width // 2:] for s in string]
+            return [s[: width // 2] + str(ellipsis) + s[-width // 2 :] for s in string]
     elif isinstance(string, np.ndarray):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
@@ -271,9 +271,9 @@ def str_replace_na(
     elif isinstance(string, (list, tuple)):
         string = [replacement if s in [None, np.nan] else s for s in string]
     elif isinstance(string, np.ndarray):
-        # numpy has no native way of detecting None except by using the == operator
-        string[string is None] = replacement
-        string[string != string] = replacement
+        # numpy has no vectorised way of detecting both None and NaN, so check each
+        # element: ``s is None`` catches None and ``s != s`` catches NaN.
+        string = np.array([replacement if (s is None or s != s) else s for s in string], dtype=object)
     elif isinstance(string, pd.Series):
         string = string.fillna(replacement)
     elif isinstance(string, ps.Column):
@@ -1505,7 +1505,7 @@ def str_extract(
                 (lambda m: m.group(0) if m is not None else None)(re.search(pattern, s[1]))
                 if s[1] not in [None, np.nan]
                 else None
-                for s in string.iteritems()
+                for s in string.items()
             ]
         )
     elif isinstance(string, ps.Column):
@@ -1748,7 +1748,7 @@ def str_c(
         return_string = [""] * max_length
         for index, string in enumerate(strings_list):
             if len(string) < max_length:
-                strings_list[index] = string * (max_length // len(string)) + string[0: max_length % len(string)]
+                strings_list[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
         for row, ss in enumerate(strings_list[0]):
             for col in range(1, len(strings_list)):
                 ss += sep + strings_list[col][row]

@@ -32,7 +32,7 @@ def ymd(
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates, yearfirst=True, dayfirst=False)
+        return_date = pd.to_datetime(dates, yearfirst=True, dayfirst=False).dt.as_unit("ns")
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -88,7 +88,7 @@ def ydm(
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates, dayfirst=True, yearfirst=True)
+        return_date = pd.to_datetime(dates, dayfirst=True, yearfirst=True).dt.as_unit("ns")
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -144,7 +144,7 @@ def mdy(
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates, dayfirst=False, yearfirst=False)
+        return_date = pd.to_datetime(dates, dayfirst=False, yearfirst=False).dt.as_unit("ns")
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -264,7 +264,7 @@ def myd(dates, tz=None):
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates.apply(lambda x: _myd(x).strftime("%Y-%m-%d")))
+        return_date = pd.to_datetime(dates.apply(lambda x: _myd(x).strftime("%Y-%m-%d"))).dt.as_unit("ns")
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -310,7 +310,7 @@ def dmy(
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates, dayfirst=True, yearfirst=False)
+        return_date = pd.to_datetime(dates, dayfirst=True, yearfirst=False).dt.as_unit("ns")
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):
@@ -431,7 +431,7 @@ def dym(
     if tz is not None:
         zone = timezone(tz)
     if isinstance(dates, pd.Series):
-        return_date = pd.to_datetime(dates.apply(lambda x: _dym(x).strftime("%Y-%m-%d")))
+        return_date = pd.to_datetime(dates.apply(lambda x: _dym(x).strftime("%Y-%m-%d"))).dt.as_unit("ns")
         if tz is not None:
             return_date = return_date.dt.tz_localize(tz=zone)
     elif isinstance(dates, (np.ndarray, np.generic)):

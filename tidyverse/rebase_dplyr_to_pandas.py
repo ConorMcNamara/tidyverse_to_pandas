@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import re
 from tidyverse.utils import _check_df_type, _get_list_columns, _get_str_columns
-import pyspark.sql as ps
+from tidyverse._optional_pyspark import ps
 
 from typing import Union
 
@@ -131,7 +131,7 @@ def count(
         # Since we know that count_df is going to be a Series, we don't need to specify the axis or the column names, as
         # those are already known for a Series
         if sort:
-            count_df = count_df.sort_values(ascending=False)
+            count_df = count_df.sort_values(ascending=False, kind="stable")
         count_df = count_df.reset_index()
     else:
         ...
@@ -745,32 +745,21 @@ def relocate(
     elif isinstance(cols, list):
         cols = _get_list_columns(data, cols, is_pandas)
     if is_pandas:
+        if before is not None and after is not None:
+            raise ValueError("Only one of before or after can be specified")
+        # cols is always a list here (see _get_str_columns / _get_list_columns).
+        to_move = list(cols)
+        remaining = [col for col in data.columns if col not in to_move]
         if before is None and after is None:
-            new_cols = [cols] + data.columns.difference([cols]).tolist()
-            return_data = data[new_cols]
-        elif isinstance(before, str):
-            if isinstance(after, str):
-                raise ValueError("Only one of before or after can be specified")
-            if isinstance(cols, str):
-                cols_to_move = data.pop(cols).values
-                data.insert(data.columns.get_loc(before), cols, cols_to_move)
-            else:
-                for col in cols:
-                    cols_to_move = data.pop(col).values
-                    data.insert(data.columns.get_loc(before) - 1, col, cols_to_move)
-            return_data = data.copy()
-        elif isinstance(after, str):
-            if isinstance(cols, str):
-                cols_to_move = data.pop(cols).values
-                data.insert(data.columns.get_loc(after) + 1, cols, cols_to_move)
-            else:
-                for i, col in enumerate(cols):
-                    cols_to_move = data.pop(cols).values
-                    data.insert(data.columns.get_loc(after) + (i + 1), col, cols_to_move)
-            return_data = data.copy()
+            # Default: move the columns to the very left, preserving original order.
+            new_cols = to_move + remaining
+        elif before is not None:
+            insert_at = remaining.index(before)
+            new_cols = remaining[:insert_at] + to_move + remaining[insert_at:]
         else:
-            raise TypeError("One of before or after must be in string format, or both set to None")
-        return return_data
+            insert_at = remaining.index(after) + 1
+            new_cols = remaining[:insert_at] + to_move + remaining[insert_at:]
+        return data[new_cols]
     else:
         ...
 
