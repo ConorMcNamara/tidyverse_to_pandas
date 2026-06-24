@@ -14,11 +14,15 @@ import numpy as np
 import pytest
 
 
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
 class TestDplyrToPandas:
     # Arrange
     def test_arrange_pandas(self) -> None:
         cars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/mtcars.csv"
+            DATA_DIR / "mtcars.csv"
         )
         cars = cars.rename({"Unnamed: 0": "car"}, axis=1)
         expected = pd.DataFrame(
@@ -48,7 +52,7 @@ class TestDplyrToPandas:
 
     def test_arrange_pandasDesc(self) -> None:
         cars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/mtcars.csv"
+            DATA_DIR / "mtcars.csv"
         )
         cars = cars.rename({"Unnamed: 0": "car"}, axis=1)
         actual = arrange(cars, "desc(disp)").head()
@@ -79,7 +83,7 @@ class TestDplyrToPandas:
     # Count
     def test_count_pandas(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.DataFrame(
             {
@@ -160,7 +164,7 @@ class TestDplyrToPandas:
     # Filter
     def test_filter_pandas(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.DataFrame(
             {
@@ -182,7 +186,7 @@ class TestDplyrToPandas:
 
     def test_filter_pandasMean(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.DataFrame(
             {
@@ -215,7 +219,7 @@ class TestDplyrToPandas:
 
     def test_filter_pandasMedian(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.DataFrame(
             {
@@ -248,7 +252,7 @@ class TestDplyrToPandas:
 
     def test_filter_pandasMax(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.DataFrame(
             {
@@ -270,7 +274,7 @@ class TestDplyrToPandas:
 
     def test_filter_pandasMin(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.DataFrame(
             {
@@ -291,7 +295,7 @@ class TestDplyrToPandas:
 
     def test_filter_pandasQuantile(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         pd.testing.assert_frame_equal(
             filter(starwars, "mass==median(mass)"),
@@ -484,14 +488,14 @@ class TestDplyrToPandas:
     # Pull
     def test_pull_pandas(self) -> None:
         cars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/mtcars.csv"
+            DATA_DIR / "mtcars.csv"
         )
         expected = pd.Series([4, 4, 1, 1, 2], name="carb")
         pd.testing.assert_series_equal(expected, pull(cars, -1).head())
 
     def test_pull_pandasName(self) -> None:
         starwars = pd.read_csv(
-            "https://raw.githubusercontent.com/ConorMcNamara/tidyverse_to_pandas/refs/heads/master/data/starwars.csv"
+            DATA_DIR / "starwars.csv"
         )
         expected = pd.Series([172.0, 167.0, 96.0, 202.0, 150.0], name="height")
         expected.index = pd.Series(
