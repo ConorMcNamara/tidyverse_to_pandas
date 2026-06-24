@@ -1,3 +1,5 @@
+"""Convert dplyr syntax to pandas equivalents (rebased implementation)."""
+
 import pandas as pd
 import numpy as np
 import re
@@ -11,7 +13,7 @@ from typing import Union
 def arrange(
     data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Arrange rows by column values
+    """Arrange rows by column values.
 
     Parameters
     ----------
@@ -69,7 +71,7 @@ def count(
     name: str = None,
     drop: bool = True,
 ) -> pd.Series:
-    """Count observations by group
+    """Count observations by group.
 
     Parameters
     ----------
@@ -143,7 +145,7 @@ def add_count(
     sort: bool = False,
     name: str = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Count observations by group
+    """Count observations by group.
 
     Parameters
     ----------
@@ -204,7 +206,7 @@ def distinct(
     cols: Union[str, list, tuple, np.ndarray] = None,
     keep_all: bool = False,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Subset distinct/unique rows
+    """Subset distinct/unique rows.
 
     Parameters
     ----------
@@ -254,7 +256,7 @@ def distinct(
 def filter(
     data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Filters data based on arguments from cols
+    """Filter data based on arguments from cols.
 
     Parameters
     ----------
@@ -617,7 +619,7 @@ def mutate(
 
 
 def transmute(data, cols: Union[str, list, tuple, np.ndarray, dict]) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Add new variables while eliminating any columns not used to make our new columns
+    """Add new variables while eliminating any columns not used to make our new columns.
 
     Parameters
     ----------
@@ -642,7 +644,7 @@ def pull(
     var: Union[int, str],
     name: Union[int, str] = None,
 ) -> Union[pd.Series, ps.column]:
-    """Extracts a single column
+    """Extract a single column.
 
     Parameters
     ----------
@@ -682,7 +684,7 @@ def pull(
 def rename(
     data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Change the name of individual columns
+    """Change the name of individual columns.
 
     Parameters
     ----------
@@ -720,7 +722,7 @@ def relocate(
     before: str = None,
     after: str = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Use relocate() to change column positions
+    """Use relocate() to change column positions.
 
     Parameters
     ----------
@@ -776,7 +778,7 @@ def relocate(
 def select(
     data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Select variables in a data frame
+    """Select variables in a data frame.
 
     Parameters
     ----------

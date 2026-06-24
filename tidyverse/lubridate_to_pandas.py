@@ -1,3 +1,5 @@
+"""Convert lubridate date-parsing syntax to pandas equivalents."""
+
 import dateutil
 import re
 
@@ -14,7 +16,7 @@ from datetime import date, datetime
 def ymd(
     dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
-    """Converts our suspected dates in ymd format to %Y-%m-%d
+    """Convert our suspected dates in ymd format to %Y-%m-%d.
 
     Parameters
     ----------
@@ -70,7 +72,7 @@ def ymd(
 def ydm(
     dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
-    """Converts our suspected dates in ydm format to %Y-%m-%d
+    """Convert our suspected dates in ydm format to %Y-%m-%d.
 
     Parameters
     ----------
@@ -126,7 +128,7 @@ def ydm(
 def mdy(
     dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
-    """Converts our suspected dates in mdy format to %Y-%m-%d
+    """Convert our suspected dates in mdy format to %Y-%m-%d.
 
     Parameters
     ----------
@@ -246,7 +248,7 @@ def _myd(dates):
 
 
 def myd(dates, tz=None):
-    """Converts our suspected dates in myd format to %Y-%m-%d
+    """Convert our suspected dates in myd format to %Y-%m-%d.
 
     Parameters
     ----------
@@ -292,7 +294,7 @@ def myd(dates, tz=None):
 def dmy(
     dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
-    """Converts our suspected dates in dmy format to %Y-%m-%d
+    """Convert our suspected dates in dmy format to %Y-%m-%d.
 
     Parameters
     ----------
@@ -413,7 +415,7 @@ def _dym(dates: str):
 def dym(
     dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None
 ) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
-    """Converts our suspected dates in dym format to %Y-%m-%d
+    """Convert our suspected dates in dym format to %Y-%m-%d.
 
     Parameters
     ----------
@@ -458,7 +460,7 @@ def dym(
 
 # Year, month, day, hour, minute and second parsing
 def ymd_hms(dates, tz=None):
-    """Converts our suspected dates in ymd_hms format to %Y-%m-%d %H:%M:%S
+    """Convert our suspected dates in ymd_hms format to %Y-%m-%d %H:%M:%S.
 
     Parameters
     ----------

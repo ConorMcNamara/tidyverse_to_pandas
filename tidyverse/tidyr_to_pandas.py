@@ -1,3 +1,5 @@
+"""Convert tidyr data-reshaping syntax to pandas equivalents."""
+
 import pandas as pd
 import pyspark.sql as ps
 from pyspark.sql.functions import concat_ws
@@ -161,6 +163,7 @@ def pivot_wider(
     values_fn: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
     """Pivot_wider() "widens" data, increasing the number of columns and decreasing the number of rows.
+
     The inverse transformation is pivot_longer().
 
     Parameters
@@ -280,7 +283,7 @@ def unnest_longer(
     simplify: bool = False,
     ptype: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Turns each element of a list-column into a row
+    """Turn each element of a list-column into a row.
 
     Parameters
     ----------
@@ -367,7 +370,7 @@ def unnest_wider(
     names_repair: str = "check_unique",
     ptype: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Turns each element of a list-column into a column
+    """Turn each element of a list-column into a column.
 
     Parameters
     ----------
@@ -456,7 +459,7 @@ def unnest_wider(
 def nest(
     data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Nesting transforms multiple rows and columns into nested dictionaries
+    """Nesting transforms multiple rows and columns into nested dictionaries.
 
     Parameters
     ----------
@@ -540,7 +543,7 @@ def unnest(
     names_sep: Optional[str] = None,
     names_repair: str = "check_unique",
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Unnesting flattens a column of dicts back out into regular columns
+    """Unnesting flattens a column of dicts back out into regular columns.
 
     Parameters
     ----------
@@ -615,7 +618,7 @@ def unnest(
 def chop(
     data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Makes dataframes shorter by converting rows within each group into lists
+    """Make dataframes shorter by converting rows within each group into lists.
 
     Parameters
     ----------
@@ -665,8 +668,7 @@ def unchop(
     keep_empty: bool = False,
     ptype: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Unchop() makes df longer by expanding list-columns so that each element of the list-column gets its own row in
-    the output.
+    """Expand list-columns so that each element of the list-column gets its own row in the output.
 
     Parameters
     ----------
@@ -734,8 +736,7 @@ def separate(
     extra: str = "warn",
     fill: str = "warn",
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Given either regular expression or a vector of character positions, separate() turns a single character column
-    into multiple columns.
+    """Separate a single character column into multiple columns using a regex or vector of character positions.
 
     Parameters
     ----------
@@ -854,6 +855,7 @@ def extract(
     convert: bool = False,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
     """Given a regular expression with capturing groups, extract() turns each group into a new column.
+
     If the groups don't match, or the input is NA, the output will be NA.
 
     Parameters
@@ -911,7 +913,7 @@ def unite(
     remove: bool = True,
     na_rm: bool = False,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Convenience function to paste together multiple columns into one.
+    """Paste together multiple columns into one.
 
     Parameters
     ----------
@@ -976,7 +978,7 @@ def drop_na(
     data: Union[pd.DataFrame, ps.DataFrame],
     cols: Union[str, list, tuple, np.ndarray] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Drop rows containing missing values
+    """Drop rows containing missing values.
 
     Parameters
     ----------
@@ -1044,7 +1046,8 @@ def fill(
     cols: Union[str, list, tuple, np.ndarray] = None,
     direction: str = "down",
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Fills missing values in selected columns using the next or previous entry.
+    """Fill missing values in selected columns using the next or previous entry.
+
     This is useful in the common output format where values are not repeated, and are only recorded when they change.
 
     Parameters
@@ -1100,7 +1103,7 @@ def complete(
     cols: Union[list, tuple, np.ndarray] = None,
     fill: Optional[dict] = None,
 ) -> Union[pd.DataFrame, ps.DataFrame]:
-    """Turns implicit missing values into explicit missing values.
+    """Turn implicit missing values into explicit missing values.
 
     Parameters
     ----------

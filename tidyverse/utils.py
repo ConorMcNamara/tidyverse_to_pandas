@@ -1,3 +1,5 @@
+"""Shared utility helpers for parsing tidyverse column-selection syntax."""
+
 import numpy as np
 from more_itertools import unique_everseen
 import pandas as pd
@@ -13,7 +15,7 @@ def _get_str_columns(
     cols: Optional[Union[list, tuple]] = None,
     is_pandas: bool = True,
 ) -> list:
-    """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns
+    """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns.
 
     Parameters
     ----------
@@ -55,7 +57,7 @@ def _get_list_columns(
     list_cols: Union[list, tuple, np.ndarray],
     is_pandas: bool = True,
 ) -> list:
-    """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns
+    """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns.
 
     Parameters
     ----------
