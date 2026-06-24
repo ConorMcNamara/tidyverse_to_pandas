@@ -1,7 +1,7 @@
 import numpy as np
 from more_itertools import unique_everseen
 import pandas as pd
-import pyspark.sql as ps
+from tidyverse._optional_pyspark import ps
 import warnings
 
 from typing import Any, Union, Optional
@@ -43,7 +43,7 @@ def _get_str_columns(
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
     elif "-" in str_arguments:
-        col_to_remove = str_arguments[str_arguments.find("-") + 1:]
+        col_to_remove = str_arguments[str_arguments.find("-") + 1 :]
         cols.remove(col_to_remove)
     else:
         cols = [str_arguments]

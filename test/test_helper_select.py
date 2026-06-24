@@ -8,6 +8,7 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
+
 class TestHelperSelect:
     def test_everything(self) -> None:
         cars = pd.read_csv(DATA_DIR / "mtcars.csv")

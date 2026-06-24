@@ -1,6 +1,5 @@
 import pandas as pd
-import pyspark.sql as ps
-from pyspark.sql.functions import concat_ws
+from tidyverse._optional_pyspark import ps, concat_ws
 from typing import Union, Optional
 from tidyverse.utils import (
     _get_list_columns,
@@ -498,11 +497,13 @@ def nest(
             else:
                 # Ensures that we don't have any unnecessary copies
                 nested_df = data[non_nested_cols].drop_duplicates()
-                nested_df["data"] = 0
+                # object dtype so each cell can hold a list of dicts (pandas 3.0 no
+                # longer silently upcasts an int column on assignment)
+                nested_df["data"] = pd.Series(0, index=nested_df.index, dtype=object)
                 for index, row in nested_df.iterrows():
                     group = row[non_nested_cols].values
                     filtered_data = data[(data[non_nested_cols] == group).values]
-                    nested_df.loc[index, "data"] = [filtered_data[cols].to_dict()]
+                    nested_df.at[index, "data"] = filtered_data[cols].to_dict()
         # Cols in dictionary format
         else:
             non_nested_cols = data.columns.difference(nested_cols).tolist()
@@ -521,11 +522,11 @@ def nest(
             # Similar as before, we need to iteratively add the values to account for uneven group sizes
             else:
                 for col_name, col_select in cols.items():
-                    nested_df[col_name] = 0
+                    nested_df[col_name] = pd.Series(0, index=nested_df.index, dtype=object)
                     for index, row in nested_df.iterrows():
                         group = row[non_nested_cols].values
                         filtered_data = data[(data[non_nested_cols] == group).values]
-                        nested_df.loc[index, col_name] = [filtered_data[col_select].to_dict()]
+                        nested_df.at[index, col_name] = filtered_data[col_select].to_dict()
         nested_df.index = np.arange(len(nested_df))
     else:
         pass
@@ -885,7 +886,7 @@ def extract(
         # If our regex extracts more columns column names provided, then we are keeping the first n columns,
         # where n is the number of column names provided
         if len(into) < splits.shape[1]:
-            splits = splits.iloc[:, 0: len(into)]
+            splits = splits.iloc[:, 0 : len(into)]
         splits.columns = into
         # If user specifies they want certain columns to be dropped
         if "NA" in splits.columns:
@@ -1082,13 +1083,13 @@ def fill(
     #  bfill: use next valid observation to fill gap.
     if is_pandas:
         if direction == "down":
-            data[cols_to_consider] = data[cols_to_consider].fillna(method="ffill")
+            data[cols_to_consider] = data[cols_to_consider].ffill()
         elif direction == "up":
-            data[cols_to_consider] = data[cols_to_consider].fillna(method="bfill")
+            data[cols_to_consider] = data[cols_to_consider].bfill()
         elif direction == "downup":
-            data[cols_to_consider] = data[cols_to_consider].fillna(method="ffill").fillna(method="bfill")
+            data[cols_to_consider] = data[cols_to_consider].ffill().bfill()
         else:
-            data[cols_to_consider] = data[cols_to_consider].fillna(method="bfill").fillna(method="ffill")
+            data[cols_to_consider] = data[cols_to_consider].bfill().ffill()
     else:
         # Pyspark has no native support for forwards or backwards filling, so need to create my own function to do it
         ...

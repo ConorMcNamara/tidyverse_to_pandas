@@ -1,5 +1,5 @@
 import pandas as pd
-import pyspark.sql as ps
+from tidyverse._optional_pyspark import ps
 
 from typing import Union
 from tidyverse.utils import _check_df_type
