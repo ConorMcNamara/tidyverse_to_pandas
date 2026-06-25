@@ -57,8 +57,11 @@ def arrange(
             ascending_cols.append(True)
     if is_pandas:
         # Here, we are resetting the index because R's implementation also resets the index. Thus, we also need to drop
-        # our prior index
-        return data.sort_values(sorting_cols, ascending=ascending_cols).reset_index().drop("index", axis=1)
+        # our prior index. kind="stable" keeps tied rows in their original order so the result is deterministic across
+        # platforms (the default quicksort breaks ties differently on Linux/Windows vs macOS) and matches dplyr.
+        return (
+            data.sort_values(sorting_cols, ascending=ascending_cols, kind="stable").reset_index().drop("index", axis=1)
+        )
     else:
         return data.orderBy(sorting_cols, ascending=ascending_cols)
 
@@ -195,7 +198,7 @@ def add_count(
             # have to worry about errors caused by setting a column from several.
             data[name] = data.groupby(distinct_cols)[wt].transform("sum")
         if sort:
-            data = data.sort_values(by=name, ascending=False)
+            data = data.sort_values(by=name, ascending=False, kind="stable")
     else:
         ...
     return data

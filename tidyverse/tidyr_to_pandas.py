@@ -351,7 +351,7 @@ def unnest_longer(
             unnest_data = unnest_data.astype(ptype)
         unnest_data = _check_unique(unnest_data, how=names_repair)
         # tidyr returns the data sorted by the columns not used to unnest, so we want to match that
-        unnest_data = unnest_data.sort_values(list(data.columns.difference(list(col))))
+        unnest_data = unnest_data.sort_values(list(data.columns.difference(list(col))), kind="stable")
         # Occasionally our merges will cause the indexes to not be consistent (for example, it may go 0, 1, 2, 3, 5);
         # so we set it back to consistent formatting
         unnest_data.index = np.arange(len(unnest_data))
@@ -1175,7 +1175,7 @@ def complete(
                 # We rely on left joins to add new columns to our dataset
                 else:
                     nested_df = pd.merge(nested_df, group_data, on=index_cols + value_cols, how="left")
-            data = nested_df.sort_values(index_cols).reset_index()
+            data = nested_df.sort_values(index_cols, kind="stable").reset_index()
         # This one is much easier, as no nesting is required. Here, we apply everything as done above, but with no
         # worry about grouping or nesting.
         else:
