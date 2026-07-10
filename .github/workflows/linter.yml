@@ -11,21 +11,33 @@ on:
       - master
 
 jobs:
+  config:
+    name: Load Python version
+    runs-on: ubuntu-latest
+    outputs:
+      python-version: ${{ steps.read.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read newest supported Python version
+        id: read
+        # Lint against the newest version listed in the single source of truth,
+        # .github/python-versions.json (shared with the tests workflow).
+        run: echo "version=$(jq -r '.[-1]' .github/python-versions.json)" >> "$GITHUB_OUTPUT"
+
   formatting:
-    strategy:
-      matrix:
-        os: [ ubuntu-latest]
-        python-version: [ "3.12" ]
-    runs-on: ${{ matrix.os }}
+    needs: config
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ needs.config.outputs.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}  # Adjust the version as needed
+          python-version: ${{ needs.config.outputs.python-version }}
 
       - name: Install dependencies
         run: |
