@@ -45,17 +45,20 @@ jobs:
       - name: Check code style with ruff
         # Use the version-pinned ruff from the dev group (uv.lock) so the lint
         # rule set is reproducible and does not drift with new ruff releases.
+        # Scope the formatters to our own source: uv creates the virtualenv at
+        # ./.venv inside the repo, and a bare `.` / `**/*.py` / `find .` would
+        # recurse into it and try to reformat installed dependencies.
         run: |
-          uv run ruff format .
-          uv run ruff check --output-format=github .  # Check code style with ruff
+          uv run ruff format tidyverse_to_pandas test
+          uv run ruff check --output-format=github tidyverse_to_pandas test  # Check code style with ruff
 
       - name: Auto-format code with autopep8
         run: |
-          uvx autopep8 --in-place --aggressive --max-line-length 120 **/*.py  # Fix formatting issues with autopep8
+          uvx autopep8 --in-place --aggressive --max-line-length 120 --recursive tidyverse_to_pandas test  # Fix formatting issues with autopep8
 
       - name: Generate docstrings with numpydoc style
         run: |
-          find . -name "*.py" ! -path "./docs/auto_examples/*" -exec uvx pydocstringformatter -w --style numpydoc --numpydoc-section-order --numpydoc-name-type-spacing --numpydoc-section-spacing --numpydoc-section-hyphen-length --no-final-period {} +
+          find tidyverse_to_pandas test -name "*.py" -exec uvx pydocstringformatter -w --style numpydoc --numpydoc-section-order --numpydoc-name-type-spacing --numpydoc-section-spacing --numpydoc-section-hyphen-length --no-final-period {} +
 
       # - name: Check type hints with mypy
       #   run: |
