@@ -29,10 +29,16 @@ jobs:
   formatting:
     needs: config
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # allow the auto-format step to push back to the branch
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Check out the actual branch tip (not the PR merge ref, which is a
+          # detached HEAD) so the auto-format commit can be pushed back.
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -52,10 +58,6 @@ jobs:
           uv run ruff format tidyverse_to_pandas test
           uv run ruff check --output-format=github tidyverse_to_pandas test  # Check code style with ruff
 
-      - name: Auto-format code with autopep8
-        run: |
-          uvx autopep8 --in-place --aggressive --max-line-length 120 --recursive tidyverse_to_pandas test  # Fix formatting issues with autopep8
-
       - name: Generate docstrings with numpydoc style
         run: |
           find tidyverse_to_pandas test -name "*.py" -exec uvx pydocstringformatter -w --style numpydoc --numpydoc-section-order --numpydoc-name-type-spacing --numpydoc-section-spacing --numpydoc-section-hyphen-length --no-final-period {} +
@@ -70,8 +72,8 @@ jobs:
           git config --global user.email "github-actions@github.com"
           if [ -n "$(git status --porcelain)" ]; then
             git add .
-            git commit -m "Auto-format code with ruff, autopep8 and pydocstringformatter"
-            git push
+            git commit -m "Auto-format code with ruff and pydocstringformatter"
+            git push origin "HEAD:${{ github.head_ref || github.ref_name }}"
           else
             echo "No changes to commit"
           fi
