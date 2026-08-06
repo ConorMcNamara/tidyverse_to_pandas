@@ -1,10 +1,10 @@
-from tidyverse.helper_select import everything, last_col
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 import pytest
 
-
-from pathlib import Path
+from tidyverse_to_pandas.helper_select import everything, last_col
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 

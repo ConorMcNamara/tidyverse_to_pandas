@@ -1,18 +1,16 @@
 """Convert dplyr syntax to pandas equivalents (rebased implementation)."""
 
-import pandas as pd
-import numpy as np
 import re
-from tidyverse.utils import _check_df_type, _get_list_columns, _get_str_columns
-from tidyverse._optional_pyspark import ps
 
-from typing import Union
+import numpy as np
+import pandas as pd
+
+from tidyverse_to_pandas._optional_pyspark import ps
+from tidyverse_to_pandas.utils import _check_df_type, _get_list_columns, _get_str_columns
 
 
 # One Table Verbs
-def arrange(
-    data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def arrange(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndarray) -> pd.DataFrame | ps.DataFrame:
     """Arrange rows by column values.
 
     Parameters
@@ -67,9 +65,9 @@ def arrange(
 
 
 def count(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray],
-    wt: Union[str, list, tuple, np.ndarray] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray,
+    wt: str | list | tuple | np.ndarray = None,
     sort: bool = False,
     name: str = None,
     drop: bool = True,
@@ -142,12 +140,12 @@ def count(
 
 
 def add_count(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray],
-    wt: Union[str, list, tuple, np.ndarray] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray,
+    wt: str | list | tuple | np.ndarray = None,
     sort: bool = False,
     name: str = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Count observations by group.
 
     Parameters
@@ -205,10 +203,10 @@ def add_count(
 
 
 def distinct(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray = None,
     keep_all: bool = False,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Subset distinct/unique rows.
 
     Parameters
@@ -256,9 +254,7 @@ def distinct(
         ...
 
 
-def filter(
-    data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def filter(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndarray) -> pd.DataFrame | ps.DataFrame:
     """Filter data based on arguments from cols.
 
     Parameters
@@ -298,7 +294,7 @@ def filter(
             else:
                 ...
             comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = "{} {} {}".format(mean_col, comparison, val)
+            result = f"{mean_col} {comparison} {val}"
         elif "median(" in c.casefold():
             median_col = re.search(r"(?<=median\()[a-zA-Z]+", c).group(0)
             if is_pandas:
@@ -306,7 +302,7 @@ def filter(
             else:
                 ...
             comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = "{} {} {}".format(median_col, comparison, val)
+            result = f"{median_col} {comparison} {val}"
         elif "min(" in c.casefold():
             min_col = re.search(r"(?<=min\()[a-zA-Z]+", c).group(0)
             if is_pandas:
@@ -314,7 +310,7 @@ def filter(
             else:
                 ...
             comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = "{} {} {}".format(min_col, comparison, val)
+            result = f"{min_col} {comparison} {val}"
         elif "max(" in c.casefold():
             max_col = re.search(r"(?<=max\()[a-zA-Z]+", c).group(0)
             if is_pandas:
@@ -322,7 +318,7 @@ def filter(
             else:
                 ...
             comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = "{} {} {}".format(max_col, comparison, val)
+            result = f"{max_col} {comparison} {val}"
         elif "quantile(" in c.casefold():
             quantile_col = re.search(r"(?<=quantile\()[a-zA-Z]+", c).group(0)
             if re.search("probs=", c):
@@ -336,7 +332,7 @@ def filter(
                 val = data[quantile_col].quantile(quantile_percent)
             else:
                 ...
-            result = "{} {} {}".format(quantile_col, comparison, val)
+            result = f"{quantile_col} {comparison} {val}"
         else:
             result = c
         query_result.append(result)
@@ -347,10 +343,10 @@ def filter(
 
 
 def mutate(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray],
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray,
     keep: str = "all",
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Add new variables while preserving existing ones.
 
     Parameters
@@ -517,9 +513,7 @@ def mutate(
                     if len(lag_string.split(",")) == 2:
                         if "default" not in lag_string.split(",")[1]:
                             lag_string = re.sub(r",", ",fill_value=", lag_string)
-                    after_equals = re.sub(r",.*", "", re.sub("df\\.lag\\(", "", after_equals)) + ".shift({})".format(
-                        lag_string
-                    )
+                    after_equals = re.sub(r",.*", "", re.sub("df\\.lag\\(", "", after_equals)) + f".shift({lag_string})"
                 else:
                     after_equals = re.sub(
                         r"lag\((.*?)\)",
@@ -543,17 +537,17 @@ def mutate(
                             lead_string = re.sub(r",", ",fill_value=", lead_string)
                         if "n=" not in lead_string.split(",")[0]:
                             lead_array = lead_string.split(",")
-                            lead_array[0] = str("periods={}".format(-int(lead_array[0])))
+                            lead_array[0] = str(f"periods={-int(lead_array[0])}")
                             lead_string = ",".join(lead_array)
                     else:
                         if "fill_value=" in lead_string:
-                            lead_string = "periods=-1,{}".format(lead_string)
+                            lead_string = f"periods=-1,{lead_string}"
                         elif "periods=" in lead_string:
                             pass
                         else:
-                            lead_string = str("periods=-{}".format(int(lead_string)))
-                    after_equals = re.sub(r",.*", "", re.sub("df\\.lead\\(", "", after_equals)) + ".shift({})".format(
-                        lead_string
+                            lead_string = str(f"periods=-{int(lead_string)}")
+                    after_equals = (
+                        re.sub(r",.*", "", re.sub("df\\.lead\\(", "", after_equals)) + f".shift({lead_string})"
                     )
                 else:
                     after_equals = re.sub(
@@ -589,21 +583,21 @@ def mutate(
                     var_to_be_changed = re.sub("df.", "", split_equals[0])
                     var_to_change = re.sub("df.", "", split_equals[1])
                     recode[var_to_be_changed] = var_to_change
-                after_equals = "{0}.replace({1})".format(after_equals_split_name, recode)
+                after_equals = f"{after_equals_split_name}.replace({recode})"
             # Handle missing values
             if "df.na_if(" in after_equals:
                 after_equals_split = after_equals.split(",")
                 after_equals_split_1 = re.sub("df.na_if\\(", "", after_equals_split[0])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
                 after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
-                after_equals = "{0}.replace({1}, np.nan)".format(after_equals_split_1, after_equals_split_2)
+                after_equals = f"{after_equals_split_1}.replace({after_equals_split_2}, np.nan)"
             if "df.coalesce(" in after_equals:
                 after_equals_split = after_equals.split(",")
                 after_equals_split_1 = re.sub("df.coalesce\\(", "", after_equals_split[0])
                 after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
                 after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
-                after_equals = "{0}.fillna({1})".format(after_equals_split_1, after_equals_split_2)
-            after_equals = "lambda df: {}".format(after_equals)
+                after_equals = f"{after_equals_split_1}.fillna({after_equals_split_2})"
+            after_equals = f"lambda df: {after_equals}"
             # Keep or drop columns
             if keep.casefold() in ["used", "unused"]:
                 keep_cols += re.findall(r"df\.([a-zA-Z0-9_]+)", after_equals)
@@ -621,7 +615,7 @@ def mutate(
         _get_list_columns(data, cols, is_pandas)
 
 
-def transmute(data, cols: Union[str, list, tuple, np.ndarray, dict]) -> Union[pd.DataFrame, ps.DataFrame]:
+def transmute(data, cols: str | list | tuple | np.ndarray | dict) -> pd.DataFrame | ps.DataFrame:
     """Add new variables while eliminating any columns not used to make our new columns.
 
     Parameters
@@ -643,10 +637,10 @@ def transmute(data, cols: Union[str, list, tuple, np.ndarray, dict]) -> Union[pd
 
 
 def pull(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    var: Union[int, str],
-    name: Union[int, str] = None,
-) -> Union[pd.Series, ps.column]:
+    data: pd.DataFrame | ps.DataFrame,
+    var: int | str,
+    name: int | str = None,
+) -> pd.Series | ps.Column:
     """Extract a single column.
 
     Parameters
@@ -684,9 +678,7 @@ def pull(
     return return_col
 
 
-def rename(
-    data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def rename(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndarray) -> pd.DataFrame | ps.DataFrame:
     """Change the name of individual columns.
 
     Parameters
@@ -720,11 +712,11 @@ def rename(
 
 
 def relocate(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray],
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray,
     before: str = None,
     after: str = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Use relocate() to change column positions.
 
     Parameters
@@ -767,9 +759,7 @@ def relocate(
         ...
 
 
-def select(
-    data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def select(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndarray) -> pd.DataFrame | ps.DataFrame:
     """Select variables in a data frame.
 
     Parameters

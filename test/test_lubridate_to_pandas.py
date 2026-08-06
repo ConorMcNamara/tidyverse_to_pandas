@@ -1,9 +1,8 @@
-import pytest
-
 import numpy as np
 import pandas as pd
+import pytest
 
-import tidyverse.lubridate_to_pandas as ltp
+import tidyverse_to_pandas.lubridate_to_pandas as ltp
 
 
 class TestYMD:

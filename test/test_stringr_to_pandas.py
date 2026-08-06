@@ -1,9 +1,8 @@
-import pytest
-
 import numpy as np
 import pandas as pd
+import pytest
 
-import tidyverse.stringr_to_pandas as stp
+import tidyverse_to_pandas.stringr_to_pandas as stp
 
 
 class TestStrLength:
@@ -132,6 +131,13 @@ class TestStrReplaceNA:
     def test_strReplaceNA_string() -> None:
         string = np.nan
         assert stp.str_replace_na(string) == "NA"
+
+    @staticmethod
+    def test_strReplaceNA_nonSingletonNaN() -> None:
+        # NaN scalars that are not the ``np.nan`` singleton (e.g. float("nan") or a
+        # numpy float) must still be recognised, not just the exact singleton object.
+        assert stp.str_replace_na(float("nan")) == "NA"
+        assert stp.str_replace_na(np.float64("nan")) == "NA"
 
     @staticmethod
     def test_strReplaceNA_list() -> None:
@@ -813,7 +819,7 @@ class TestStrSplitN:
             ]
         )
         assert stp.str_split_n(fruits, " and ", 3)[0] == "bananas"
-        assert stp.str_split_n(fruits, " and ", 3)[1] is np.nan
+        assert np.isnan(stp.str_split_n(fruits, " and ", 3)[1])
 
     @staticmethod
     def test_strSplitN_series() -> None:

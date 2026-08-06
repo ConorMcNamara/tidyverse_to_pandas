@@ -2,24 +2,23 @@
 
 import re
 import unicodedata
-
+from collections.abc import Sequence
 from itertools import compress
 from string import capwords
-from typing import Optional, Sequence, Union, cast
+from typing import cast
 
 import numpy as np
 import pandas as pd
-from tidyverse._optional_pyspark import ps
-
 from natsort import index_natsorted
 
+from tidyverse_to_pandas._optional_pyspark import ps
 
 # Character Manipulation
 
 
 def str_length(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+) -> int | Sequence[int] | np.ndarray | pd.Series | ps.Column:
     """Calculate the length of each string.
 
     Parameters
@@ -46,10 +45,10 @@ def str_length(
 
 
 def str_sub(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     start: int,
-    end: Optional[int] = None,
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    end: int | None = None,
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Extract substrings from a character vector.
 
     One important note is that R and Python have vastly different indexing rules. R is [start, end] whereas Python is
@@ -100,9 +99,9 @@ def str_sub(
 
 
 def str_dup(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    num_dupes: Union[int, Sequence[int], np.ndarray],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    num_dupes: int | Sequence[int] | np.ndarray,
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Duplicates our string.
 
     Parameters
@@ -120,7 +119,7 @@ def str_dup(
     if isinstance(string, str):
         if not isinstance(num_dupes, int):
             raise TypeError(
-                "Cannot determine number of duplications using type {}. Use integer instead".format(type(num_dupes))
+                f"Cannot determine number of duplications using type {type(num_dupes)}. Use integer instead"
             )
         else:
             return string * num_dupes
@@ -137,7 +136,7 @@ def str_dup(
         # like in the spirit of numpy so I looked into using a numpy solution myself. Unfortunately, numpy has no way of
         # natively concatenating the values within an array unless they are all the same shape, which we cannot
         # guarantee, so it ends with us calling np.array on list comprehension
-        cum_dupes: Union[list[int], np.ndarray]
+        cum_dupes: list[int] | np.ndarray
         if isinstance(num_dupes, int):
             cum_dupes = [num_dupes]
         else:
@@ -157,7 +156,7 @@ def str_dup(
 
 
 def str_flatten(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     collapse: str = "",
 ) -> str:
     """Turn a collection of strings into a single, flattened string.
@@ -176,23 +175,23 @@ def str_flatten(
     if isinstance(string, str):
         return string
     elif isinstance(string, (list, tuple)):
-        return "{}".format(collapse).join([char for char in string])
+        return f"{collapse}".join([char for char in string])
     elif isinstance(string, np.ndarray):
         # Ironically, we can call this for both pandas and lists, but I wanted to show the various ways of doing it
         # rather than simply calling the iterable.
-        return "{}".format(collapse).join(string)
+        return f"{collapse}".join(string)
     elif isinstance(string, pd.Series):
-        return "{}".format(collapse).join(string.to_numpy())
+        return f"{collapse}".join(string.to_numpy())
     else:
         raise TypeError("Cannot determine how to flatten string")
 
 
 def str_trunc(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     width: int,
     side: str = "right",
     ellipsis: str = "...",
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Truncate a character string.
 
     Parameters
@@ -218,14 +217,14 @@ def str_trunc(
         elif side.casefold() == "left":
             return str(ellipsis) + string[-width:]
         else:
-            return string[: width // 2] + ellipsis + string[-width // 2:]
+            return string[: width // 2] + ellipsis + string[-width // 2 :]
     elif isinstance(string, (list, tuple)):
         if side.casefold() == "right":
             return [s[:width] + str(ellipsis) for s in string]
         elif side.casefold() == "left":
             return [str(ellipsis) + s[-width:] for s in string]
         else:
-            return [s[: width // 2] + str(ellipsis) + s[-width // 2:] for s in string]
+            return [s[: width // 2] + str(ellipsis) + s[-width // 2 :] for s in string]
     elif isinstance(string, np.ndarray):
         # The way np.frompyfunc works is that it takes in a function (such as a lambda expression) and then you feed it
         # the parameters needed to run it. Essentially, it's a way of converting f(x) to something that numpy can apply
@@ -250,9 +249,9 @@ def str_trunc(
 
 
 def str_replace_na(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     replacement: str = "NA",
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Convert NaNs and None into strings.
 
     Parameters
@@ -266,7 +265,7 @@ def str_replace_na(
     -------
     Our string, but with NaNs and None replaced as strings
     """
-    if string is None or string is np.nan:
+    if string is None or (isinstance(string, float) and np.isnan(string)):
         string = replacement
     elif isinstance(string, (list, tuple)):
         string = [replacement if s in [None, np.nan] else s for s in string]
@@ -284,9 +283,9 @@ def str_replace_na(
 
 
 def str_unique(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     strength: int = 1,
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Keep unique strings only.
 
     Parameters
@@ -389,8 +388,8 @@ def str_unique(
 
 
 def str_to_upper(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Convert all string to UPPERCASE.
 
     Parameters
@@ -417,8 +416,8 @@ def str_to_upper(
 
 
 def str_to_title(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Convert all strings to title form.
 
     Parameters
@@ -445,9 +444,9 @@ def str_to_title(
 
 
 def str_to_lower(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     locale: str = "en",
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Convert all of our strings into lowercase.
 
     Parameters
@@ -488,8 +487,8 @@ def str_to_lower(
 
 
 def str_to_sentence(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Convert all of our strings into sentence format.
 
     Parameters
@@ -517,11 +516,11 @@ def str_to_sentence(
 
 # String Ordering and Equality
 def str_order(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     decreasing: bool = False,
     na_last: bool = True,
     numeric: bool = False,
-) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
+) -> int | Sequence[int] | np.ndarray | pd.Series | ps.Column:
     """Return the string(s) with the indices marking the order of the string.
 
     Parameters
@@ -602,11 +601,11 @@ def str_order(
 
 
 def str_sort(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     decreasing: bool = False,
     na_last: bool = True,
     numeric: bool = False,
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Sorts our strings based off the results of str_order.
 
     Parameters
@@ -630,7 +629,7 @@ def str_sort(
         indices = str_order(string, decreasing, na_last, numeric)
         if isinstance(string, (list, tuple)):
             assert isinstance(indices, (list, range))
-            return list((map(string.__getitem__, indices)))
+            return list(map(string.__getitem__, indices))
         elif isinstance(string, np.ndarray):
             assert isinstance(indices, np.ndarray)
             return string[indices]
@@ -644,10 +643,10 @@ def str_sort(
 
 
 def str_equal(
-    x: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    y: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    x: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    y: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     ignore_case: bool = False,
-) -> Union[bool, Sequence[bool], np.ndarray, pd.Series, ps.Column]:
+) -> bool | Sequence[bool] | np.ndarray | pd.Series | ps.Column:
     """Determine if two strings are equivalent.
 
     Parameters
@@ -717,11 +716,11 @@ def str_equal(
 
 
 def str_pad(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    width: Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    width: int | Sequence[int] | np.ndarray | pd.Series | ps.Column,
     side: str = "right",
-    pad: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column] = " ",
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    pad: str | Sequence[str] | np.ndarray | pd.Series | ps.Column = " ",
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Pad a string.
 
     Parameters
@@ -742,7 +741,7 @@ def str_pad(
     side = side.casefold()
     if side not in ["right", "left", "center"]:
         raise ValueError("Cannot determine where to pad string")
-    padded_string: Union[str, list, np.ndarray, pd.Series]
+    padded_string: str | list | np.ndarray | pd.Series
     if isinstance(string, str) and isinstance(width, int) and isinstance(pad, str):
         if side == "left":
             padded_string = string.rjust(width, pad)
@@ -816,9 +815,9 @@ def str_pad(
 
 
 def str_trim(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     side: str = "both",
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Remove leading and trailing whitespace in our string.
 
     Parameters
@@ -870,8 +869,8 @@ def str_trim(
 
 
 def str_squish(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Squishes a string by removing leading and trailing whitespace as well as repeat whitespace inside a string.
 
     Parameters
@@ -883,7 +882,7 @@ def str_squish(
     -------
     Our squished string
     """
-    squished_string: Union[str, list, np.ndarray, pd.Series]
+    squished_string: str | list | np.ndarray | pd.Series
     if isinstance(string, str):
         squished_string = " ".join(string.split())
     elif isinstance(string, (list, tuple)):
@@ -907,10 +906,10 @@ def str_squish(
 
 
 def str_detect(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str,
     negate: bool = False,
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Determine if each string contains the regular expression.
 
     Parameters
@@ -930,7 +929,7 @@ def str_detect(
     -------
     Whether our pattern could be found within the string
     """
-    match: Union[bool, list, np.ndarray, pd.Series]
+    match: bool | list | np.ndarray | pd.Series
     if isinstance(string, str):
         if negate:
             match = re.search(pattern, string) is None
@@ -960,9 +959,9 @@ def str_detect(
 
 
 def str_count(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    pattern: Union[str, Sequence],
-) -> Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    pattern: str | Sequence,
+) -> int | Sequence[int] | np.ndarray | pd.Series | ps.Column:
     """Count instances of pattern occurring within string.
 
     Parameters
@@ -980,7 +979,7 @@ def str_count(
     -------
     The number of non-overlapping instances our pattern was found within the string
     """
-    string_counts: Union[int, list, np.ndarray, pd.Series]
+    string_counts: int | list | np.ndarray | pd.Series
     if isinstance(string, str):
         if isinstance(pattern, str):
             string_counts = len(re.findall(pattern, string))
@@ -1012,10 +1011,10 @@ def str_count(
 
 
 def str_subset(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str,
     negate: bool = False,
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Filter our string based on str_detect.
 
     Parameters
@@ -1055,10 +1054,10 @@ def str_subset(
 
 
 def str_which(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str,
     negate: bool = False,
-) -> Optional[Union[int, Sequence[int], np.ndarray, pd.Series, ps.Column]]:
+) -> int | Sequence[int] | np.ndarray | pd.Series | ps.Column | None:
     """Filter our string based on str_detect.
 
     Parameters
@@ -1098,11 +1097,11 @@ def str_which(
 
 
 def _str_replace(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    pattern: Union[str, Sequence[str]],
-    replacement: Union[str, Sequence[str]],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    pattern: str | Sequence[str],
+    replacement: str | Sequence[str],
     how: str = "all",
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     r"""Replace either the first or all instance(s) of pattern in string with replacement.
 
     Parameters
@@ -1136,7 +1135,7 @@ def _str_replace(
     if isinstance(string, str):
         if not isinstance(pattern, str):
             raise TypeError("pattern must be str when string is str")
-        if replacement is None or replacement is np.nan:
+        if replacement is None or (isinstance(replacement, float) and np.isnan(replacement)):
             return replacement if pattern in string else string
         else:
             return re.sub(pattern, cast(str, replacement), string, count=count)
@@ -1161,7 +1160,7 @@ def _str_replace(
                     return np.array(
                         [re.sub(cast(str, pattern[i]), replacement, string[i], count=count) for i in range(len(string))]
                     )
-        elif replacement is None or replacement is np.nan:
+        elif replacement is None or (isinstance(replacement, float) and np.isnan(replacement)):
             if isinstance(string, (list, tuple)):
                 if isinstance(pattern, str):
                     return [replacement if pattern in s else s for s in string]
@@ -1186,7 +1185,11 @@ def _str_replace(
                 return np.array(match_list)
             return match_list
     elif isinstance(string, pd.Series):
-        if isinstance(replacement, str) or replacement is None or replacement is np.nan:
+        if (
+            isinstance(replacement, str)
+            or replacement is None
+            or (isinstance(replacement, float) and np.isnan(replacement))
+        ):
             if not isinstance(pattern, str):
                 raise TypeError("pattern must be str when string is pd.Series with scalar replacement")
             return string.str.replace(pattern, cast(str, replacement), regex=True, n=-1)
@@ -1206,26 +1209,26 @@ def _str_replace(
 
 
 def str_replace(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    pattern: Union[str, Sequence[str]],
-    replacement: Union[str, Sequence[str]],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    pattern: str | Sequence[str],
+    replacement: str | Sequence[str],
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Replace the first instance of pattern in string with replacement."""
     return _str_replace(string, pattern, replacement, how="first")
 
 
 def str_replace_all(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
-    pattern: Union[str, Sequence[str]],
-    replacement: Union[str, Sequence[str]],
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
+    pattern: str | Sequence[str],
+    replacement: str | Sequence[str],
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Replace all instances of pattern in string with replacement."""
     return _str_replace(string, pattern, replacement, how="all")
 
 
 def str_remove(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column, pattern: str
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Remove the first pattern in our string.
 
     Parameters
@@ -1247,8 +1250,8 @@ def str_remove(
 
 
 def str_remove_all(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column, pattern: str
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Remove all patterns in our string.
 
     Parameters
@@ -1270,11 +1273,11 @@ def str_remove_all(
 
 
 def str_split(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str = " ",
     n: int = -1,
     simplify: bool = False,
-) -> Union[Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Split a string into pieces.
 
     Parameters
@@ -1325,10 +1328,10 @@ def str_split(
 
 
 def str_split_fixed(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str = " ",
     n: int = -1,
-) -> Union[Sequence[str], np.ndarray, pd.DataFrame, ps.DataFrame]:
+) -> Sequence[str] | np.ndarray | pd.DataFrame | ps.DataFrame:
     """Return a character matrix. Essentially a wrapper for str_split with simplify=True.
 
     Parameters
@@ -1352,10 +1355,10 @@ def str_split_fixed(
 
 
 def str_split_n(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str = " ",
     n: int = 0,
-) -> Optional[Union[Sequence[str], np.ndarray, pd.Series, ps.Column]]:
+) -> Sequence[str] | np.ndarray | pd.Series | ps.Column | None:
     """Return the nth index of a split string.
 
     Parameters
@@ -1408,10 +1411,10 @@ def str_split_n(
 
 
 def str_starts(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str,
     negate: bool = False,
-) -> Union[bool, Sequence[bool], np.ndarray, pd.Series, ps.Column]:
+) -> bool | Sequence[bool] | np.ndarray | pd.Series | ps.Column:
     """Detect the presence or absence of a pattern at the beginning of a string.
 
     Parameters
@@ -1436,10 +1439,10 @@ def str_starts(
 
 
 def str_ends(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str,
     negate: bool = False,
-) -> Union[bool, Sequence[bool], np.ndarray, pd.Series, ps.Column]:
+) -> bool | Sequence[bool] | np.ndarray | pd.Series | ps.Column:
     """Detect the presence or absence of a pattern at the end of a string.
 
     Parameters
@@ -1464,8 +1467,8 @@ def str_ends(
 
 
 def str_extract(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
-) -> Optional[Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column, pattern: str
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column | None:
     """Extract first matching patterns from a string.
 
     Parameters
@@ -1515,10 +1518,10 @@ def str_extract(
 
 
 def str_extract_all(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column],
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column,
     pattern: str,
     simplify: bool = False,
-) -> Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column]:
+) -> str | Sequence[str] | np.ndarray | pd.Series | ps.Column:
     """Extract all matching patterns from a string.
 
     Parameters
@@ -1538,7 +1541,7 @@ def str_extract_all(
     -------
     All non-overlapping matches within each string
     """
-    match: Union[list, np.ndarray, pd.DataFrame, pd.Series]
+    match: list | np.ndarray | pd.DataFrame | pd.Series
     if isinstance(string, str):
         match = re.findall(pattern, string)
     elif isinstance(string, (list, tuple, np.ndarray)):
@@ -1580,8 +1583,8 @@ def str_extract_all(
 
 
 def str_match(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
-) -> Optional[Union[Sequence[str], np.ndarray, pd.DataFrame, ps.DataFrame]]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column, pattern: str
+) -> Sequence[str] | np.ndarray | pd.DataFrame | ps.DataFrame | None:
     """Extract first matched group from a string.
 
     Parameters
@@ -1600,7 +1603,7 @@ def str_match(
     A container with our first matched groups, and None/np.nan if no match detected
     """
     whole_match = str_extract(string, pattern)
-    return_match: Union[list, np.ndarray, pd.DataFrame, pd.Series]
+    return_match: list | np.ndarray | pd.DataFrame | pd.Series
     if isinstance(string, str):
         if whole_match is None:
             return None
@@ -1611,12 +1614,12 @@ def str_match(
     elif isinstance(string, (list, tuple, np.ndarray)):
         if isinstance(string, np.ndarray):
             whole_match_arr = cast(np.ndarray, whole_match)
-            whole_match_arr[whole_match_arr == None] = ""  # noqa: E711
-            whole_match_seq: Union[list, np.ndarray] = whole_match_arr
+            whole_match_arr[whole_match_arr == None] = ""
+            whole_match_seq: list | np.ndarray = whole_match_arr
         else:
             whole_match_seq = [s if s is not None else "" for s in cast(list, whole_match)]
-        partial_match2: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(
-            Union[list, np.ndarray, pd.DataFrame, pd.Series], str_extract_all(whole_match_seq, pattern, simplify=True)
+        partial_match2: list | np.ndarray | pd.DataFrame | pd.Series = cast(
+            list | np.ndarray | pd.DataFrame | pd.Series, str_extract_all(whole_match_seq, pattern, simplify=True)
         )
         return_match_list = [[a] + [elem for elem in b[0]] for a, b in zip(whole_match_seq, partial_match2)]
         max_length = max(len(x) for x in return_match_list)
@@ -1630,8 +1633,8 @@ def str_match(
     elif isinstance(string, pd.Series):
         whole_match_series = cast(pd.Series, whole_match)
         whole_match_series = whole_match_series.rename("whole_match")
-        partial_match3: Union[list, np.ndarray, pd.DataFrame, pd.Series] = cast(
-            Union[list, np.ndarray, pd.DataFrame, pd.Series],
+        partial_match3: list | np.ndarray | pd.DataFrame | pd.Series = cast(
+            list | np.ndarray | pd.DataFrame | pd.Series,
             str_extract_all(whole_match_series, pattern, simplify=True),
         )
         return_match = pd.merge(
@@ -1644,8 +1647,8 @@ def str_match(
 
 
 def str_match_all(
-    string: Union[str, Sequence[str], np.ndarray, pd.Series, ps.Column], pattern: str
-) -> Optional[Union[Sequence[str], np.ndarray, pd.DataFrame, ps.DataFrame]]:
+    string: str | Sequence[str] | np.ndarray | pd.Series | ps.Column, pattern: str
+) -> Sequence[str] | np.ndarray | pd.DataFrame | ps.DataFrame | None:
     """Extract all matched groups from a string.
 
     Parameters
@@ -1686,7 +1689,7 @@ def str_match_all(
                         whole_match_list.append(match.group(0))
                 else:
                     whole_match_list.append("")
-        return_match: Union[list, np.ndarray, pd.DataFrame]
+        return_match: list | np.ndarray | pd.DataFrame
         if isinstance(string, pd.Series):
             whole_match_series = pd.Series(whole_match_list, name="whole_match")
             partial_match = str_extract_all(whole_match_series, pattern)
@@ -1721,10 +1724,10 @@ def str_match_all(
 
 
 def str_c(
-    strings: Union[Sequence[str], np.ndarray, pd.Series, ps.Column],
+    strings: Sequence[str] | np.ndarray | pd.Series | ps.Column,
     sep: str = "",
-    collapse: Optional[str] = None,
-) -> Union[str, list]:
+    collapse: str | None = None,
+) -> str | list:
     """Join multiple character vectors into a single string.
 
     Parameters
@@ -1741,14 +1744,14 @@ def str_c(
     If `collapse=None`, a character vector with length equal to the longest input. Else, a
     character vector of length 1.
     """
-    return_string: Union[list, np.ndarray]
+    return_string: list | np.ndarray
     if isinstance(strings, (list, tuple)):
         strings_list = list(strings)
         max_length = max([len(s) for s in strings_list])
         return_string = [""] * max_length
         for index, string in enumerate(strings_list):
             if len(string) < max_length:
-                strings_list[index] = string * (max_length // len(string)) + string[0: max_length % len(string)]
+                strings_list[index] = string * (max_length // len(string)) + string[0 : max_length % len(string)]
         for row, ss in enumerate(strings_list[0]):
             for col in range(1, len(strings_list)):
                 ss += sep + strings_list[col][row]
@@ -1756,13 +1759,8 @@ def str_c(
     elif isinstance(strings, np.ndarray):
         max_length = max(map(len, strings))
         return_string = np.repeat("", max_length)
-        ...
-    elif isinstance(strings, pd.DataFrame):
+    elif isinstance(strings, pd.DataFrame) or isinstance(strings, ps.DataFrame):
         return_string = []
-        ...
-    elif isinstance(strings, ps.DataFrame):
-        return_string = []
-        ...
     else:
         raise TypeError("Cannot identify character vector")
     if collapse is not None:

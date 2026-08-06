@@ -1,7 +1,8 @@
 """The goal of this is to convert dplyr syntax to pandas."""
 
-import pandas as pd
 import re
+
+import pandas as pd
 
 # Transform Variables
 
@@ -47,7 +48,7 @@ def mutate(data, *args):
             after_equals = re.sub(r"\b([a-zA-Z]+\d)\b", r"x.\1", after_equals)
         if re.search(r"(^\d)", after_equals):  # Handles 18a
             after_equals = re.sub(r"(^\d)", r"x.\1", after_equals)
-        after_arg = "lambda x: {}".format(after_equals)
+        after_arg = f"lambda x: {after_equals}"
         data = data.assign(**{before_arg: eval(after_arg)})
     return data
 
@@ -95,7 +96,7 @@ def transmute(data, *args):
             after_equals = re.sub(r"\b([a-zA-Z]+\d)\b", r"x.\1", after_equals)
         if re.search(r"(^\d)", after_equals):  # Handles 18a
             after_equals = re.sub(r"(^\d)", r"x.\1", after_equals)
-        after_arg = "lambda x: {}".format(after_equals)
+        after_arg = f"lambda x: {after_equals}"
         data = data.assign(**{before_arg: eval(after_arg)})
     data = data.drop(data.columns.difference(cols_to_keep), axis=1)
     return data
@@ -162,9 +163,9 @@ def starts_with(column_name, match, ignore_case=True):
         The match object if ``column_name`` starts with ``match``, otherwise None
     """
     if ignore_case:
-        return re.search(r"(^{}.*)".format(match.casefold()), column_name.casefold())
+        return re.search(rf"(^{match.casefold()}.*)", column_name.casefold())
     else:
-        return re.search(r"(^{}.*)".format(match), column_name)
+        return re.search(rf"(^{match}.*)", column_name)
 
 
 def ends_with(column_name, match, ignore_case=True):
@@ -185,9 +186,9 @@ def ends_with(column_name, match, ignore_case=True):
         The match object if ``column_name`` ends with ``match``, otherwise None
     """
     if ignore_case:
-        return re.search(r"({}$)".format(match.casefold()), column_name.casefold())
+        return re.search(rf"({match.casefold()}$)", column_name.casefold())
     else:
-        return re.search(r"({}$)".format(match), column_name)
+        return re.search(rf"({match}$)", column_name)
 
 
 def contains(column_name, match, ignore_case=True):
@@ -208,9 +209,9 @@ def contains(column_name, match, ignore_case=True):
         The match object if ``column_name`` contains ``match``, otherwise None
     """
     if ignore_case:
-        return re.search(r"({})".format(match.casefold()), column_name.casefold())
+        return re.search(rf"({match.casefold()})", column_name.casefold())
     else:
-        return re.search(r"({})".format(match), column_name)
+        return re.search(rf"({match})", column_name)
 
 
 def select(data, *args):
@@ -249,7 +250,7 @@ def select(data, *args):
             expression = re.search(r"\((.*)\)", arg).group(0)
             expression = re.sub(r"(\(|\))", r"", expression)
             for col in data.columns:
-                if starts_with(col, r"(^{}.*)".format(expression)):
+                if starts_with(col, rf"(^{expression}.*)"):
                     if re.search(r"(^-)", arg):
                         if col not in cols_to_drop:
                             cols_to_drop.append(col)
@@ -260,7 +261,7 @@ def select(data, *args):
             expression = re.search(r"\((.*)\)", arg).group(0)
             expression = re.sub(r"(\(|\))", r"", expression)
             for col in data.columns:
-                if ends_with(col, r"({}$)".format(expression)):
+                if ends_with(col, rf"({expression}$)"):
                     if re.search(r"(^-)", arg):
                         if col not in cols_to_drop:
                             cols_to_drop.append(col)
@@ -271,7 +272,7 @@ def select(data, *args):
             expression = re.search(r"\((.*)\)", arg).group(0)
             expression = re.sub(r"(\(|\))", r"", expression)
             for col in data.columns:
-                if contains(col, r"{}".format(expression)):
+                if contains(col, rf"{expression}"):
                     if re.search(r"(^-)", arg):
                         if col not in cols_to_drop:
                             cols_to_drop.append(col)
@@ -294,9 +295,9 @@ def select(data, *args):
             var_end_range = int(re.search(r"(\d$)", var_range).group(0))
             for i in range(var_start_range, var_end_range + 1):
                 if re.search(r"(^-)", arg):
-                    cols_to_drop.append("{}{}".format(var_name, i))
+                    cols_to_drop.append(f"{var_name}{i}")
                 else:
-                    cols_to_keep.append("{}{}".format(var_name, i))
+                    cols_to_keep.append(f"{var_name}{i}")
         elif "last_col" in arg:
             if re.search(r"\((\d+)\)", arg):
                 num_offset = re.search(r"\((\d+)\)", arg).group(0)
@@ -328,7 +329,7 @@ def select(data, *args):
                         cols_to_drop.append(re.sub(r"(-?\s+)", r"", arg))
             else:
                 if arg not in data.columns:
-                    raise Exception("Selected column {} not found in data frame".format(arg))
+                    raise Exception(f"Selected column {arg} not found in data frame")
                 else:
                     if arg not in cols_to_keep:
                         cols_to_keep.append(arg)
@@ -381,22 +382,22 @@ def filter(data, *args):
             mean_col = re.search(r"(?<=mean\()[a-zA-Z]+", arg).group(0)
             val = data[mean_col].mean()
             comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = "{} {} {}".format(mean_col, comparison, val)
+            result = f"{mean_col} {comparison} {val}"
         elif "median(" in arg.casefold():
             median_col = re.search(r"(?<=median\()[a-zA-Z]+", arg).group(0)
             val = data[median_col].median()
             comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = "{} {} {}".format(median_col, comparison, val)
+            result = f"{median_col} {comparison} {val}"
         elif "min(" in arg.casefold():
             min_col = re.search(r"(?<=min\()[a-zA-Z]+", arg).group(0)
             val = data[min_col].min()
             comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = "{} {} {}".format(min_col, comparison, val)
+            result = f"{min_col} {comparison} {val}"
         elif "max(" in arg.casefold():
             max_col = re.search(r"(?<=max\()[a-zA-Z]+", arg).group(0)
             val = data[max_col].max()
             comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = "{} {} {}".format(max_col, comparison, val)
+            result = f"{max_col} {comparison} {val}"
         elif "quantile(" in arg.casefold():
             quantile_col = re.search(r"(?<=quantile\()[a-zA-Z]+", arg).group(0)
             if re.search("probs=", arg):
@@ -407,7 +408,7 @@ def filter(data, *args):
                 raise Exception("Cannot have percentile greater than 1")
             comparison = re.search(r"([<>]=?|==)", arg).group(0)
             val = data[quantile_col].quantile(quantile_percent)
-            result = "{} {} {}".format(quantile_col, comparison, val)
+            result = f"{quantile_col} {comparison} {val}"
         else:
             result = arg
         if counter < args_length:
@@ -501,11 +502,9 @@ def summarise(data, *args):
             if n_number == 0:
                 n_number = 1
             if n_number > len(data):
-                raise Exception("Cannot access {} element of DataFrame with {} elements".format(n_number, len(data)))
+                raise Exception(f"Cannot access {n_number} element of DataFrame with {len(data)} elements")
             if n_number < -len(data):
-                raise Exception(
-                    "Cannot access {} element of DataFrame with {} elements".format(len(data) + n_number, len(data))
-                )
+                raise Exception(f"Cannot access {len(data) + n_number} element of DataFrame with {len(data)} elements")
             if n_number < 0:
                 val = data.iloc[n_number, :][nth_col]
             else:

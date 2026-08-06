@@ -2,9 +2,7 @@
 
 __version__ = "0.1.0"
 
-from typing import List
-
-from tidyverse import (
+from tidyverse_to_pandas import (
     dplyr_to_pandas,
     helper_select,
     lubridate_to_pandas,
@@ -14,7 +12,7 @@ from tidyverse import (
     utils,
 )
 
-__all__: List[str] = [
+__all__: list[str] = [
     "dplyr_to_pandas",
     "helper_select",
     "lubridate_to_pandas",
@@ -25,5 +23,5 @@ __all__: List[str] = [
 ]
 
 
-def __dir__() -> List[str]:
+def __dir__() -> list[str]:
     return __all__
