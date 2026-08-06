@@ -41,18 +41,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
         # pyspark is an optional, Java-backed dependency that the test suite does not
-        # exercise (imports are guarded by tidyverse/_optional_pyspark.py), so it is
-        # intentionally omitted here to keep the matrix fast and installable on 3.14.
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas pytest more-itertools natsort python-dateutil pytz
+        # exercise (imports are guarded by tidyverse_to_pandas/_optional_pyspark.py), so
+        # it is intentionally omitted here (the "spark" extra is not synced) to keep the
+        # matrix fast and installable on 3.14.
+        run: uv sync --python ${{ matrix.python-version }}
 
       - name: Run tests
-        run: pytest test/
+        run: uv run --python ${{ matrix.python-version }} pytest test/

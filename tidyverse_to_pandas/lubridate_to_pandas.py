@@ -1,21 +1,19 @@
 """Convert lubridate date-parsing syntax to pandas equivalents."""
 
-import dateutil
 import re
+from collections.abc import Sequence
+from datetime import date, datetime
 
-from typing import Optional, Sequence, Union
-
+import dateutil
 import numpy as np
 import pandas as pd
-
 from pytz import timezone
-from datetime import date, datetime
 
 
 # Year, month and day parsing
 def ymd(
-    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
-) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+    dates: str | Sequence[str] | np.ndarray | pd.Series, tz: str | None = None
+) -> str | Sequence[str] | np.ndarray | pd.Series:
     """Convert our suspected dates in ymd format to %Y-%m-%d.
 
     Parameters
@@ -70,8 +68,8 @@ def ymd(
 
 
 def ydm(
-    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
-) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+    dates: str | Sequence[str] | np.ndarray | pd.Series, tz: str | None = None
+) -> str | Sequence[str] | np.ndarray | pd.Series:
     """Convert our suspected dates in ydm format to %Y-%m-%d.
 
     Parameters
@@ -126,8 +124,8 @@ def ydm(
 
 
 def mdy(
-    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
-) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+    dates: str | Sequence[str] | np.ndarray | pd.Series, tz: str | None = None
+) -> str | Sequence[str] | np.ndarray | pd.Series:
     """Convert our suspected dates in mdy format to %Y-%m-%d.
 
     Parameters
@@ -244,7 +242,7 @@ def _myd(dates):
         month = "0" + month
     if len(day) == 1:
         day = "0" + day
-    return datetime.strptime("{}-{}-{}".format(year, month, day), "%Y-%m-%d")
+    return datetime.strptime(f"{year}-{month}-{day}", "%Y-%m-%d")
 
 
 def myd(dates, tz=None):
@@ -292,8 +290,8 @@ def myd(dates, tz=None):
 
 
 def dmy(
-    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: Optional[str] = None
-) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+    dates: str | Sequence[str] | np.ndarray | pd.Series, tz: str | None = None
+) -> str | Sequence[str] | np.ndarray | pd.Series:
     """Convert our suspected dates in dmy format to %Y-%m-%d.
 
     Parameters
@@ -409,12 +407,12 @@ def _dym(dates: str):
         month = "0" + month
     if len(day) == 1:
         day = "0" + day
-    return datetime.strptime("{}-{}-{}".format(year, month, day), "%Y-%m-%d")
+    return datetime.strptime(f"{year}-{month}-{day}", "%Y-%m-%d")
 
 
 def dym(
-    dates: Union[str, Sequence[str], np.ndarray, pd.Series], tz: str = None
-) -> Union[str, Sequence[str], np.ndarray, pd.Series]:
+    dates: str | Sequence[str] | np.ndarray | pd.Series, tz: str = None
+) -> str | Sequence[str] | np.ndarray | pd.Series:
     """Convert our suspected dates in dym format to %Y-%m-%d.
 
     Parameters

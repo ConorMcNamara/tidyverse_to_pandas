@@ -3,25 +3,54 @@ name = "tidyverse-to-pandas"
 version = "0.1.0"
 description = "Converts tidyverse syntax to Python equivalents"
 authors = [
-    {name = "ConorMcNamara",email = "conor.s.mcnamara@gmail.com"}
+    { name = "ConorMcNamara", email = "conor.s.mcnamara@gmail.com" },
 ]
 readme = "README.md"
 requires-python = ">=3.13"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["tidyverse", "pandas", "pyspark", "dplyr", "tidyr", "stringr", "lubridate"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
 dependencies = [
-    "pandas (>=2.2.3,<3.0.0)",
-    "pytest (>=8.3.5,<9.0.0)",
-    "pyspark (>=3.5.5,<4.0.0)",
-    "more-itertools (>=10.6.0,<11.0.0)",
-    "natsort (>=8.4.0,<9.0.0)"
+    "pandas>=3.0.0",
+    "numpy>=1.26",
+    "more-itertools>=10.6.0,<11.0.0",
+    "natsort>=8.4.0,<9.0.0",
+    "python-dateutil>=2.9,<3.0.0",
+    "pytz>=2024.1",
 ]
 
+[project.optional-dependencies]
+spark = ["pyspark>=3.5.5,<4.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/ConorMcNamara/tidyverse_to_pandas"
+Repository = "https://github.com/ConorMcNamara/tidyverse_to_pandas"
+Issues = "https://github.com/ConorMcNamara/tidyverse_to_pandas/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3,<10.0.0",
+    "ruff>=0.16.1,<0.17",
+]
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tidyverse_to_pandas"]
 
 [tool.pytest.ini_options]
-pythonpath = ["tidyverse", '.']
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 120
@@ -29,6 +58,24 @@ indent-width = 4
 
 [tool.ruff.lint]
 extend-select = ["D"]
+# Deferred rules: these fire under ruff's modern default set but are not
+# auto-fixable and touch behavior/judgment (custom exceptions, TypeError vs
+# generic raise, implicit Optional, timezone-aware datetimes).
+# They are intentionally silenced for now; revisit as a dedicated pass.
+# NOTE: DTZ* (naive datetimes) may hide latent bugs worth a manual look.
+ignore = [
+    "TRY002",   # raise-vanilla-class
+    "TRY004",   # type-check-without-type-error
+    "RUF013",   # implicit-optional
+    "C417",     # unnecessary-map
+    "DTZ007",   # call-datetime-strptime-without-zone
+    "DTZ011",   # call-date-today
+    "PLC3002",  # unnecessary-direct-lambda-call
+    "RUF015",   # unnecessary-iterable-allocation-for-first-element
+    "SIM101",   # duplicate-isinstance-call
+    "SIM102",   # collapsible-if
+    "PLR0124",  # comparison-with-itself
+]
 
 [tool.ruff.lint.per-file-ignores]
 "test/*" = ["D"]

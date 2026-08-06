@@ -1,18 +1,19 @@
 """Shared utility helpers for parsing tidyverse column-selection syntax."""
 
-import numpy as np
-from more_itertools import unique_everseen
-import pandas as pd
-from tidyverse._optional_pyspark import ps
 import warnings
+from typing import Any
 
-from typing import Any, Union, Optional
+import numpy as np
+import pandas as pd
+from more_itertools import unique_everseen
+
+from tidyverse_to_pandas._optional_pyspark import ps
 
 
 def _get_str_columns(
-    data: Union[pd.DataFrame, ps.DataFrame],
+    data: pd.DataFrame | ps.DataFrame,
     str_arguments: str,
-    cols: Optional[Union[list, tuple]] = None,
+    cols: list | tuple | None = None,
     is_pandas: bool = True,
 ) -> list:
     """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns.
@@ -45,7 +46,7 @@ def _get_str_columns(
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
     elif "-" in str_arguments:
-        col_to_remove = str_arguments[str_arguments.find("-") + 1:]
+        col_to_remove = str_arguments[str_arguments.find("-") + 1 :]
         cols.remove(col_to_remove)
     else:
         cols = [str_arguments]
@@ -53,8 +54,8 @@ def _get_str_columns(
 
 
 def _get_list_columns(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    list_cols: Union[list, tuple, np.ndarray],
+    data: pd.DataFrame | ps.DataFrame,
+    list_cols: list | tuple | np.ndarray,
     is_pandas: bool = True,
 ) -> list:
     """Accounts for various tidyverse syntax that Hadley Wickham uses for selecting (or deselecting) columns.
@@ -84,23 +85,23 @@ def _get_list_columns(
 
 
 def _convert_numeric(
-    data: Union[pd.DataFrame, ps.DataFrame],
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    data: pd.DataFrame | ps.DataFrame,
+) -> pd.DataFrame | ps.DataFrame:
     # We go column by column and see if the column contains only numeric characters. If it does, then we
     # can safely use pd.to_numeric(), which also handles if it gets converted to integer or float.
     return data.apply(lambda x: pd.to_numeric(x) if x.str.isnumeric().all() else x, axis=0)
 
 
-def _check_df_type(data: Union[pd.DataFrame, ps.DataFrame], argument: str) -> bool:
+def _check_df_type(data: pd.DataFrame | ps.DataFrame, argument: str) -> bool:
     if isinstance(data, pd.DataFrame):
         return True
     elif isinstance(data, ps.Column):
         return False
     else:
-        raise Exception("Cannot perform {} on non-DataFrame".format(argument))
+        raise Exception(f"Cannot perform {argument} on non-DataFrame")
 
 
-def _check_unique(data: Union[pd.DataFrame, ps.DataFrame], how: str = "unique") -> Union[pd.DataFrame, ps.DataFrame]:
+def _check_unique(data: pd.DataFrame | ps.DataFrame, how: str = "unique") -> pd.DataFrame | ps.DataFrame:
     # Check for repeated names
     if len(set(data.columns)) != len(data.columns):
         if how.casefold() == "check_unique":

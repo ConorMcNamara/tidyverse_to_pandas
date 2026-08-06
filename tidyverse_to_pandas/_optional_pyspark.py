@@ -37,4 +37,4 @@ except ModuleNotFoundError:
         )
 
 
-__all__ = ["ps", "concat_ws", "HAS_PYSPARK"]
+__all__ = ["HAS_PYSPARK", "concat_ws", "ps"]

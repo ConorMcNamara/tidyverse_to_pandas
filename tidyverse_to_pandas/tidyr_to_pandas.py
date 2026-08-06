@@ -1,36 +1,36 @@
 """Convert tidyr data-reshaping syntax to pandas equivalents."""
 
+import re
+import warnings
+
+import numpy as np
 import pandas as pd
-from tidyverse._optional_pyspark import ps, concat_ws
-from typing import Union, Optional
-from tidyverse.utils import (
-    _get_list_columns,
-    _convert_numeric,
-    _get_str_columns,
+
+from tidyverse_to_pandas._optional_pyspark import concat_ws, ps
+from tidyverse_to_pandas.utils import (
     _check_df_type,
     _check_unique,
+    _convert_numeric,
+    _get_list_columns,
+    _get_str_columns,
 )
-import warnings
-import numpy as np
-import re
-
 
 # Pivoting
 
 
 def pivot_longer(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[list, tuple, np.ndarray, str],
+    data: pd.DataFrame | ps.DataFrame,
+    cols: list | tuple | np.ndarray | str,
     names_to: str = "name",
-    names_prefix: Optional[Union[list, tuple, np.ndarray, str]] = None,
-    names_sep: Optional[Union[list, tuple, np.ndarray, str]] = None,
-    names_pattern: Optional[Union[list, tuple, np.ndarray, str]] = None,
-    names_ptypes: Union[list, tuple, np.ndarray] = None,
+    names_prefix: list | tuple | np.ndarray | str | None = None,
+    names_sep: list | tuple | np.ndarray | str | None = None,
+    names_pattern: list | tuple | np.ndarray | str | None = None,
+    names_ptypes: list | tuple | np.ndarray = None,
     names_repair: str = "check_unique",
     values_to: str = "value",
     values_drop_na: bool = True,
     values_ptypes: [list, tuple, np.ndarray] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Pivot_longer() "lengthens" data, increasing the number of rows and decreasing the number of columns.
 
     Parameters
@@ -151,16 +151,16 @@ def pivot_longer(
 
 
 def pivot_wider(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    id_cols: Union[str, list, tuple, np.ndarray] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    id_cols: str | list | tuple | np.ndarray = None,
     names_from: str = "name",
     names_prefix: str = "",
     names_sep: str = "_",
     names_repair: str = "check_unique",
-    values_from: Union[str, list, tuple, np.ndarray] = "value",
-    values_fill: Optional[dict] = None,
-    values_fn: Optional[dict] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    values_from: str | list | tuple | np.ndarray = "value",
+    values_fill: dict | None = None,
+    values_fn: dict | None = None,
+) -> pd.DataFrame | ps.DataFrame:
     """Pivot_wider() "widens" data, increasing the number of columns and decreasing the number of rows.
 
     The inverse transformation is pivot_longer().
@@ -218,7 +218,7 @@ def pivot_wider(
             id_cols = _get_list_columns(data, id_cols, is_pandas)
         # Unites all naming columns into one larger column
         if names_sep is not None and len(names_from) > 1:
-            new_col = "{}".format(names_sep).join([name for name in names_from])
+            new_col = f"{names_sep}".join([name for name in names_from])
             data = unite(
                 data,
                 new_col,
@@ -230,7 +230,7 @@ def pivot_wider(
             names_from = [new_col]
         # Unites all value columns into one larger column
         if names_sep is not None and len(values_from) > 1:
-            new_col = "{}".format(names_sep).join([name for name in values_from])
+            new_col = f"{names_sep}".join([name for name in values_from])
             data = unite(
                 data,
                 new_col,
@@ -273,15 +273,15 @@ def pivot_wider(
 
 
 def unnest_longer(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    col: Union[str, list, tuple, np.ndarray],
-    values_to: Union[str, list, tuple, np.ndarray] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    col: str | list | tuple | np.ndarray,
+    values_to: str | list | tuple | np.ndarray = None,
     indices_to: str = None,
     indices_include: bool = False,
     names_repair: str = "check_unique",
     simplify: bool = False,
-    ptype: Optional[dict] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    ptype: dict | None = None,
+) -> pd.DataFrame | ps.DataFrame:
     """Turn each element of a list-column into a row.
 
     Parameters
@@ -334,7 +334,7 @@ def unnest_longer(
                 pivot_cols = list(unnest_data.columns)
                 # Data is in wide format, so we need to convert it to long format
                 unnest_data = unnest_data.join(data.drop(list(col), axis=1), how="left")
-                indices_to = indices_to if indices_to is not None else "{}_id".format(col)
+                indices_to = indices_to if indices_to is not None else f"{col}_id"
                 unnest_data = pivot_longer(unnest_data, pivot_cols, names_to=indices_to, values_to=col)
                 # Our pivot longer returns the ids first, then the values. However, unnest_longer returns values first,
                 # followed by id, so we need to reverse the column order to follow tidyr convention for this function
@@ -362,13 +362,13 @@ def unnest_longer(
 
 
 def unnest_wider(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    col: Union[str, list, tuple, np.ndarray],
-    names_sep: Optional[str] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    col: str | list | tuple | np.ndarray,
+    names_sep: str | None = None,
     simplify: bool = False,
     names_repair: str = "check_unique",
-    ptype: Optional[dict] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    ptype: dict | None = None,
+) -> pd.DataFrame | ps.DataFrame:
     """Turn each element of a list-column into a column.
 
     Parameters
@@ -410,16 +410,13 @@ def unnest_wider(
                     break
             if is_equal:
                 unnested_data = pd.concat(
-                    [
-                        pd.DataFrame(data[x].tolist(), index=data.index).add_prefix("{}{}".format(x, names_sep))
-                        for x in col
-                    ],
+                    [pd.DataFrame(data[x].tolist(), index=data.index).add_prefix(f"{x}{names_sep}") for x in col],
                     axis=1,
                 )
             else:
                 unnested_data = pd.concat(
                     [
-                        pd.DataFrame(data[x].apply(pd.Series), index=data.index).add_prefix("{}{}".format(x, names_sep))
+                        pd.DataFrame(data[x].apply(pd.Series), index=data.index).add_prefix(f"{x}{names_sep}")
                         for x in col
                     ],
                     axis=1,
@@ -430,9 +427,9 @@ def unnest_wider(
                 # Similarly, we are checking if all the lists within the column are the same length. If they are, we can
                 # speed things up using data[col].tolist(). Else, we use data[col].apply(pd.Series).
                 if (data[col].str.len()[0] == data[col].str.len()[1:]).all():
-                    unnested_data = pd.DataFrame(data[col].tolist()).add_prefix("{}{}".format(col, names_sep))
+                    unnested_data = pd.DataFrame(data[col].tolist()).add_prefix(f"{col}{names_sep}")
                 else:
-                    unnested_data = data[col].apply(pd.Series).add_prefix("{}{}".format(col, names_sep))
+                    unnested_data = data[col].apply(pd.Series).add_prefix(f"{col}{names_sep}")
             # data is in dictionary format
             else:
                 unnested_data = pd.json_normalize(data[col])
@@ -455,9 +452,7 @@ def unnest_wider(
 # Nesting and Unnesting Data
 
 
-def nest(
-    data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def nest(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndarray) -> pd.DataFrame | ps.DataFrame:
     """Nesting transforms multiple rows and columns into nested dictionaries.
 
     Parameters
@@ -537,13 +532,13 @@ def nest(
 
 
 def unnest(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray],
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray,
     keep_empty: bool = False,
-    ptype: Optional[dict] = None,
-    names_sep: Optional[str] = None,
+    ptype: dict | None = None,
+    names_sep: str | None = None,
     names_repair: str = "check_unique",
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Unnesting flattens a column of dicts back out into regular columns.
 
     Parameters
@@ -591,7 +586,7 @@ def unnest(
                 temp_df = pd.DataFrame(data[col][index])
                 # Rename the columns based on the outer columns, the separator and the inner column
                 if names_sep is not None:
-                    temp_df.columns = ["{}{}{}".format(col, names_sep, val) for val in temp_df.columns]
+                    temp_df.columns = [f"{col}{names_sep}{val}" for val in temp_df.columns]
                 # If we haven't concatenated any data yet, we want to include our non_nested_columns at the beginning
                 # then we only need to concatenate regular values.
                 if len(unnested_df) == 0:
@@ -616,9 +611,7 @@ def unnest(
 # Chopping and Unchopping Data
 
 
-def chop(
-    data: Union[pd.DataFrame, ps.DataFrame], cols: Union[str, list, tuple, np.ndarray]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def chop(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndarray) -> pd.DataFrame | ps.DataFrame:
     """Make dataframes shorter by converting rows within each group into lists.
 
     Parameters
@@ -664,11 +657,11 @@ def chop(
 
 
 def unchop(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray],
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray,
     keep_empty: bool = False,
-    ptype: Optional[dict] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    ptype: dict | None = None,
+) -> pd.DataFrame | ps.DataFrame:
     """Expand list-columns so that each element of the list-column gets its own row in the output.
 
     Parameters
@@ -728,15 +721,15 @@ def unchop(
 
 
 def separate(
-    data: Union[pd.DataFrame, ps.DataFrame],
+    data: pd.DataFrame | ps.DataFrame,
     col: str,
-    into: Union[list, tuple, np.ndarray],
-    sep: Union[str, int] = "_",
+    into: list | tuple | np.ndarray,
+    sep: str | int = "_",
     remove: bool = True,
     convert: bool = False,
     extra: str = "warn",
     fill: str = "warn",
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Separate a single character column into multiple columns using a regex or vector of character positions.
 
     Parameters
@@ -803,11 +796,7 @@ def separate(
             if extra == "warn":
                 if diff > 0:
                     warnings.warn(
-                        "Expected {} pieces. Additional piece discarded in {} rows {}".format(
-                            len(into),
-                            diff,
-                            [i for i in range(splits.shape[0], splits.shape[0] + diff)],
-                        )
+                        f"Expected {len(into)} pieces. Additional piece discarded in {diff} rows {[i for i in range(splits.shape[0], splits.shape[0] + diff)]}"
                     )
             splits.columns = into + ["NA"] * diff
             # We do this instead of checking if diff > 0 because the user could've specified certain columns to be
@@ -819,7 +808,7 @@ def separate(
             # we need the number of column names to exactly match how many separations we are going to create
             if len(sep) != len(into) - 1:
                 raise AttributeError(
-                    "{} column names were expected but {} column names were received".format(len(into) - 1, len(sep))
+                    f"{len(into) - 1} column names were expected but {len(sep)} column names were received"
                 )
             splits = pd.DataFrame()
             # str.slice() returns "" if there is no match, which will fail our covert condition, so we convert it to
@@ -840,7 +829,6 @@ def separate(
         if remove:
             data = data.drop([col], axis=1)
     else:
-        ...
         # pyspark has no native ability to extract column names, so we'll need to do it ourselves
         if remove:
             data = data.drop(col)
@@ -848,13 +836,13 @@ def separate(
 
 
 def extract(
-    data: Union[pd.DataFrame, ps.DataFrame],
+    data: pd.DataFrame | ps.DataFrame,
     col: str,
-    into: Union[list, tuple, np.ndarray],
+    into: list | tuple | np.ndarray,
     regex: str = "([a-zA-Z0-9]+)",
     remove: bool = True,
     convert: bool = False,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Given a regular expression with capturing groups, extract() turns each group into a new column.
 
     If the groups don't match, or the input is NA, the output will be NA.
@@ -888,7 +876,7 @@ def extract(
         # If our regex extracts more columns column names provided, then we are keeping the first n columns,
         # where n is the number of column names provided
         if len(into) < splits.shape[1]:
-            splits = splits.iloc[:, 0: len(into)]
+            splits = splits.iloc[:, 0 : len(into)]
         splits.columns = into
         # If user specifies they want certain columns to be dropped
         if "NA" in splits.columns:
@@ -899,7 +887,6 @@ def extract(
         if remove:
             data = data.drop([col], axis=1)
     else:
-        ...
         # use Pyspark regular expressions
         if remove:
             data = data.drop(col)
@@ -907,13 +894,13 @@ def extract(
 
 
 def unite(
-    data: Union[pd.DataFrame, ps.DataFrame],
+    data: pd.DataFrame | ps.DataFrame,
     col: str,
-    input_cols: Union[list, tuple, np.ndarray] = None,
+    input_cols: list | tuple | np.ndarray = None,
     sep: str = "_",
     remove: bool = True,
     na_rm: bool = False,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Paste together multiple columns into one.
 
     Parameters
@@ -963,7 +950,6 @@ def unite(
             data = data.drop(input_cols, axis=1)
         data = data.replace("NA", np.nan)
     else:
-        ...
         if na_rm:
             data = data.dropna(how="any", subset=input_cols)
         data = data.withColumn(col, concat_ws(sep, *input_cols))
@@ -976,9 +962,9 @@ def unite(
 
 
 def drop_na(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray = None,
+) -> pd.DataFrame | ps.DataFrame:
     """Drop rows containing missing values.
 
     Parameters
@@ -1016,9 +1002,7 @@ def drop_na(
     return data
 
 
-def replace_na(
-    data: Union[pd.DataFrame, ps.DataFrame], replace: Union[str, int, dict]
-) -> Union[pd.DataFrame, ps.DataFrame]:
+def replace_na(data: pd.DataFrame | ps.DataFrame, replace: str | int | dict) -> pd.DataFrame | ps.DataFrame:
     """Replace missing values.
 
     Parameters
@@ -1043,10 +1027,10 @@ def replace_na(
 
 
 def fill(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[str, list, tuple, np.ndarray] = None,
+    data: pd.DataFrame | ps.DataFrame,
+    cols: str | list | tuple | np.ndarray = None,
     direction: str = "down",
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> pd.DataFrame | ps.DataFrame:
     """Fill missing values in selected columns using the next or previous entry.
 
     This is useful in the common output format where values are not repeated, and are only recorded when they change.
@@ -1100,10 +1084,10 @@ def fill(
 
 
 def complete(
-    data: Union[pd.DataFrame, ps.DataFrame],
-    cols: Union[list, tuple, np.ndarray] = None,
-    fill: Optional[dict] = None,
-) -> Union[pd.DataFrame, ps.DataFrame]:
+    data: pd.DataFrame | ps.DataFrame,
+    cols: list | tuple | np.ndarray = None,
+    fill: dict | None = None,
+) -> pd.DataFrame | ps.DataFrame:
     """Turn implicit missing values into explicit missing values.
 
     Parameters
@@ -1186,7 +1170,6 @@ def complete(
             data = data.fillna(fill)
         data = data[ordered_cols]
     else:
-        ...
         if fill is not None:
             data = data.fillna(fill)
     return data
