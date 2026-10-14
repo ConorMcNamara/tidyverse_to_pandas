@@ -303,7 +303,7 @@ def ymd_hms(dates: DateInput, tz: str | None = None) -> str | list | np.ndarray 
 
     Returns
     -------
-    Strings and lists return "%Y-%m-%d %H:%M:%S" strings ("%Y-%m-%d %H:%M:%S %Z" when ``tz`` is given), numpy arrays
+    Strings and lists return "%Y-%m-%d %H : %M:%S" strings ("%Y-%m-%d %H:%M:%S %Z" when ``tz`` is given), numpy arrays
     return ``datetime64`` (in UTC when ``tz`` is given), and Series return ``datetime64[ns]`` (tz-aware when ``tz`` is
     given). Values that fail to parse are returned as missing, with a warning.
     """
