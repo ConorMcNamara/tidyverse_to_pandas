@@ -14,6 +14,8 @@ from tidyverse_to_pandas.rebase_dplyr_to_pandas import (
     pull,
     relocate,
     rename,
+    select,
+    transmute,
 )
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -82,15 +84,16 @@ class TestDplyrToPandas:
         starwars = pd.read_csv(DATA_DIR / "starwars.csv")
         expected = pd.DataFrame(
             {
-                "sex": ["male", "female", "none", "hermaphroditic", "none"],
+                "sex": ["male", "female", "none", np.nan, "hermaphroditic", "none"],
                 "gender": [
                     "masculine",
                     "feminine",
                     "masculine",
+                    np.nan,
                     "masculine",
                     "feminine",
                 ],
-                "n": [60, 16, 5, 1, 1],
+                "n": [60, 16, 5, 4, 1, 1],
             }
         )
         expected["sex"] = expected["sex"].astype("category")
@@ -511,5 +514,148 @@ class TestDplyrToPandas:
         pd.testing.assert_frame_equal(relocate(data, "a", after="c"), expected)
 
 
+class TestDplyrRegressions:
+    @pytest.fixture
+    def df(self) -> pd.DataFrame:
+        return pd.DataFrame({"a": [1, 2, 3, 4], "b": [10, 20, 30, 40]})
+
+    # Arrange
+    def test_arrange_column_containing_desc(self) -> None:
+        data = pd.DataFrame({"description": ["b", "a", "c"]})
+        assert arrange(data, "description")["description"].tolist() == ["a", "b", "c"]
+
+    def test_arrange_tuple_and_minus(self, df) -> None:
+        assert arrange(df, ("desc(a)",))["a"].tolist() == [4, 3, 2, 1]
+        assert arrange(df, "-a")["a"].tolist() == [4, 3, 2, 1]
+
+    # Count
+    def test_count_counts_rows_and_na_groups(self) -> None:
+        data = pd.DataFrame({"g": ["x", "x", "y", None], "h": [np.nan, 1, 1, 1]})
+        result = count(data, "g")
+        assert result["n"].tolist() == [2, 1, 1]
+        assert result["g"].isna().tolist() == [False, False, True]
+
+    def test_count_does_not_mutate_input(self) -> None:
+        data = pd.DataFrame({"g": ["x", "y"]})
+        count(data, "g")
+        assert data["g"].dtype != "category"
+
+    def test_count_no_columns(self, df) -> None:
+        pd.testing.assert_frame_equal(count(df), pd.DataFrame({"n": [4]}))
+
+    def test_count_drop_false_keeps_empty_levels(self) -> None:
+        data = pd.DataFrame({"g": pd.Categorical(["x", "x"], categories=["x", "y"])})
+        result = count(data, "g", drop=False)
+        assert result["g"].tolist() == ["x", "y"]
+        assert result["n"].tolist() == [2, 0]
+
+    # Add Count
+    def test_add_count_copies_and_counts_na(self) -> None:
+        data = pd.DataFrame({"g": ["x", "x", None]})
+        result = add_count(data, "g")
+        assert "n" not in data.columns
+        assert result["n"].tolist() == [2, 2, 1]
+        assert result["n"].dtype == "int64"
+
+    # Distinct
+    def test_distinct_tuple(self) -> None:
+        data = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3]})
+        assert distinct(data, ("a",)).shape == (2, 1)
+
+    def test_distinct_keep_all_preserves_column_order(self) -> None:
+        data = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3]})
+        pd.testing.assert_frame_equal(distinct(data, "b", keep_all=True), data)
+
+    # Filter
+    def test_filter_negative_literal(self, df) -> None:
+        assert len(filter(df, "a > -1")) == 4
+
+    def test_filter_arithmetic(self, df) -> None:
+        assert filter(df, "b - a > 20")["a"].tolist() == [3, 4]
+
+    def test_filter_aggregate_inside_expression(self, df) -> None:
+        assert filter(df, "b > mean(b) * 1.5")["b"].tolist() == [40]
+
+    def test_filter_aggregate_on_left(self, df) -> None:
+        assert filter(df, "mean(a) < a")["a"].tolist() == [3, 4]
+
+    def test_filter_snake_case_column(self) -> None:
+        data = pd.DataFrame({"birth_year": [10, 20, 30]})
+        assert filter(data, "birth_year > mean(birth_year)")["birth_year"].tolist() == [30]
+
+    def test_filter_not_equal_and_quantile(self, df) -> None:
+        assert filter(df, "a != mean(a)")["a"].tolist() == [1, 2, 3, 4]
+        assert filter(df, "a <= quantile(a, 1)")["a"].tolist() == [1, 2, 3, 4]
+
+    def test_filter_list_conditions_are_grouped(self, df) -> None:
+        assert filter(df, ["a == 1 | a == 4", "b > 15"])["a"].tolist() == [4]
+
+    def test_filter_r_operators(self) -> None:
+        data = pd.DataFrame({"x": ["blue-gray", "red", None], "y": [1, 2, 3]})
+        assert filter(data, "x == 'blue-gray'")["y"].tolist() == [1]
+        assert filter(data, "x %in% c('red', 'blue-gray') & !is.na(x)")["y"].tolist() == [1, 2]
+        assert filter(data, "!(y == 1)")["y"].tolist() == [2, 3]
+
+    # Mutate
+    def test_mutate_multi_character_name(self, df) -> None:
+        assert mutate(df, "new_col = a + b")["new_col"].tolist() == [11, 22, 33, 44]
+
+    def test_mutate_numeric_literal(self, df) -> None:
+        assert mutate(df, "z = 2 * a")["z"].tolist() == [2, 4, 6, 8]
+
+    def test_mutate_list_applied_sequentially(self, df) -> None:
+        result = mutate(df, ["c = a + b", "d = c * 2"])
+        assert result["d"].tolist() == [22, 44, 66, 88]
+
+    def test_mutate_keep_unused_keeps_overwritten_column(self, df) -> None:
+        result = mutate(df, "a = a + b", keep="unused")
+        assert result.columns.tolist() == ["a"]
+        assert result["a"].tolist() == [11, 22, 33, 44]
+
+    def test_mutate_keep_used(self) -> None:
+        data = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+        assert mutate(data, "z = a + 1", keep="used").columns.tolist() == ["a", "z"]
+
+    def test_mutate_null_removes_column(self, df) -> None:
+        assert mutate(df, "b = NULL").columns.tolist() == ["a"]
+
+    def test_mutate_does_not_mutate_input(self, df) -> None:
+        mutate(df, "z = a")
+        assert df.columns.tolist() == ["a", "b"]
+
+    def test_mutate_keyword_argument_matching_column_name(self) -> None:
+        data = pd.DataFrame({"x": [1, 2, 3], "n": [0, 0, 0]})
+        assert mutate(data, "z = lag(x, n = 2)")["z"].isna().tolist() == [True, True, False]
+
+    # Transmute
+    def test_transmute_keeps_only_new_columns(self, df) -> None:
+        result = transmute(df, ["total = a + b", "double = total * 2"])
+        assert result.columns.tolist() == ["total", "double"]
+
+    # Pull
+    def test_pull_defaults_to_last_column(self, df) -> None:
+        pd.testing.assert_series_equal(pull(df), df["b"])
+
+    # Rename
+    def test_rename_tuple(self, df) -> None:
+        assert rename(df, ("a = x",)).columns.tolist() == ["x", "b"]
+
+    # Select
+    def test_select_multiple_exclusions(self) -> None:
+        data = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+        assert select(data, ["-a", "-b"]).columns.tolist() == ["c"]
+
+    def test_select_tuple(self, df) -> None:
+        assert select(df, ("b",)).columns.tolist() == ["b"]
+
+
 if __name__ == "__main__":
     pytest.main()
+
+
+class TestExpressionSafety:
+    @staticmethod
+    @pytest.mark.parametrize("expression", ['z = "x".__class__', "z = (1).__class__", "z = __import__"])
+    def test_rejects_python_internals(expression) -> None:
+        with pytest.raises(ValueError):
+            mutate(pd.DataFrame({"a": [1]}), expression)

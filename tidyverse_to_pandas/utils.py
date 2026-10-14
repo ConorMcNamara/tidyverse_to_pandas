@@ -41,13 +41,15 @@ def _get_str_columns(
             cols = list(data.columns)
     else:
         cols = list(cols)
-    if ":" in str_arguments:
-        start_col, end_col = str_arguments.split(":")
+    if str_arguments in cols:
+        # An exact column name wins, so names like "first-name" or "a:b" are not parsed as selection syntax
+        cols = [str_arguments]
+    elif ":" in str_arguments and all(part in cols for part in str_arguments.split(":", 1)):
+        start_col, end_col = str_arguments.split(":", 1)
         start_index, end_index = cols.index(start_col), cols.index(end_col) + 1
         cols = cols[start_index:end_index]
-    elif "-" in str_arguments:
-        col_to_remove = str_arguments[str_arguments.find("-") + 1 :]
-        cols.remove(col_to_remove)
+    elif str_arguments.startswith("-") and str_arguments[1:] in cols:
+        cols.remove(str_arguments[1:])
     else:
         cols = [str_arguments]
     return cols
@@ -74,28 +76,39 @@ def _get_list_columns(
     -------
     All applicable columns
     """
-    if is_pandas:
-        cols = data.columns.tolist()
-    else:
-        cols = data.columns
+    cols = data.columns.tolist() if is_pandas else list(data.columns)
+    # Mirror tidyselect: selections are applied in order, and a leading exclusion starts from every column
     return_cols: list[Any] = []
-    for column in list_cols:
-        return_cols = return_cols + _get_str_columns(data, column, cols=cols)
+    for i, column in enumerate(list_cols):
+        is_exclusion = isinstance(column, str) and column.startswith("-") and column not in cols and column[1:] in cols
+        if is_exclusion:
+            if i == 0:
+                return_cols = list(cols)
+            return_cols = [c for c in return_cols if c != column[1:]]
+        else:
+            return_cols = return_cols + _get_str_columns(data, column, cols=cols)
     return list(unique_everseen(return_cols))
 
 
 def _convert_numeric(
     data: pd.DataFrame | ps.DataFrame,
 ) -> pd.DataFrame | ps.DataFrame:
-    # We go column by column and see if the column contains only numeric characters. If it does, then we
-    # can safely use pd.to_numeric(), which also handles if it gets converted to integer or float.
-    return data.apply(lambda x: pd.to_numeric(x) if x.str.isnumeric().all() else x, axis=0)
+    # Convert each text column to numeric only if every non-missing value parses, mirroring type.convert()
+    def _try_numeric(x: pd.Series) -> pd.Series:
+        if pd.api.types.is_numeric_dtype(x):
+            return x
+        try:
+            return pd.to_numeric(x)
+        except (ValueError, TypeError):
+            return x
+
+    return data.apply(_try_numeric, axis=0)
 
 
 def _check_df_type(data: pd.DataFrame | ps.DataFrame, argument: str) -> bool:
     if isinstance(data, pd.DataFrame):
         return True
-    elif isinstance(data, ps.Column):
+    elif isinstance(data, ps.DataFrame):
         return False
     else:
         raise Exception(f"Cannot perform {argument} on non-DataFrame")
@@ -107,12 +120,17 @@ def _check_unique(data: pd.DataFrame | ps.DataFrame, how: str = "unique") -> pd.
         if how.casefold() == "check_unique":
             raise AttributeError("Not all columns have unique names")
         elif how.casefold() == "unique":
-            cols = pd.Series(data.columns)
-            for dup in cols[cols.duplicated()].unique():
-                dup_indices = cols[cols == dup].index.tolist()
-                new_names = [dup + "." + str(i) if i != 0 else dup for i in range(sum(cols == dup))]
-                for idx, name in zip(dup_indices, new_names):
-                    cols[idx] = name
+            # Keep the first occurrence and suffix later repeats with .1, .2, ..., skipping names already taken
+            cols = []
+            taken = set(data.columns)
+            emitted: set = set()
+            for name in data.columns:
+                candidate, i = name, 0
+                while candidate in emitted or (i > 0 and candidate in taken):
+                    i += 1
+                    candidate = f"{name}.{i}"
+                emitted.add(candidate)
+                cols.append(candidate)
             data.columns = pd.Index(cols)
             return data
         else:
