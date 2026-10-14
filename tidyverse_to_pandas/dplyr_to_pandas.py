@@ -4,6 +4,9 @@ import re
 
 import pandas as pd
 
+from tidyverse_to_pandas import rebase_dplyr_to_pandas as _rebase
+from tidyverse_to_pandas.rebase_dplyr_to_pandas import _eval_expression, _split_assignment
+
 # Transform Variables
 
 
@@ -36,21 +39,7 @@ def mutate(data, *args):
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use mutate on a non-DataFrame")
-    for arg in args:
-        before_equals = re.search(r"(.*)?\s+=", arg).group(0)
-        before_arg = re.sub(r"(=|\s+)", r"", before_equals)
-        after_equals = re.search(r"=(.*)", arg).group(0)
-        after_equals = re.sub(r"(=|\s+)", r"", after_equals)
-        after_equals = re.sub(r"\b([a-zA-Z]+)\b", r"x.\1", after_equals)  # Handles camelCase
-        if re.search(r"(_)", after_equals):  # Handles snake_case
-            after_equals = re.sub(r"\b([a-zA-Z]+_)", r"x.\1", after_equals)
-        if re.search(r"([a-zA-Z]+\d)", after_equals):  # Handles camelCase1
-            after_equals = re.sub(r"\b([a-zA-Z]+\d)\b", r"x.\1", after_equals)
-        if re.search(r"(^\d)", after_equals):  # Handles 18a
-            after_equals = re.sub(r"(^\d)", r"x.\1", after_equals)
-        after_arg = f"lambda x: {after_equals}"
-        data = data.assign(**{before_arg: eval(after_arg)})
-    return data
+    return _rebase.mutate(data, list(args))
 
 
 def transmute(data, *args):
@@ -82,24 +71,7 @@ def transmute(data, *args):
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use transmute on a non-DataFrame")
-    cols_to_keep = []
-    for arg in args:
-        before_equals = re.search(r"(.*)?\s+=", arg).group(0)
-        before_arg = re.sub(r"(=|\s+)", r"", before_equals)
-        cols_to_keep.append(before_arg)
-        after_equals = re.search(r"=(.*)", arg).group(0)
-        after_equals = re.sub(r"(=|\s+)", r"", after_equals)
-        after_equals = re.sub(r"\b([a-zA-Z]+)\b", r"x.\1", after_equals)  # Handles camelCase
-        if re.search(r"(_)", after_equals):  # Handles snake_case
-            after_equals = re.sub(r"\b([a-zA-Z]+_)", r"x.\1", after_equals)
-        if re.search(r"([a-zA-Z]+\d)", after_equals):  # Handles camelCase1
-            after_equals = re.sub(r"\b([a-zA-Z]+\d)\b", r"x.\1", after_equals)
-        if re.search(r"(^\d)", after_equals):  # Handles 18a
-            after_equals = re.sub(r"(^\d)", r"x.\1", after_equals)
-        after_arg = f"lambda x: {after_equals}"
-        data = data.assign(**{before_arg: eval(after_arg)})
-    data = data.drop(data.columns.difference(cols_to_keep), axis=1)
-    return data
+    return _rebase.transmute(data, list(args))
 
 
 # Select/Rename Variables
@@ -134,15 +106,7 @@ def rename(data, *args):
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use rename on a non-DataFrame")
-    cols_to_rename = {}
-    for arg in args:
-        before_equals = re.search(r"(.*)?\s+=", arg).group(0)
-        before_arg = re.sub(r"(=|\s+)", r"", before_equals)
-        after_equals = re.search(r"=(.*)", arg).group(0)
-        after_arg = re.sub(r"(=|\s+)", r"", after_equals)
-        cols_to_rename[before_arg] = after_arg
-    data = data.rename(cols_to_rename, axis=1)
-    return data
+    return _rebase.rename(data, list(args))
 
 
 def starts_with(column_name, match, ignore_case=True):
@@ -162,10 +126,9 @@ def starts_with(column_name, match, ignore_case=True):
     re.Match or None
         The match object if ``column_name`` starts with ``match``, otherwise None
     """
-    if ignore_case:
-        return re.search(rf"(^{match.casefold()}.*)", column_name.casefold())
-    else:
-        return re.search(rf"(^{match}.*)", column_name)
+    # As in tidyselect, the match is a literal string rather than a regular expression
+    flags = re.IGNORECASE if ignore_case else 0
+    return re.search(rf"^{re.escape(match)}", column_name, flags)
 
 
 def ends_with(column_name, match, ignore_case=True):
@@ -185,10 +148,9 @@ def ends_with(column_name, match, ignore_case=True):
     re.Match or None
         The match object if ``column_name`` ends with ``match``, otherwise None
     """
-    if ignore_case:
-        return re.search(rf"({match.casefold()}$)", column_name.casefold())
-    else:
-        return re.search(rf"({match}$)", column_name)
+    # As in tidyselect, the match is a literal string rather than a regular expression
+    flags = re.IGNORECASE if ignore_case else 0
+    return re.search(rf"{re.escape(match)}$", column_name, flags)
 
 
 def contains(column_name, match, ignore_case=True):
@@ -208,10 +170,9 @@ def contains(column_name, match, ignore_case=True):
     re.Match or None
         The match object if ``column_name`` contains ``match``, otherwise None
     """
-    if ignore_case:
-        return re.search(rf"({match.casefold()})", column_name.casefold())
-    else:
-        return re.search(rf"({match})", column_name)
+    # As in tidyselect, the match is a literal string rather than a regular expression
+    flags = re.IGNORECASE if ignore_case else 0
+    return re.search(re.escape(match), column_name, flags)
 
 
 def select(data, *args):
@@ -242,105 +203,56 @@ def select(data, *args):
         The columns we are selecting, for example, "x" or "x_1"
     """
     if not isinstance(data, pd.DataFrame):
-        raise Exception("Cannot use rename on a non-DataFrame")
-    cols_to_keep = []
-    cols_to_drop = []
-    for arg in args:
-        if "starts_with" in arg:
-            expression = re.search(r"\((.*)\)", arg).group(0)
-            expression = re.sub(r"(\(|\))", r"", expression)
-            for col in data.columns:
-                if starts_with(col, rf"(^{expression}.*)"):
-                    if re.search(r"(^-)", arg):
-                        if col not in cols_to_drop:
-                            cols_to_drop.append(col)
-                    else:
-                        if col not in cols_to_keep:
-                            cols_to_keep.append(col)
-        elif "ends_with" in arg:
-            expression = re.search(r"\((.*)\)", arg).group(0)
-            expression = re.sub(r"(\(|\))", r"", expression)
-            for col in data.columns:
-                if ends_with(col, rf"({expression}$)"):
-                    if re.search(r"(^-)", arg):
-                        if col not in cols_to_drop:
-                            cols_to_drop.append(col)
-                    else:
-                        if col not in cols_to_keep:
-                            cols_to_keep.append(col)
-        elif "contains" in arg:
-            expression = re.search(r"\((.*)\)", arg).group(0)
-            expression = re.sub(r"(\(|\))", r"", expression)
-            for col in data.columns:
-                if contains(col, rf"{expression}"):
-                    if re.search(r"(^-)", arg):
-                        if col not in cols_to_drop:
-                            cols_to_drop.append(col)
-                    else:
-                        if col not in cols_to_keep:
-                            cols_to_keep.append(col)
-        elif "everything" in arg:
-            for col in data.columns:
-                if re.search(r"(^-)", arg):
-                    if col not in cols_to_drop:
-                        cols_to_drop.append(col)
-                else:
-                    if col not in cols_to_keep:
-                        cols_to_keep.append(col)
-        elif "num_range" in arg:
-            var_name = re.search(r"\((.*),", arg).group(0)
-            var_name = re.sub(r"(\(|,)", r"", var_name)
-            var_range = re.search(r"\d.*(\d)", arg).group(0)
-            var_start_range = int(re.search(r"(^\d)", var_range).group(0))
-            var_end_range = int(re.search(r"(\d$)", var_range).group(0))
-            for i in range(var_start_range, var_end_range + 1):
-                if re.search(r"(^-)", arg):
-                    cols_to_drop.append(f"{var_name}{i}")
-                else:
-                    cols_to_keep.append(f"{var_name}{i}")
-        elif "last_col" in arg:
-            if re.search(r"\((\d+)\)", arg):
-                num_offset = re.search(r"\((\d+)\)", arg).group(0)
-                num_offset = int(re.sub(r"(\(|\))", r"", num_offset)) + 1
-            elif re.search(r"\((offset?\s=?\s\d+)\)", arg):
-                num_offset = re.search(r"\((offset?\s=?\s\d+)\)", arg).group(0)
-                num_offset = int(re.search(r"\d+", re.sub(r"(\(|\)|\s+)", r"", num_offset)).group(0)) + 1
-            elif re.search(r"\((offset=\d+)\)", arg):
-                num_offset = re.search(r"\((offset=\d+)\)", arg).group(0)
-                num_offset = int(re.search(r"\d+", re.sub(r"(\(|\))", r"", num_offset)).group(0)) + 1
-            else:
-                num_offset = 1
-            if num_offset > len(data.columns):
-                raise Exception("Number of offsets is greater than number of columns")
-            col = data.iloc[:, -num_offset].name
-            if re.search(r"(^-)", arg):
-                if col not in cols_to_drop:
-                    cols_to_drop.append(col)
-            else:
-                if col not in cols_to_keep:
-                    cols_to_keep.append(col)
+        raise Exception("Cannot use select on a non-DataFrame")
+    columns = list(data.columns)
+    selected: list = []
+    # Selections are applied in order. A leading exclusion starts from every column, as in tidyselect.
+    for i, arg in enumerate(args):
+        arg = arg.strip()
+        exclude = arg.startswith("-") and arg not in columns
+        matched = _match_selection(data, arg[1:].strip() if exclude else arg)
+        if exclude:
+            if i == 0:
+                selected = list(columns)
+            selected = [col for col in selected if col not in matched]
         else:
-            if re.search(r"(^-)", arg):
-                if "-" in re.sub(r"(-?\s+)", r"", arg):
-                    if re.sub(r"-", r"", arg) not in cols_to_drop:
-                        cols_to_drop.append(re.sub(r"-", r"", arg))
-                else:
-                    if re.sub(r"(-?\s+)", r"", arg) not in cols_to_drop:
-                        cols_to_drop.append(re.sub(r"(-?\s+)", r"", arg))
-            else:
-                if arg not in data.columns:
-                    raise Exception(f"Selected column {arg} not found in data frame")
-                else:
-                    if arg not in cols_to_keep:
-                        cols_to_keep.append(arg)
-    if cols_to_drop:
-        if cols_to_keep:
-            new_data = pd.concat([data.drop(cols_to_drop, axis=1), data[cols_to_keep]], axis=1)
-        else:
-            new_data = data.drop(cols_to_drop, axis=1)
-    else:
-        new_data = data[cols_to_keep]
-    return new_data
+            selected += [col for col in matched if col not in selected]
+    return data[selected]
+
+
+def _strip_quotes(text):
+    return text.strip().strip("'\"")
+
+
+def _match_selection(data, arg):
+    """Return the columns of ``data`` matched by a single (non-negated) select argument."""
+    columns = list(data.columns)
+    if arg in columns:
+        return [arg]
+    helper = re.fullmatch(r"(starts_with|ends_with|contains)\((.*)\)", arg)
+    if helper:
+        func = {"starts_with": starts_with, "ends_with": ends_with, "contains": contains}[helper.group(1)]
+        match = _strip_quotes(helper.group(2))
+        return [col for col in columns if func(col, match)]
+    if re.fullmatch(r"everything\(\s*\)", arg):
+        return columns
+    num_range = re.fullmatch(r"num_range\((.+?),\s*(\d+)\s*:\s*(\d+)\s*\)", arg)
+    if num_range:
+        prefix = _strip_quotes(num_range.group(1))
+        start, end = int(num_range.group(2)), int(num_range.group(3))
+        step = 1 if end >= start else -1
+        return [f"{prefix}{i}" for i in range(start, end + step, step) if f"{prefix}{i}" in columns]
+    last = re.fullmatch(r"last_col\((?:\s*(?:offset\s*=\s*)?(\d+))?\s*\)", arg)
+    if last:
+        offset = int(last.group(1) or 0)
+        if offset >= len(columns):
+            raise Exception("Number of offsets is greater than number of columns")
+        return [columns[-(offset + 1)]]
+    if ":" in arg:
+        start_col, end_col = (part.strip() for part in arg.split(":", 1))
+        if start_col in columns and end_col in columns:
+            return columns[columns.index(start_col) : columns.index(end_col) + 1]
+    raise Exception(f"Selected column {arg} not found in data frame")
 
 
 # Filter Data
@@ -374,48 +286,7 @@ def filter(data, *args):
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use filter on non-DataFrame")
-    query_result = []
-    counter = 1
-    args_length = len(args)
-    for arg in args:
-        if "mean(" in arg.casefold():
-            mean_col = re.search(r"(?<=mean\()[a-zA-Z]+", arg).group(0)
-            val = data[mean_col].mean()
-            comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = f"{mean_col} {comparison} {val}"
-        elif "median(" in arg.casefold():
-            median_col = re.search(r"(?<=median\()[a-zA-Z]+", arg).group(0)
-            val = data[median_col].median()
-            comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = f"{median_col} {comparison} {val}"
-        elif "min(" in arg.casefold():
-            min_col = re.search(r"(?<=min\()[a-zA-Z]+", arg).group(0)
-            val = data[min_col].min()
-            comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = f"{min_col} {comparison} {val}"
-        elif "max(" in arg.casefold():
-            max_col = re.search(r"(?<=max\()[a-zA-Z]+", arg).group(0)
-            val = data[max_col].max()
-            comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            result = f"{max_col} {comparison} {val}"
-        elif "quantile(" in arg.casefold():
-            quantile_col = re.search(r"(?<=quantile\()[a-zA-Z]+", arg).group(0)
-            if re.search("probs=", arg):
-                quantile_percent = float(re.search(r"(?<=probs\=)\s*\d*\.\d+", arg).group(0))
-            else:
-                quantile_percent = float(re.search(r"(?<=,)\s*\d*\.\d+", arg).group(0))
-            if quantile_percent > 1:
-                raise Exception("Cannot have percentile greater than 1")
-            comparison = re.search(r"([<>]=?|==)", arg).group(0)
-            val = data[quantile_col].quantile(quantile_percent)
-            result = f"{quantile_col} {comparison} {val}"
-        else:
-            result = arg
-        if counter < args_length:
-            result = result + " & "
-        query_result.append(result)
-        counter += 1
-    return data.query("".join(query_result))
+    return _rebase.filter(data, list(args))
 
 
 # Summarise Data
@@ -447,79 +318,15 @@ def summarise(data, *args):
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use summarise on a non-DataFrame")
-    summarise_data = pd.DataFrame()
+    summarised = {}
     for arg in args:
-        if "mean(" in arg.casefold():
-            mean_col = re.search(r"(?<=mean\()[a-zA-Z]+", arg).group(0)
-            val = data[mean_col].mean()
-        elif "median(" in arg.casefold():
-            median_col = re.search(r"(?<=median\()[a-zA-Z]+", arg).group(0)
-            val = data[median_col].median()
-        elif "sd(" in arg.casefold():
-            sd_col = re.search(r"(?<=sd\()[a-zA-Z]+", arg).group(0)
-            val = data[sd_col].std()
-        elif "iqr(" in arg.casefold():
-            iqr_col = re.search(r"(?<=iqr\()[a-zA-Z]+", arg).group(0)
-            lower_25 = data[iqr_col].quantile(0.25)
-            upper_25 = data[iqr_col].quantile(0.75)
-            val = upper_25 - lower_25
-        elif "mad(" in arg.casefold():
-            mad_col = re.search(r"(?<=mad\()[a-zA-Z]+", arg).group(0)
-            val = data[mad_col].mad()
-        elif "min(" in arg.casefold():
-            min_col = re.search(r"(?<=min\()[a-zA-Z]+", arg).group(0)
-            val = data[min_col].min()
-        elif "max(" in arg.casefold():
-            max_col = re.search(r"(?<=max\()[a-zA-Z]+", arg).group(0)
-            val = data[max_col].max()
-        elif "quantile(" in arg.casefold():
-            quantile_col = re.search(r"(?<=quantile\()[a-zA-Z]+", arg).group(0)
-            if re.search("probs=", arg):
-                quantile_percent = float(re.search(r"(?<=probs\=)\s*\d*\.\d+", arg).group(0))
-            else:
-                quantile_percent = float(re.search(r"(?<=,)\s*\d*\.\d+", arg).group(0))
-            if quantile_percent > 1:
-                raise Exception("Cannot have percentile greater than 1")
-            val = data[quantile_col].quantile(quantile_percent)
-        elif "first(" in arg.casefold():
-            first_col = re.search(r"(?<=first\()[a-zA-Z]+", arg).group(0)
-            val = data.loc[0, first_col]
-        elif "last(" in arg.casefold():
-            last_col = re.search(r"(?<=last\()[a-zA-Z]+", arg).group(0)
-            val = data.loc[len(data) - 1, last_col]
-        elif "nth(" in arg.casefold():
-            nth_col = re.search(r"(?<=nth\()[a-zA-Z]+", arg).group(0)
-            if re.search("n=", arg):
-                if re.search("-", arg):
-                    n_number = -int(float(re.search(r"(?<=-)\s*\d+", arg).group(0)))
-                else:
-                    n_number = int(float(re.search(r"(?<=n\=)\s*\d+", arg).group(0)))
-            else:
-                if re.search("-", arg):
-                    n_number = -int(float(re.search(r"(?<=-)\s*\d+", arg).group(0)))
-                else:
-                    n_number = int(float(re.search(r"(?<=,)\s*\d+", arg).group(0)))
-            if n_number == 0:
-                n_number = 1
-            if n_number > len(data):
-                raise Exception(f"Cannot access {n_number} element of DataFrame with {len(data)} elements")
-            if n_number < -len(data):
-                raise Exception(f"Cannot access {len(data) + n_number} element of DataFrame with {len(data)} elements")
-            if n_number < 0:
-                val = data.iloc[n_number, :][nth_col]
-            else:
-                val = data.iloc[n_number - 1, :][nth_col]
-        elif "n()" in arg.casefold():
-            val = len(data.dropna(axis=1, how="all"))
-        elif "n_distinct(" in arg.casefold():
-            n_distinct_col = re.search(r"(?<=n_distinct\()[a-zA-Z]+", arg).group(0)
-            val = data[n_distinct_col].nunique()
-        if re.search(r"^[a-zA-Z]+\s*=", arg):
-            name = re.search(r"^[a-zA-Z]+", arg).group(0)
-        else:
-            name = arg
-        summarise_data = pd.concat([summarise_data, pd.Series(val, name=name)], axis=1)
-    return summarise_data
+        try:
+            name, expression = _split_assignment(arg)
+        except ValueError:
+            name, expression = arg, arg
+        value, _ = _eval_expression(data, expression)
+        summarised[name] = [value]
+    return pd.DataFrame(summarised)
 
 
 # Sort data
@@ -554,13 +361,4 @@ def arrange(data, *args):
     """
     if not isinstance(data, pd.DataFrame):
         raise Exception("Cannot use arrange on a non-DataFrame")
-    sorting_cols = []
-    ascending_cols = []
-    for arg in args:
-        if re.search("desc()", arg):
-            sorting_cols.append(re.sub(r"desc|\(|\)|\s+", r"", arg))
-            ascending_cols.append(False)
-        else:
-            sorting_cols.append(arg)
-            ascending_cols.append(True)
-    return data.sort_values(sorting_cols, ascending=ascending_cols).reset_index().drop("index", axis=1)
+    return _rebase.arrange(data, list(args))

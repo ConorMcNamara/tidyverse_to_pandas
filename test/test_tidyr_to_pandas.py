@@ -111,7 +111,7 @@ class TestTidyrToPandas:
         expected = pd.DataFrame(
             {
                 "x": [1, 1, 2, 2, 2],
-                "y": [1.0, 2.0, 10.0, 11.0, 12.0],
+                "y": [1, 2, 10, 11, 12],
                 "y_id": ["a", "b", "a", "b", "c"],
             }
         )
@@ -171,9 +171,9 @@ class TestTidyrToPandas:
         expected = pd.DataFrame(
             {
                 "x": [1, 2, 3],
-                "y0": [np.nan, 1.0, 4.0],
-                "y1": [np.nan, 2.0, 5.0],
-                "y2": [np.nan, 3.0, np.nan],
+                "y_1": [np.nan, 1.0, 4.0],
+                "y_2": [np.nan, 2.0, 5.0],
+                "y_3": [np.nan, 3.0, np.nan],
             }
         )
         actual = unnest_wider(df, ["y"])
@@ -207,7 +207,7 @@ class TestTidyrToPandas:
         data = pd.read_csv(DATA_DIR / "iris.csv")
         nested_data = nest(data, "-Species")
         actual = unnest(nested_data, "data")
-        data = data[["Species"] + list(data.columns.difference(["Species"]))]
+        data = data[["Species"] + [c for c in data.columns if c != "Species"]]
         pd.testing.assert_frame_equal(actual, data)
 
     def test_unnest_multipleColumnsPandasIris(self) -> None:
@@ -251,9 +251,9 @@ class TestTidyrToPandas:
         data = pd.DataFrame({"x": ["a", "a", np.nan, np.nan], "y": ["b", np.nan, "b", np.nan]})
         expected = pd.DataFrame(
             {
+                "z": ["a_b", "a_NA", "NA_b", "NA_NA"],
                 "x": ["a", "a", np.nan, np.nan],
                 "y": ["b", np.nan, "b", np.nan],
-                "z": ["a_b", "a_NA", "NA_b", "NA_NA"],
             }
         )
         actual = unite(data, "z", ["x", "y"], remove=False)
@@ -263,9 +263,9 @@ class TestTidyrToPandas:
         data = pd.DataFrame({"x": ["a", "a", np.nan, np.nan], "y": ["b", np.nan, "b", np.nan]})
         expected = pd.DataFrame(
             {
+                "z": ["a_b", "a", "b", ""],
                 "x": ["a", "a", np.nan, np.nan],
                 "y": ["b", np.nan, "b", np.nan],
-                "z": ["a_b", "a", "b", ""],
             }
         )
         actual = unite(data, "z", ["x", "y"], na_rm=True, remove=False)
@@ -416,6 +416,210 @@ class TestTidyrToPandas:
         )
         actual = complete(data, ["group", "nesting(item_id, item_name)"], fill={"value1": 0})
         pd.testing.assert_frame_equal(actual, expected)
+
+
+class TestTidyrRegressions:
+    # Pivot Longer
+    def test_pivotLonger_dropNAOnlyValueColumn(self) -> None:
+        df = pd.DataFrame({"id": [1, 2], "x_1": [1, np.nan], "x_2": [3, 4], "other": [np.nan, 5]})
+        actual = pivot_longer(df, ["x_1", "x_2"], values_drop_na=True)
+        expected = pd.DataFrame(
+            {"id": [1, 1, 2], "other": [np.nan, np.nan, 5.0], "name": ["x_1", "x_2", "x_2"], "value": [1.0, 3.0, 4.0]}
+        )
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_pivotLonger_keepsNAByDefault(self) -> None:
+        df = pd.DataFrame({"id": [1], "a": [np.nan], "b": [2.0]})
+        assert len(pivot_longer(df, ["a", "b"])) == 2
+
+    def test_pivotLonger_namesPrefixAnchored(self) -> None:
+        df = pd.DataFrame({"id": [1], "x_x1": [1], "wk1": [2]})
+        assert pivot_longer(df, ["x_x1"], names_prefix="x")["name"].tolist() == ["_x1"]
+        assert pivot_longer(df, ["wk1"], names_prefix="^wk")["name"].tolist() == ["1"]
+
+    def test_pivotLonger_namesPrefixWithNamesSep(self) -> None:
+        df = pd.DataFrame({"id": [1], "wk_a_1": [5]})
+        actual = pivot_longer(df, ["wk_a_1"], names_to=["letter", "num"], names_prefix="wk_", names_sep="_")
+        assert actual.columns.tolist() == ["id", "letter", "num", "value"]
+        assert actual.iloc[0].tolist() == [1, "a", "1", 5]
+
+    def test_pivotLonger_namesPtypesSingleName(self) -> None:
+        df = pd.DataFrame({"id": [1], "1": [5], "2": [6]})
+        actual = pivot_longer(df, ["1", "2"], names_ptypes=[int])
+        assert actual["name"].tolist() == [1, 2]
+
+    def test_pivotLonger_keepsIdOrderAndRowOrder(self) -> None:
+        df = pd.DataFrame({"z": [1, 2], "a": [3, 4], "p": [5, 6], "q": [7, 8]})
+        actual = pivot_longer(df, ["p", "q"])
+        assert actual.columns.tolist() == ["z", "a", "name", "value"]
+        assert actual["value"].tolist() == [5, 7, 6, 8]
+
+    # Pivot Wider
+    def test_pivotWider_namesPrefix(self) -> None:
+        df = pd.DataFrame({"id": [1, 1], "k": [1, 2], "v": [3, 4]})
+        actual = pivot_wider(df, names_from="k", values_from="v", names_prefix="p_")
+        assert actual.columns.tolist() == ["id", "p_1", "p_2"]
+
+    def test_pivotWider_valuesFn(self) -> None:
+        df = pd.DataFrame({"id": [1, 1], "k": ["a", "a"], "v": [1, 4]})
+        actual = pivot_wider(df, names_from="k", values_from="v", values_fn="sum")
+        assert actual["a"].tolist() == [5]
+
+    def test_pivotWider_duplicatesNotAveraged(self) -> None:
+        df = pd.DataFrame({"g": [1, 1], "id": [1, 1], "k": ["a", "a"], "v": [1, 4]})
+        with pytest.warns(UserWarning, match="not uniquely identified"):
+            actual = pivot_wider(df, names_from="k", values_from="v")
+        assert actual["a"].tolist() == [[1, 4]]
+
+    def test_pivotWider_multipleValuesFrom(self) -> None:
+        df = pd.DataFrame({"id": [1, 1], "k": ["a", "b"], "v1": [1, 2], "v2": [3, 4]})
+        actual = pivot_wider(df, names_from="k", values_from=["v1", "v2"])
+        expected = pd.DataFrame({"id": [1], "v1_a": [1], "v1_b": [2], "v2_a": [3], "v2_b": [4]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_pivotWider_idColumnOrder(self) -> None:
+        df = pd.DataFrame({"id": [2, 1], "g": ["x", "y"], "k": ["a", "a"], "v": [1, 2]})
+        actual = pivot_wider(df, names_from="k", values_from="v")
+        assert actual.columns.tolist() == ["id", "g", "a"]
+        assert actual["id"].tolist() == [2, 1]
+
+    # Unnest Longer
+    def test_unnestLonger_multipleColumnsAligned(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "x": [[1, 2], [3, 4]], "y": [["a", "b"], ["c", "d"]]})
+        actual = unnest_longer(df, ["x", "y"])
+        expected = pd.DataFrame({"g": [1, 1, 2, 2], "x": [1, 2, 3, 4], "y": ["a", "b", "c", "d"]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_unnestLonger_preservesRowOrder(self) -> None:
+        df = pd.DataFrame({"g": [2, 1], "x": [[1, 2], [3]]})
+        assert unnest_longer(df, "x")["g"].tolist() == [2, 2, 1]
+
+    def test_unnestLonger_valuesTo(self) -> None:
+        df = pd.DataFrame({"g": [1], "x": [[1, 2]]})
+        assert unnest_longer(df, "x", values_to="val").columns.tolist() == ["g", "val"]
+
+    def test_unnestLonger_indicesWithinEachList(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "x": [[1, 2], [3]]})
+        assert unnest_longer(df, "x", indices_include=True)["x_id"].tolist() == [1, 2, 1]
+
+    # Unnest Wider
+    def test_unnestWider_nonDefaultIndex(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "x": [[1, 2], [3, 4]]}, index=[5, 6])
+        actual = unnest_wider(df, "x")
+        assert actual.index.tolist() == [5, 6]
+        assert actual["x_2"].tolist() == [2, 4]
+
+    def test_unnestWider_dictNamesSep(self) -> None:
+        df = pd.DataFrame({"x": [{"a": 1}]})
+        assert unnest_wider(df, "x", names_sep="_").columns.tolist() == ["x_a"]
+
+    # Unnest
+    def test_unnest_keepsRealNAs(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "d": [{"x": [1, np.nan]}, {"x": [3]}]})
+        actual = unnest(df, "d")
+        assert actual["g"].tolist() == [1, 1, 2]
+        assert actual.index.tolist() == [0, 1, 2]
+
+    def test_unnest_dropsEmptyUnlessKeepEmpty(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "d": [{"x": [1]}, {}]})
+        assert unnest(df, "d")["g"].tolist() == [1]
+        assert unnest(df, "d", keep_empty=True)["g"].tolist() == [1, 2]
+
+    # Chop
+    def test_chop_unsortedGroups(self) -> None:
+        df = pd.DataFrame({"g": [2, 2, 1], "x": [1, 2, 3]})
+        actual = chop(df, "x")
+        assert actual["g"].tolist() == [2, 1]
+        assert actual["x"].tolist() == [[1, 2], [3]]
+
+    def test_chop_missingKey(self) -> None:
+        df = pd.DataFrame({"g": [1.0, np.nan, 2.0], "x": [1, 2, 3]})
+        assert chop(df, "x")["x"].tolist() == [[1], [2], [3]]
+
+    # Unchop
+    def test_unchop_keepsOtherNAs(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "o": [np.nan, 1], "x": [[1, 2], [3]]})
+        assert unchop(df, "x")["g"].tolist() == [1, 1, 2]
+
+    def test_unchop_multipleColumns(self) -> None:
+        df = pd.DataFrame({"g": [1, 2], "x": [[1, 2], [3]], "y": [["a", "b"], ["c"]]})
+        actual = unchop(df, ["x", "y"])
+        expected = pd.DataFrame({"g": [1, 1, 2], "x": [1, 2, 3], "y": ["a", "b", "c"]})
+        pd.testing.assert_frame_equal(actual, expected)
+
+    # Separate
+    def test_separate_nonDefaultIndex(self) -> None:
+        df = pd.DataFrame({"x": ["a_b", "c_d"]}, index=[5, 6])
+        actual = separate(df, "x", ["A", "B"])
+        expected = pd.DataFrame({"A": ["a", "c"], "B": ["b", "d"]}, index=[5, 6])
+        pd.testing.assert_frame_equal(actual, expected)
+
+    def test_separate_noFillWarningWhenNotNeeded(self, recwarn) -> None:
+        separate(pd.DataFrame({"x": ["a_b", np.nan]}), "x", ["A", "B"])
+        assert len(recwarn) == 0
+
+    def test_separate_warningRowNumbers(self) -> None:
+        df = pd.DataFrame({"x": ["a b", "a b c", "a"]})
+        with pytest.warns(UserWarning) as record:
+            separate(df, "x", ["A", "B"], " ")
+        messages = [str(w.message) for w in record]
+        assert any("discarded in 1 rows [2]" in m for m in messages)
+        assert any("filled with `NA` in 1 rows [3]" in m for m in messages)
+
+    def test_separate_tupleIntoAndPosition(self) -> None:
+        df = pd.DataFrame({"a": [0], "x": ["1_2"], "z": [9]})
+        actual = separate(df, "x", ("A", "B"), convert=True)
+        assert actual.columns.tolist() == ["a", "A", "B", "z"]
+        assert actual.iloc[0].tolist() == [0, 1, 2, 9]
+
+    # Extract
+    def test_extract_dropsNAColumn(self) -> None:
+        df = pd.DataFrame({"x": ["a-b"]})
+        actual = extract(df, "x", ["NA", "B"], "([a-z])-([a-z])")
+        assert actual.columns.tolist() == ["B"]
+
+    def test_extract_nonDefaultIndex(self) -> None:
+        df = pd.DataFrame({"x": ["a-b", "c-d"]}, index=[5, 6])
+        actual = extract(df, "x", ["A"])
+        assert actual.index.tolist() == [5, 6]
+        assert actual["A"].tolist() == ["a", "c"]
+
+    # Unite
+    def test_unite_leavesOtherColumnsAlone(self) -> None:
+        df = pd.DataFrame({"x": ["a"], "y": ["NA"], "n": [np.nan]})
+        actual = unite(df, "z", ["x", "y"])
+        assert actual["z"].tolist() == ["a_NA"]
+        assert actual["n"].dtype == np.float64
+
+    def test_unite_naRmOtherSeparator(self) -> None:
+        df = pd.DataFrame({"x": ["NA_ok", "x"], "y": [np.nan, np.nan]})
+        actual = unite(df, "z", ["x", "y"], sep="-", na_rm=True)
+        assert actual["z"].tolist() == ["NA_ok", "x"]
+
+    def test_unite_numericColumns(self) -> None:
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        assert unite(df, "z", ["a", "b"])["z"].tolist() == ["1_3", "2_4"]
+
+    def test_unite_position(self) -> None:
+        df = pd.DataFrame({"p": [0], "x": ["a"], "y": ["b"], "q": [1]})
+        assert unite(df, "z", ["x", "y"]).columns.tolist() == ["p", "z", "q"]
+
+    # Fill
+    def test_fill_doesNotMutate(self) -> None:
+        df = pd.DataFrame({"x": [1.0, np.nan]})
+        fill(df, "x")
+        assert np.isnan(df.loc[1, "x"])
+
+    # Complete
+    def test_complete_noColumns(self) -> None:
+        df = pd.DataFrame({"x": [1]})
+        pd.testing.assert_frame_equal(complete(df), df)
+
+    def test_complete_nestingOnlyObservedPairs(self) -> None:
+        df = pd.DataFrame({"g": [1, 2, 2], "id": [1, 2, 3], "name": ["a", "b", "c"]})
+        actual = complete(df, ["g", "nesting(id, name)"])
+        assert len(actual) == 6
+        assert set(zip(actual["id"], actual["name"])) == {(1, "a"), (2, "b"), (3, "c")}
 
 
 if __name__ == "__main__":

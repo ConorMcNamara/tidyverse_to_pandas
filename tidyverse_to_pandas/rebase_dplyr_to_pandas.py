@@ -1,12 +1,363 @@
 """Convert dplyr syntax to pandas equivalents (rebased implementation)."""
 
+import ast
+import keyword
 import re
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from tidyverse_to_pandas._optional_pyspark import ps
 from tidyverse_to_pandas.utils import _check_df_type, _get_list_columns, _get_str_columns
+
+
+def _resolve_columns(data: pd.DataFrame | ps.DataFrame, cols: Any, is_pandas: bool) -> list:
+    """Expand tidyselect-style column arguments given as a str, list, tuple or numpy array."""
+    if isinstance(cols, str):
+        return _get_str_columns(data, cols, is_pandas=is_pandas)
+    if isinstance(cols, (list, tuple, np.ndarray, pd.Index)):
+        return _get_list_columns(data, list(cols), is_pandas)
+    raise TypeError("Cannot determine method for determining column types")
+
+
+def _as_list(args: Any) -> list:
+    """Normalise a single expression or a collection of expressions into a list."""
+    if isinstance(args, str):
+        return [args]
+    if isinstance(args, (list, tuple, np.ndarray)):
+        return list(args)
+    raise TypeError("Expressions must be given as a str or a list of str")
+
+
+# Expression evaluation ------------------------------------------------------------------------------------------------
+# dplyr expressions are written in R syntax. Rather than rewriting them with regular expressions, we tokenize them,
+# replace column references with placeholders, translate R operators into Python ones, parse the result with ``ast`` and
+# evaluate it against a namespace of columns and R-like functions. Python's ``and``/``or``/``not`` give the same
+# precedence as R's ``&``/``|``/``!`` (lower than comparisons), and the AST is then rewritten to use vectorised ops.
+
+_TOKEN_RE = re.compile(
+    r"""
+    (?P<string>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')
+    |(?P<backtick>`[^`]+`)
+    |(?P<number>(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?L?)
+    |(?P<name>[A-Za-z_][A-Za-z0-9_.]*)
+    |(?P<op>%in%|&&|\|\||!=|==|<=|>=|[&|!^])
+    |(?P<other>\s+|.)
+    """,
+    re.VERBOSE | re.DOTALL,
+)
+
+_R_CONSTANTS = {
+    "TRUE": "True",
+    "T": "True",
+    "FALSE": "False",
+    "F": "False",
+    "NULL": "None",
+    "NA": "__NA__",
+    "NA_real_": "__NA__",
+    "NA_integer_": "__NA__",
+    "NA_character_": "__NA__",
+    "NaN": "__NA__",
+    "Inf": "__Inf__",
+}
+
+
+def _not(x: Any) -> Any:
+    if isinstance(x, (pd.Series, np.ndarray)):
+        return ~x.astype(bool)
+    return not x
+
+
+def _isin(x: Any, values: Any) -> Any:
+    values = list(values) if isinstance(values, (list, tuple, set, np.ndarray, pd.Series)) else [values]
+    if isinstance(x, pd.Series):
+        return x.isin(values)
+    if isinstance(x, np.ndarray):
+        return np.isin(x, values)
+    return x in values
+
+
+class _RToPython(ast.NodeTransformer):
+    """Rewrite boolean keywords into element-wise operations so they work on Series."""
+
+    def visit_BoolOp(self, node: ast.BoolOp) -> ast.AST:
+        self.generic_visit(node)
+        op = ast.BitAnd() if isinstance(node.op, ast.And) else ast.BitOr()
+        result = node.values[0]
+        for value in node.values[1:]:
+            result = ast.BinOp(left=result, op=op, right=value)
+        return result
+
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> ast.AST:
+        self.generic_visit(node)
+        if isinstance(node.op, ast.Not):
+            return ast.Call(func=ast.Name("__not__", ast.Load()), args=[node.operand], keywords=[])
+        return node
+
+    def visit_Compare(self, node: ast.Compare) -> ast.AST:
+        self.generic_visit(node)
+        if len(node.ops) == 1 and isinstance(node.ops[0], (ast.In, ast.NotIn)):
+            call = ast.Call(func=ast.Name("__isin__", ast.Load()), args=[node.left, node.comparators[0]], keywords=[])
+            if isinstance(node.ops[0], ast.NotIn):
+                return ast.Call(func=ast.Name("__not__", ast.Load()), args=[call], keywords=[])
+            return call
+        return node
+
+
+def _series(x: Any) -> pd.Series:
+    return x if isinstance(x, pd.Series) else pd.Series(x)
+
+
+def _aggregate(method: str):
+    def func(*args: Any, na_rm: bool = True, **kwargs: Any) -> Any:
+        if len(args) == 1:
+            return getattr(_series(args[0]), method)(skipna=na_rm)
+        return getattr(pd.Series(np.concatenate([np.atleast_1d(a) for a in args])), method)(skipna=na_rm)
+
+    return func
+
+
+def _quantile(x: Any, probs: float = 0.5, na_rm: bool = True, **kwargs: Any) -> Any:
+    if np.any(np.asarray(probs) > 1) or np.any(np.asarray(probs) < 0):
+        raise ValueError("Quantile probabilities must be between 0 and 1")
+    return _series(x).quantile(probs)
+
+
+def _shift(x: Any, n: int = 1, default: Any = None) -> pd.Series:
+    if default is None:
+        return _series(x).shift(n)
+    return _series(x).shift(n, fill_value=default)
+
+
+def _lag(x: Any, n: int = 1, default: Any = None, **kwargs: Any) -> pd.Series:
+    return _shift(x, n, default)
+
+
+def _lead(x: Any, n: int = 1, default: Any = None, **kwargs: Any) -> pd.Series:
+    return _shift(x, -n, default)
+
+
+def _if_else(condition: Any, true: Any, false: Any, missing: Any = None, **kwargs: Any) -> Any:
+    result = np.where(condition, true, false)
+    if missing is not None:
+        result = np.where(pd.isna(condition), missing, result)
+    if isinstance(condition, pd.Series):
+        return pd.Series(result, index=condition.index)
+    return result
+
+
+def _na_if(x: Any, y: Any) -> pd.Series:
+    x = _series(x)
+    return x.mask(x == y)
+
+
+def _coalesce(*args: Any) -> Any:
+    result = args[0]
+    for value in args[1:]:
+        if isinstance(result, pd.Series):
+            result = result.fillna(value)
+        elif pd.isna(result):
+            result = value
+    return result
+
+
+def _log(x: Any, base: float = np.e) -> Any:
+    return np.log(x) / np.log(base)
+
+
+def _round(x: Any, digits: int = 0) -> Any:
+    return np.around(x, digits)
+
+
+def _mad(x: Any, constant: float = 1.4826, na_rm: bool = True, **kwargs: Any) -> float:
+    x = _series(x).dropna() if na_rm else _series(x)
+    return constant * (x - x.median()).abs().median()
+
+
+def _nth(x: Any, n: int, default: Any = np.nan, **kwargs: Any) -> Any:
+    x = _series(x)
+    n = int(n)
+    if n == 0 or n > len(x) or n < -len(x):
+        return default
+    return x.iloc[n - 1] if n > 0 else x.iloc[n]
+
+
+_R_FUNCTIONS: dict = {
+    # Aggregates
+    "mean": _aggregate("mean"),
+    "avg": _aggregate("mean"),
+    "median": _aggregate("median"),
+    "med": _aggregate("median"),
+    "min": _aggregate("min"),
+    "max": _aggregate("max"),
+    "sum": _aggregate("sum"),
+    "sd": _aggregate("std"),
+    "var": _aggregate("var"),
+    "quantile": _quantile,
+    "IQR": lambda x, **kw: _quantile(x, 0.75) - _quantile(x, 0.25),
+    "iqr": lambda x, **kw: _quantile(x, 0.75) - _quantile(x, 0.25),
+    "mad": _mad,
+    "n_distinct": lambda *args, **kw: pd.concat([_series(a) for a in args], axis=1).drop_duplicates().shape[0],
+    "first": lambda x, **kw: _nth(x, 1, **kw),
+    "last": lambda x, **kw: _nth(x, -1, **kw),
+    "nth": _nth,
+    # Element-wise maths
+    "log": _log,
+    "log2": np.log2,
+    "log10": np.log10,
+    "log1p": np.log1p,
+    "exp": np.exp,
+    "sqrt": np.sqrt,
+    "abs": np.abs,
+    "sign": np.sign,
+    "ceiling": np.ceil,
+    "ceil": np.ceil,
+    "floor": np.floor,
+    "trunc": np.trunc,
+    "round": _round,
+    "sin": np.sin,
+    "cos": np.cos,
+    "tan": np.tan,
+    "asin": np.arcsin,
+    "acos": np.arccos,
+    "atan": np.arctan,
+    "arcsin": np.arcsin,
+    "arccos": np.arccos,
+    "arctan": np.arctan,
+    "sinh": np.sinh,
+    "cosh": np.cosh,
+    "tanh": np.tanh,
+    "asinh": np.arcsinh,
+    "acosh": np.arccosh,
+    "atanh": np.arctanh,
+    "arcsinh": np.arcsinh,
+    "arccosh": np.arccosh,
+    "arctanh": np.arctanh,
+    "pmin": lambda *args, **kw: np.minimum.reduce(args),
+    "pmax": lambda *args, **kw: np.maximum.reduce(args),
+    # Cumulative and window functions
+    "cumsum": lambda x: _series(x).cumsum(),
+    "cumprod": lambda x: _series(x).cumprod(),
+    "cummean": lambda x: _series(x).expanding().mean(),
+    "cummin": lambda x: _series(x).cummin(),
+    "cummax": lambda x: _series(x).cummax(),
+    "lag": _lag,
+    "lead": _lead,
+    # Logical and missing-value helpers
+    "if_else": _if_else,
+    "ifelse": _if_else,
+    "is_na": pd.isna,
+    "na_if": _na_if,
+    "coalesce": _coalesce,
+    "between": lambda x, left, right: _series(x).between(left, right),
+    "recode": lambda x, *args, **kwargs: _series(x).replace(kwargs),
+    "c": lambda *args: list(args),
+}
+
+
+def _translate_expression(expression: str, columns: list) -> tuple[str, dict, list]:
+    """Translate an R expression into Python source, returning the source, column bindings and columns referenced."""
+    column_index = {col: i for i, col in enumerate(columns)}
+    bindings: dict = {}
+    used: list = []
+    tokens = [(m.lastgroup, m.group()) for m in _TOKEN_RE.finditer(expression)]
+    pieces = []
+    for i, (kind, text) in enumerate(tokens):
+        following = "".join(t for _, t in tokens[i + 1 :]).lstrip()
+        if kind == "string":
+            pieces.append(text)
+        elif kind == "number":
+            pieces.append(text.rstrip("L"))
+        elif kind in ("name", "backtick"):
+            name = text.strip("`")
+            is_call = following.startswith("(")
+            is_keyword_arg = following.startswith("=") and not following.startswith("==")
+            if kind == "name" and (is_call or is_keyword_arg):
+                pieces.append(name.replace(".", "_"))
+            elif name in column_index:
+                placeholder = f"__col{column_index[name]}__"
+                bindings[placeholder] = columns[column_index[name]]
+                if name not in used:
+                    used.append(name)
+                pieces.append(placeholder)
+            elif kind == "name" and name in _R_CONSTANTS:
+                pieces.append(_R_CONSTANTS[name])
+            elif kind == "backtick":
+                raise KeyError(f"Column `{name}` not found in data")
+            else:
+                python_name = name.replace(".", "_")
+                if keyword.iskeyword(python_name) and python_name not in ("True", "False", "None"):
+                    python_name += "_"
+                pieces.append(python_name)
+        elif kind == "op":
+            pieces.append(
+                {"%in%": " in ", "&&": " and ", "&": " and ", "||": " or ", "|": " or ", "!": " not ", "^": "**"}.get(
+                    text, text
+                )
+            )
+        else:
+            pieces.append(text)
+    return "".join(pieces).strip(), bindings, used
+
+
+def _check_safe(tree: ast.AST, expression: str, namespace: dict) -> None:
+    """Reject Python constructs R expressions never need, so ``eval`` cannot reach object internals."""
+    for node in ast.walk(tree):
+        is_dunder = isinstance(node, ast.Name) and node.id.startswith("__") and node.id not in namespace
+        if isinstance(node, ast.Attribute) or is_dunder:
+            raise ValueError(f"Unsupported syntax in expression {expression!r}")
+
+
+def _eval_expression(data: pd.DataFrame, expression: str) -> tuple[Any, list]:
+    """Evaluate an R-style expression against the columns of ``data``.
+
+    Returns the value of the expression and the names of the columns it referenced.
+    """
+    source, bindings, used = _translate_expression(expression, list(data.columns))
+    try:
+        tree = ast.parse(source, mode="eval")
+    except SyntaxError as e:
+        raise ValueError(f"Could not parse expression {expression!r}") from e
+    tree = ast.fix_missing_locations(_RToPython().visit(tree))
+    namespace = dict(_R_FUNCTIONS)
+    namespace.update(
+        {
+            "__NA__": np.nan,
+            "__Inf__": np.inf,
+            "__not__": _not,
+            "__isin__": _isin,
+            "n": lambda: len(data),
+            "row_number": lambda x=None: (
+                pd.Series(np.arange(1, len(data) + 1), index=data.index)
+                if x is None
+                else _series(x).rank(method="first")
+            ),
+        }
+    )
+    namespace.update({placeholder: data[col] for placeholder, col in bindings.items()})
+    _check_safe(tree, expression, namespace)
+    try:
+        value = eval(compile(tree, "<expression>", "eval"), {"__builtins__": {}}, namespace)
+    except NameError as e:
+        raise ValueError(f"Unknown column or function in expression {expression!r}: {e}") from e
+    return value, used
+
+
+def _split_assignment(expression: str) -> tuple[str, str]:
+    """Split ``"name = expression"`` into its name and expression."""
+    match = re.match(r"^\s*(`[^`]+`|[^=<>!]+?)\s*=(?!=)(.*)$", expression, re.DOTALL)
+    if match is None:
+        raise ValueError(f"Expected an expression of the form 'name = value', got {expression!r}")
+    return match.group(1).strip().strip("`"), match.group(2).strip()
+
+
+def _as_mask(value: Any, index: pd.Index) -> pd.Series:
+    """Convert the result of a filter condition into a boolean mask where missing values are False."""
+    if np.ndim(value) == 0:
+        return pd.Series(False if pd.isna(value) else bool(value), index=index)
+    mask = value if isinstance(value, pd.Series) else pd.Series(np.asarray(value), index=index)
+    return mask.fillna(False).astype(bool)
 
 
 # One Table Verbs
@@ -37,36 +388,41 @@ def arrange(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.nda
     1 2
     """
     is_pandas = _check_df_type(data, "arrange")
+    columns = list(data.columns)
     if isinstance(cols, str):
-        columns = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        columns = _get_list_columns(data, cols, is_pandas)
+        items = [cols]
+    elif isinstance(cols, (list, tuple, np.ndarray)):
+        items = list(cols)
     else:
         raise TypeError("Cannot determine method for determining column types")
     sorting_cols = []
     ascending_cols = []
-    for c in columns:
-        if re.search("desc()", c):
-            # Here, we are removing the desc() from our string, but not whitespace as we may have a column like ' col1'
-            sorting_cols.append(re.sub(r"desc|\(|\)|\s+", r"", c))
-            ascending_cols.append(False)
+    for item in items:
+        desc_match = re.fullmatch(r"\s*desc\(\s*(.+?)\s*\)\s*", item)
+        if item in columns:
+            col, ascending = item, True
+        elif desc_match is not None:
+            col, ascending = desc_match.group(1).strip("`"), False
+        elif item.startswith("-") and item[1:].strip() in columns:
+            # dplyr also accepts arrange(-x) for a descending sort
+            col, ascending = item[1:].strip(), False
         else:
-            sorting_cols.append(c)
-            ascending_cols.append(True)
+            col, ascending = item, True
+        if col not in columns:
+            raise KeyError(f"Column {col!r} not found in data")
+        sorting_cols.append(col)
+        ascending_cols.append(ascending)
     if is_pandas:
-        # Here, we are resetting the index because R's implementation also resets the index. Thus, we also need to drop
-        # our prior index. kind="stable" keeps tied rows in their original order so the result is deterministic across
-        # platforms (the default quicksort breaks ties differently on Linux/Windows vs macOS) and matches dplyr.
-        return (
-            data.sort_values(sorting_cols, ascending=ascending_cols, kind="stable").reset_index().drop("index", axis=1)
-        )
+        # R's implementation resets the index. kind="stable" keeps tied rows in their original order so the result is
+        # deterministic across platforms and matches dplyr.
+        return data.sort_values(sorting_cols, ascending=ascending_cols, kind="stable").reset_index(drop=True)
     else:
         return data.orderBy(sorting_cols, ascending=ascending_cols)
 
 
 def count(
     data: pd.DataFrame | ps.DataFrame,
-    cols: str | list | tuple | np.ndarray,
+    cols: str | list | tuple | np.ndarray = None,
     wt: str | list | tuple | np.ndarray = None,
     sort: bool = False,
     name: str = None,
@@ -97,40 +453,22 @@ def count(
     A pandas series with our counts or sums
     """
     is_pandas = _check_df_type(data, "count")
-    if isinstance(cols, str):
-        distinct_cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        distinct_cols = _get_list_columns(data, cols, is_pandas=is_pandas)
-    else:
-        if is_pandas:
-            distinct_cols = data.columns
-        else:
-            distinct_cols = data.schema.names
+    distinct_cols = [] if cols is None else _resolve_columns(data, cols, is_pandas)
     if name is None:
         name = "n"
+        while name in distinct_cols:
+            name += "n"
     if is_pandas:
-        # Here, we are treating our groupby columns as factors/categorical data, so we need to convert it. This also
-        # allows us to incorporate the drop() command, as otherwise it would serve no purpose.
-        data[distinct_cols] = data[distinct_cols].astype("category")
-        if wt is None:
-            count_df = data.groupby(distinct_cols).count()
-        else:
-            count_df = data.groupby(distinct_cols)[wt].sum()
-        # We don't need multiple columns containing the same counts, so we choose the first one and rename it
-        if isinstance(count_df, pd.DataFrame):
-            count_df = count_df.rename({count_df.columns[0]: name}, axis=1)
-            count_df = count_df.iloc[:, 0]
-        # We have one column/Series, so all we need to do is rename it
-        else:
-            count_df = count_df.rename(name)
-        # Drops any column that contains NaN (i.e., categories that don't have any observations)
-        if drop:
-            count_df = count_df.dropna()
-        # Replaces the NaNs (i.e., categories that don't have any observations) with 0
-        else:
-            count_df = count_df.fillna(0)
-        # Since we know that count_df is going to be a Series, we don't need to specify the axis or the column names, as
-        # those are already known for a Series
+        if not distinct_cols:
+            return pd.DataFrame({name: [len(data) if wt is None else data[wt].sum()]})
+        # Grouping columns are treated as factors, as in R. Converting a copy keeps the caller's data untouched, and
+        # existing categorical levels are preserved so that drop=False can report empty groups.
+        grouping = data[distinct_cols].astype("category")
+        if wt is not None:
+            grouping = grouping.assign(__wt__=data[wt])
+        grouped = grouping.groupby(distinct_cols, observed=drop, dropna=False)
+        count_df = grouped.size() if wt is None else grouped["__wt__"].sum()
+        count_df = count_df.rename(name)
         if sort:
             count_df = count_df.sort_values(ascending=False, kind="stable")
         count_df = count_df.reset_index()
@@ -141,7 +479,7 @@ def count(
 
 def add_count(
     data: pd.DataFrame | ps.DataFrame,
-    cols: str | list | tuple | np.ndarray,
+    cols: str | list | tuple | np.ndarray = None,
     wt: str | list | tuple | np.ndarray = None,
     sort: bool = False,
     name: str = None,
@@ -169,32 +507,22 @@ def add_count(
     Our dataframe, but with an additional column including the sum or count
     """
     is_pandas = _check_df_type(data, "add_count")
-    if isinstance(cols, str):
-        distinct_cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        distinct_cols = _get_list_columns(data, cols, is_pandas=is_pandas)
-    else:
-        if is_pandas:
-            distinct_cols = data.columns
-        else:
-            distinct_cols = data.schema.names
+    distinct_cols = [] if cols is None else _resolve_columns(data, cols, is_pandas)
     if name is None:
         name = "n"
+        while name in data.columns:
+            name += "n"
     if is_pandas:
-        if wt is None:
-            # While it would be nice to simply have df[name] = df.groupby([col])[col].transform('count'), that only
-            # works when we know that col is one column. Otherwise, we will be trying to set one column with 2+ columns,
-            # which will throw an error. So we instead create our Series/DataFrame and then perform a check to ensure
-            # that we don't try and create a new column with several.
-            groupby_data = data.groupby(distinct_cols)[distinct_cols].transform("count")
-            if isinstance(groupby_data, pd.Series):
-                data[name] = groupby_data
-            else:
-                data[name] = groupby_data.iloc[:, 0]
+        data = data.copy()
+        if not distinct_cols:
+            data[name] = len(data) if wt is None else data[wt].sum()
         else:
-            # We know that wt has to be a single column, so we can afford to automatically create a new column and not
-            # have to worry about errors caused by setting a column from several.
-            data[name] = data.groupby(distinct_cols)[wt].transform("sum")
+            # Label each row with its group (keeping missing keys as their own group), then broadcast group totals
+            group_ids = data.groupby(distinct_cols, dropna=False, sort=False).ngroup()
+            if wt is None:
+                data[name] = group_ids.map(group_ids.value_counts()).astype("int64")
+            else:
+                data[name] = data[wt].groupby(group_ids).transform("sum")
         if sort:
             data = data.sort_values(by=name, ascending=False, kind="stable")
     else:
@@ -224,30 +552,14 @@ def distinct(
     Our dataframe but with unique rows specified
     """
     is_pandas = _check_df_type(data, "distinct")
-    if isinstance(cols, str):
-        distinct_cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        distinct_cols = _get_list_columns(data, cols, is_pandas=is_pandas)
+    if cols is None:
+        distinct_cols = list(data.columns) if is_pandas else data.schema.names
     else:
-        if is_pandas:
-            distinct_cols = data.columns
-        else:
-            distinct_cols = data.schema.names
+        distinct_cols = _resolve_columns(data, cols, is_pandas)
     if is_pandas:
         if keep_all:
-            # Here, we need to find the distinct values, and then perform a left merge on the distinct values with the
-            # remaining columns to ensure that we have all available columns. We then reset the index as that is what
-            # R's implementation does.
-            dropped_data = data[distinct_cols].drop_duplicates(keep="first")
-            dropped_data = pd.merge(
-                dropped_data,
-                data.drop(distinct_cols, axis=1),
-                left_index=True,
-                right_index=True,
-                how="left",
-            )
-            dropped_data.index = np.arange(len(dropped_data))
-            return dropped_data
+            # Keep the first row of each distinct combination, with every column in its original position
+            return data.drop_duplicates(subset=distinct_cols, keep="first", ignore_index=True)
         else:
             return data[distinct_cols].drop_duplicates(keep="first", ignore_index=True)
     else:
@@ -281,65 +593,17 @@ def filter(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndar
     5
     """
     is_pandas = _check_df_type(data, "filter")
-    if isinstance(cols, str):
-        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        cols = _get_list_columns(data, cols, is_pandas)
-    query_result = []
-    for c in cols:
-        if "mean(" in c.casefold():
-            mean_col = re.search(r"(?<=mean\()[a-zA-Z]+", c).group(0)
-            if is_pandas:
-                val = data[mean_col].mean()
-            else:
-                ...
-            comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = f"{mean_col} {comparison} {val}"
-        elif "median(" in c.casefold():
-            median_col = re.search(r"(?<=median\()[a-zA-Z]+", c).group(0)
-            if is_pandas:
-                val = data[median_col].median()
-            else:
-                ...
-            comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = f"{median_col} {comparison} {val}"
-        elif "min(" in c.casefold():
-            min_col = re.search(r"(?<=min\()[a-zA-Z]+", c).group(0)
-            if is_pandas:
-                val = data[min_col].min()
-            else:
-                ...
-            comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = f"{min_col} {comparison} {val}"
-        elif "max(" in c.casefold():
-            max_col = re.search(r"(?<=max\()[a-zA-Z]+", c).group(0)
-            if is_pandas:
-                val = data[max_col].max()
-            else:
-                ...
-            comparison = re.search(r"([<>]=?|==)", c).group(0)
-            result = f"{max_col} {comparison} {val}"
-        elif "quantile(" in c.casefold():
-            quantile_col = re.search(r"(?<=quantile\()[a-zA-Z]+", c).group(0)
-            if re.search("probs=", c):
-                quantile_percent = float(re.search(r"(?<=probs\=)\s*\d*\.\d+", c).group(0))
-            else:
-                quantile_percent = float(re.search(r"(?<=,)\s*\d*\.\d+", c).group(0))
-            if quantile_percent > 1:
-                raise Exception("Cannot have percentile greater than 1")
-            comparison = re.search(r"([<>]=?|==)", c).group(0)
-            if is_pandas:
-                val = data[quantile_col].quantile(quantile_percent)
-            else:
-                ...
-            result = f"{quantile_col} {comparison} {val}"
-        else:
-            result = c
-        query_result.append(result)
+    conditions = _as_list(cols)
     if is_pandas:
-        return data.query(" & ".join(query_result)).reset_index().drop(["index"], axis=1)
+        # Each condition is evaluated on the full data (so aggregates like mean(x) see every row) and the conditions are
+        # combined with AND. As in dplyr, rows where a condition evaluates to NA are dropped.
+        mask = pd.Series(True, index=data.index)
+        for condition in conditions:
+            value, _ = _eval_expression(data, condition)
+            mask &= _as_mask(value, data.index)
+        return data[mask].reset_index(drop=True)
     else:
-        return data.filter(" and ".join(query_result))
+        return data.filter(" and ".join(f"({condition})" for condition in conditions))
 
 
 def mutate(
@@ -371,248 +635,36 @@ def mutate(
     Our dataframe, but with the new columns added
     """
     is_pandas = _check_df_type(data, "mutate")
-    if is_pandas:
-        if keep.casefold() in ["used", "unused"]:
-            keep_cols = []
-        else:
-            keep_cols = data.columns
-        if isinstance(cols, str):
-            cols = re.sub(r"\s", r"", cols)
-            before_equals = re.search(r".+?(?=)", cols).group(0)
-            after_equals = re.search(r"(?<=\=).*", cols).group(0)
-            # Handle camelCase
-            after_equals = re.sub(r"\b([a-zA-Z]+)\b", r"df.\1", after_equals)
-            # Handle Snake Case
-            if re.search(r"(_)", after_equals):
-                after_equals = re.sub(r"\b([a-zA-Z]+_)", r"df.\1", after_equals)
-            # Handle CamelCase1
-            if re.search(r"([a-zA-Z]+\d+)", after_equals):
-                after_equals = re.sub(r"\b([a-zA-Z]+\d+)\b", r"df.\1", after_equals)
-            # Handle 18a
-            if re.search(r"(^\d)", after_equals):
-                after_equals = re.sub(r"(^\d)", r"df.\1", after_equals)
-            # Turn log manipulations into np.log
-            if "df.log(" in after_equals:
-                after_equals = re.sub(r"df.log", r"np.log", after_equals)
-            if "df.log2" in after_equals:
-                after_equals = re.sub(r"df.log2", r"np.log2", after_equals)
-            if "df.log10(" in after_equals:
-                after_equals = re.sub(r"df.log10", r"np.log10", after_equals)
-            # Turn trig manipulations into numpy equivalents
-            if "df.sin(" in after_equals:
-                after_equals = re.sub(r"df.sin", r"np.sin", after_equals)
-            if "df.cos(" in after_equals:
-                after_equals = re.sub(r"df.cos", r"np.cos", after_equals)
-            if "df.tan(" in after_equals:
-                after_equals = re.sub(r"df.tan", r"np.tan", after_equals)
-            if "df.arcsin(" in after_equals:
-                after_equals = re.sub(r"df.arcsin", r"np.arcsin", after_equals)
-            if "df.arccos(" in after_equals:
-                after_equals = re.sub(r"df.arccos", r"np.arccos", after_equals)
-            if "df.arctan(" in after_equals:
-                after_equals = re.sub(r"df.arctan", r"np.arctan", after_equals)
-            # Turn hyperbolic manipulations into numpy equivalent
-            if "df.sinh(" in after_equals:
-                after_equals = re.sub(r"df.sinh", r"np.sinh", after_equals)
-            if "df.cosh(" in after_equals:
-                after_equals = re.sub(r"df.cosh", r"np.cosh", after_equals)
-            if "df.tanh(" in after_equals:
-                after_equals = re.sub(r"df.tanh", r"np.tanh", after_equals)
-            if "df.arcsinh(" in after_equals:
-                after_equals = re.sub(r"df.arcsinh", r"np.arcsinh", after_equals)
-            if "df.arccosh(" in after_equals:
-                after_equals = re.sub(r"df.arccosh", r"np.arccosh", after_equals)
-            if "df.arctanh" in after_equals:
-                after_equals = re.sub(r"df.arctanh", r"np.arctanh", after_equals)
-            # Turn rounding manipulations into numpy equivalent
-            if "df.ceil(" in after_equals:
-                after_equals = re.sub(r"df.ceil", r"np.ceil", after_equals)
-            if "df.floor(" in after_equals:
-                after_equals = re.sub(r"df.floor", r"np.floor", after_equals)
-            if (
-                "df.round(" in after_equals
-            ):  # Look into switching to pandas solution as it seems faster than numpy for large Series
-                after_equals = re.sub(r"df.round", r"np.around", after_equals)
-            # Turn mathematical manipulations into numpy equivalents
-            if "df.sqrt(" in after_equals:
-                after_equals = re.sub(r"df.sqrt", r"np.sqrt", after_equals)
-            if "df.abs(" in after_equals:
-                after_equals = re.sub(
-                    r"abs\((.*?)\)",
-                    re.search(r"abs\((.*?)\)", cols).group(1) + ".abs()",
-                    after_equals,
-                )
-            if "df.sign(" in after_equals:
-                after_equals = re.sub(r"df.sign", r"np.sign", after_equals)
-            if "df.mean(" in after_equals:
-                after_equals = re.sub(
-                    r"mean\((.*?)\)",
-                    re.search(r"mean\((.*?)\)", cols).group(1) + ".mean()",
-                    after_equals,
-                )
-            if "df.avg(" in after_equals:
-                after_equals = re.sub(
-                    r"avg\((.*?)\)",
-                    re.search(r"avg\((.*?)\)", cols).group(1) + ".mean()",
-                    after_equals,
-                )
-            if "df.med(" in after_equals:
-                after_equals = re.sub(
-                    r"med\((.*?)\)",
-                    re.search(r"med\((.*?)\)", cols).group(1) + ".median()",
-                    after_equals,
-                )
-            if "df.median(" in after_equals:
-                after_equals = re.sub(
-                    r"median\((.*?)\)",
-                    re.search(r"median\((.*?)\)", cols).group(1) + ".median()",
-                    after_equals,
-                )
-            if "df.max(" in after_equals:
-                after_equals = re.sub(
-                    r"max\((.*?)\)",
-                    re.search(r"max\((.*?)\)", cols).group(1) + ".max()",
-                    after_equals,
-                )
-            if "df.min(" in after_equals:
-                after_equals = re.sub(
-                    r"min\((.*?)\)",
-                    re.search(r"min\((.*?)\)", cols).group(1) + ".min()",
-                    after_equals,
-                )
-            # Turn cumulative sum into pandas equivalent
-            if "df.cumsum(" in after_equals:
-                after_equals = re.sub(
-                    r"cumsum\((.*?)\)",
-                    re.search(r"cumsum\((.*?)\)", cols).group(1) + ".cumsum()",
-                    after_equals,
-                )
-            if "df.cummean(" in after_equals:
-                after_equals = re.sub(
-                    r"cummean\((.*?)\)",
-                    re.search(r"cummean\((.*?)\)", cols).group(1) + ".expanding().mean()",
-                    after_equals,
-                )
-            if "df.cummin(" in after_equals:
-                after_equals = re.sub(r"df.cummin", r"np.minimum.accumulate", after_equals)
-            if "df.cummax(" in after_equals:
-                after_equals = re.sub(r"df.cummax", r"np.maximum.accumulate", after_equals)
-            # Lead and Lag variables
-            if "df.lag(" in after_equals:
-                if "," in re.search(r"(?<=lag\(df\.)[a-zA-Z0-9_,\s]*", after_equals).group(0):
-                    lag_string = re.search(r"(?<=lag\()[a-zA-Z0-9_,\s\.=]*", after_equals).group(0)
-                    lag_string = re.sub(r"df\.", "", lag_string)
-                    if len(lag_string.split(",")) > 2:
-                        lag_string = ",".join(lag_string.split(",")[1:])
-                    else:
-                        lag_string = "".join(lag_string.split(",")[1:])
-                    if "n=" in lag_string:
-                        lag_string = re.sub(r"n=", "periods=", lag_string)
-                    if "default=" in lag_string:
-                        lag_string = re.sub(r"default", "fill_value", lag_string)
-                    if len(lag_string.split(",")) == 2:
-                        if "default" not in lag_string.split(",")[1]:
-                            lag_string = re.sub(r",", ",fill_value=", lag_string)
-                    after_equals = re.sub(r",.*", "", re.sub("df\\.lag\\(", "", after_equals)) + f".shift({lag_string})"
-                else:
-                    after_equals = re.sub(
-                        r"lag\((.*?)\)",
-                        re.search(r"lag\((.*?)\)", cols).group(1) + ".shift()",
-                        after_equals,
-                    )
-            if "df.lead(" in after_equals:
-                if "," in re.search(r"(?<=lead\(df\.)[a-zA-Z0-9_,\s]*", after_equals).group(0):
-                    lead_string = re.search(r"(?<=lead\()[a-zA-Z0-9_,\s\.=]*", after_equals).group(0)
-                    lead_string = re.sub(r"df\.", "", lead_string)
-                    if len(lead_string.split(",")) > 2:
-                        lead_string = ",".join(lead_string.split(",")[1:])
-                    else:
-                        lead_string = "".join(lead_string.split(",")[1:])
-                    if "n=" in lead_string:
-                        lead_string = re.sub(r"n=", "periods=-", lead_string)
-                    if "default=" in lead_string:
-                        lead_string = re.sub(r"default=", "fill_value=", lead_string)
-                    if len(lead_string.split(",")) >= 2:
-                        if "default" not in lead_string.split(",")[1]:
-                            lead_string = re.sub(r",", ",fill_value=", lead_string)
-                        if "n=" not in lead_string.split(",")[0]:
-                            lead_array = lead_string.split(",")
-                            lead_array[0] = str(f"periods={-int(lead_array[0])}")
-                            lead_string = ",".join(lead_array)
-                    else:
-                        if "fill_value=" in lead_string:
-                            lead_string = f"periods=-1,{lead_string}"
-                        elif "periods=" in lead_string:
-                            pass
-                        else:
-                            lead_string = str(f"periods=-{int(lead_string)}")
-                    after_equals = (
-                        re.sub(r",.*", "", re.sub("df\\.lead\\(", "", after_equals)) + f".shift({lead_string})"
-                    )
-                else:
-                    after_equals = re.sub(
-                        r"lead\((.*?)\)",
-                        re.search(r"lead\((.*?)\)", cols).group(1) + ".shift(-1)",
-                        after_equals,
-                    )
-            # Logical Operators
-            if "df.if_else(" in after_equals:
-                after_equals = re.sub(r"df.if_else", r"np.where", after_equals)
-                # Handle True/False cases
-                if "True" in after_equals:
-                    after_equals = re.sub(r"df.True", r"True", after_equals)
-                if "False" in after_equals:
-                    after_equals = re.sub(r"df.False", "False", after_equals)
-                # Handle strings that aren't columns
-                after_equals_split = after_equals.split(",")
-                after_equals_split_1 = re.sub("df.", "", after_equals_split[1])
-                after_equals_split_2 = re.sub("df.", "", after_equals_split[2])
-                after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
-                if after_equals_split_1 not in data.columns:
-                    after_equals = re.sub(after_equals_split[1], after_equals_split_1, after_equals)
-                if after_equals_split_2 not in data.columns:
-                    after_equals = after_equals.replace(after_equals_split[2], after_equals_split_2)
-                if ")" not in after_equals:
-                    after_equals += ")"
-            if "df.recode(" in after_equals:
-                recode = {}
-                after_equals_split = after_equals.split(",")
-                after_equals_split_name = re.sub("df.recode\\(", "", after_equals_split[0])
-                for i in range(1, len(after_equals_split)):
-                    split_equals = after_equals_split[i].split("=")
-                    var_to_be_changed = re.sub("df.", "", split_equals[0])
-                    var_to_change = re.sub("df.", "", split_equals[1])
-                    recode[var_to_be_changed] = var_to_change
-                after_equals = f"{after_equals_split_name}.replace({recode})"
-            # Handle missing values
-            if "df.na_if(" in after_equals:
-                after_equals_split = after_equals.split(",")
-                after_equals_split_1 = re.sub("df.na_if\\(", "", after_equals_split[0])
-                after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
-                after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
-                after_equals = f"{after_equals_split_1}.replace({after_equals_split_2}, np.nan)"
-            if "df.coalesce(" in after_equals:
-                after_equals_split = after_equals.split(",")
-                after_equals_split_1 = re.sub("df.coalesce\\(", "", after_equals_split[0])
-                after_equals_split_2 = re.sub("df.", "", after_equals_split[1])
-                after_equals_split_2 = re.sub("\\)", "", after_equals_split_2)
-                after_equals = f"{after_equals_split_1}.fillna({after_equals_split_2})"
-            after_equals = f"lambda df: {after_equals}"
-            # Keep or drop columns
-            if keep.casefold() in ["used", "unused"]:
-                keep_cols += re.findall(r"df\.([a-zA-Z0-9_]+)", after_equals)
-                if keep.casefold() == "used":
-                    keep_cols += [before_equals]
-            data = data.assign(**{before_equals: eval(after_equals)})
-            if keep.casefold() in ["none", "unused"]:
-                data = data.drop(keep_cols, axis=1)
-            elif keep.casefold() == "used":
-                data = data.drop(data.columns.difference(keep_cols), axis=1)
-            else:
-                pass
-        return data
-    elif isinstance(cols, list):
-        _get_list_columns(data, cols, is_pandas)
+    keep = keep.casefold()
+    if keep not in ("all", "used", "unused", "none"):
+        raise ValueError("keep must be one of 'all', 'used', 'unused' or 'none'")
+    if not is_pandas:
+        raise NotImplementedError("mutate is not yet implemented for pyspark DataFrames")
+    original_cols = list(data.columns)
+    result = data.copy()
+    used: set = set()
+    created: list = []
+    # Expressions are applied in order, so later expressions can refer to columns created by earlier ones
+    for expression in _as_list(cols):
+        name, rhs = _split_assignment(expression)
+        value, referenced = _eval_expression(result, rhs)
+        used.update(col for col in referenced if col in original_cols and col not in created)
+        if value is None:
+            # name = NULL removes the column
+            result = result.drop(columns=name, errors="ignore")
+            if name in created:
+                created.remove(name)
+            continue
+        result[name] = value
+        if name not in created:
+            created.append(name)
+    if keep == "all":
+        return result
+    if keep == "none":
+        return result[[col for col in created if col in result.columns]]
+    if keep == "used":
+        return result[[col for col in result.columns if col in used or col in created]]
+    return result[[col for col in result.columns if col not in used or col in created]]
 
 
 def transmute(data, cols: str | list | tuple | np.ndarray | dict) -> pd.DataFrame | ps.DataFrame:
@@ -633,12 +685,12 @@ def transmute(data, cols: str | list | tuple | np.ndarray | dict) -> pd.DataFram
     -------
     Our dataframe, but with the new columns added and all non-grouping keys removed
     """
-    return mutate(data, cols, keep="None")
+    return mutate(data, cols, keep="none")
 
 
 def pull(
     data: pd.DataFrame | ps.DataFrame,
-    var: int | str,
+    var: int | str = -1,
     name: int | str = None,
 ) -> pd.Series | ps.Column:
     """Extract a single column.
@@ -647,7 +699,7 @@ def pull(
     ----------
     data : pandas or pyspark DataFrame
         A dataframe
-    var : int or str
+    var : int or str, default is -1
         A variable specified as:
             * a literal variable name
             * a positive integer, giving the position counting from the left
@@ -695,16 +747,9 @@ def rename(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndar
     is_pandas = _check_df_type(data, "rename")
     if is_pandas:
         rename_dict = {}
-        if isinstance(cols, str):
-            cols = re.sub(r"\s", r"", cols)
-            split_name = cols.split("=")
-            rename_dict[split_name[0]] = split_name[1]
-        elif isinstance(cols, list):
-            rename_dict = {}
-            for col in cols:
-                col = re.sub(r"\s", r"", col)
-                split_name = col.split("=")
-                rename_dict[split_name[0]] = split_name[1]
+        for col in _as_list(cols):
+            old_name, new_name = col.split("=", 1)
+            rename_dict[old_name.strip().strip("`")] = new_name.strip().strip("`")
         data = data.rename(columns=rename_dict)
     else:
         ...
@@ -734,11 +779,8 @@ def relocate(
     -------
     Our dataframe, but with the columns repositioned
     """
-    is_pandas = _check_df_type(data, "rename")
-    if isinstance(cols, str):
-        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        cols = _get_list_columns(data, cols, is_pandas)
+    is_pandas = _check_df_type(data, "relocate")
+    cols = _resolve_columns(data, cols, is_pandas)
     if is_pandas:
         if before is not None and after is not None:
             raise ValueError("Only one of before or after can be specified")
@@ -774,10 +816,7 @@ def select(data: pd.DataFrame | ps.DataFrame, cols: str | list | tuple | np.ndar
     Our dataframe, but with the selected columns
     """
     is_pandas = _check_df_type(data, "select")
-    if isinstance(cols, str):
-        cols = _get_str_columns(data, cols, is_pandas=is_pandas)
-    elif isinstance(cols, list):
-        cols = _get_list_columns(data, cols, is_pandas)
+    cols = _resolve_columns(data, cols, is_pandas)
     if is_pandas:
         return data.loc[:, cols]
     else:

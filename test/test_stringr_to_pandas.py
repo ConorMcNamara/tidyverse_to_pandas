@@ -102,26 +102,26 @@ class TestStrTrunc:
     @staticmethod
     def test_strTrunc_string() -> None:
         string = "Mass Effect: Andromeda"
-        assert stp.str_trunc(string, 11, "right") == "Mass Effect..."
+        assert stp.str_trunc(string, 11, "right") == "Mass Eff..."
 
     @staticmethod
     def test_strTrunc_list() -> None:
         string = ["This  string  is  moderately  long", "Guinea  pigs  and  farts"]
         assert stp.str_trunc(string, 20, "center") == [
-            "This  stri...tely  long",
-            "Guinea  pi...and  farts",
+            "This  str...ly  long",
+            "Guinea  p...d  farts",
         ]
 
     @staticmethod
     def test_strTrunc_array() -> None:
         string = np.array(["This  string  is  moderately  long", "Guinea  pigs  and  farts"])
-        expected = np.array(["...is  moderately  long", "...ea  pigs  and  farts"])
+        expected = np.array(["... moderately  long", "... pigs  and  farts"])
         np.testing.assert_array_equal(stp.str_trunc(string, 20, "left"), expected)
 
     @staticmethod
     def test_strTrunc_series() -> None:
         string = pd.Series(["This  string  is  moderately  long", "Guinea  pigs  and  farts"])
-        expected = pd.Series(["This  string  is  mo...", "Guinea  pigs  and  f..."])
+        expected = pd.Series(["This  string  is ...", "Guinea  pigs  and..."])
         pd.testing.assert_series_equal(stp.str_trunc(string, 20), expected)
 
 
@@ -383,8 +383,8 @@ class TestStrTrim:
             stp.str_trim(string, "right"),
             np.array(
                 [
-                    "String with trailing and leading white space\n\n",
-                    "String with trailing and leading white space\t",
+                    "\n\nString with trailing and leading white space",
+                    "  String with trailing and leading white space",
                 ]
             ),
         )
@@ -401,8 +401,8 @@ class TestStrTrim:
             stp.str_trim(string, "left"),
             pd.Series(
                 [
-                    "\n\nString with trailing and leading white space",
-                    "  String with trailing and leading white space",
+                    "String with trailing and leading white space\n\n",
+                    "String with trailing and leading white space\t",
                 ]
             ),
         )
@@ -722,8 +722,8 @@ class TestStrSplit:
                 ["pineapples", "mangos and guavas"],
             ]
         )
-        assert all(stp.str_split(fruits, " and ", n=1)[0] == expected[0])
-        assert all(stp.str_split(fruits, " and ", n=1)[1] == expected[1])
+        assert all(stp.str_split(fruits, " and ", n=2)[0] == expected[0])
+        assert all(stp.str_split(fruits, " and ", n=2)[1] == expected[1])
 
     @staticmethod
     def test_strSplit_series() -> None:
@@ -760,7 +760,7 @@ class TestStrSplitFixed:
             ["apples", "oranges", "pears and bananas"],
             ["pineapples", "mangos", "guavas"],
         ]
-        assert stp.str_split_fixed(fruits, " and ", 2) == expected
+        assert stp.str_split_fixed(fruits, " and ", 3) == expected
 
     @staticmethod
     def test_strSplitFixed_array() -> None:
@@ -776,7 +776,7 @@ class TestStrSplitFixed:
                 ["pineapples", "mangos and guavas"],
             ]
         )
-        np.testing.assert_array_equal(stp.str_split_fixed(fruits, " and ", n=1), expected)
+        np.testing.assert_array_equal(stp.str_split_fixed(fruits, " and ", n=2), expected)
 
     @staticmethod
     def test_strSplitFixed_series() -> None:
@@ -792,7 +792,7 @@ class TestStrSplitFixed:
                 ["pineapples", "mangos", "guavas", ""],
             ]
         )
-        pd.testing.assert_frame_equal(stp.str_split_fixed(fruits, " and ", 3), expected)
+        pd.testing.assert_frame_equal(stp.str_split_fixed(fruits, " and ", 4), expected)
 
 
 class TestStrSplitN:
@@ -829,7 +829,7 @@ class TestStrSplitN:
                 "pineapples and mangos and guavas",
             ]
         )
-        pd.testing.assert_series_equal(stp.str_split_n(fruits, " and ", 3), pd.Series(["bananas", np.nan], name=3))
+        pd.testing.assert_series_equal(stp.str_split_n(fruits, " and ", 3), pd.Series(["bananas", np.nan]))
 
 
 class TestStrStarts:
@@ -915,7 +915,7 @@ class TestStrExtractAll:
     @staticmethod
     def test_strExtractAll_string() -> None:
         number = "219 733 8965"
-        assert stp.str_extract_all(number, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == [("219", "733", "8965")]
+        assert stp.str_extract_all(number, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == ["219 733 8965"]
 
     @staticmethod
     def test_strExtractAll_list() -> None:
@@ -945,9 +945,13 @@ class TestStrExtractAll:
     @staticmethod
     def test_strExtractAll_series() -> None:
         shopping_list = pd.Series(["apples x4", "bag of flour", "bag of sugar", "milk x2"])
-        pd.testing.assert_series_equal(
+        pd.testing.assert_frame_equal(
             stp.str_extract_all(shopping_list, "\\d", simplify=True),
-            pd.Series(["4", "", "", "2"], name="match"),
+            pd.DataFrame({0: ["4", "", "", "2"]}),
+        )
+        pd.testing.assert_series_equal(
+            stp.str_extract_all(shopping_list, "\\d"),
+            pd.Series([["4"], [], [], ["2"]]),
         )
 
 
@@ -1010,7 +1014,8 @@ class TestStrMatch:
         expected = pd.DataFrame(
             {
                 "whole_match": ["<a> <b>", "<a> <>", None, None, None],
-                "match": ["a", "a", np.nan, np.nan, np.nan],
+                1: ["a", "a", None, None, None],
+                2: ["b", "", None, None, None],
             }
         )
         pd.testing.assert_frame_equal(stp.str_match(string, "<(.*?)> <(.*?)>"), expected)
@@ -1044,54 +1049,50 @@ class TestStrMatchAll:
             "Home: 543.355.3679",
         ]
         expected = [
-            ["219 733 8965", "219", "733", "8965"],
-            ["329-293-8753", "329", "293", "8753"],
-            ["", "", "", ""],
-            ["595 794 7569", "595", "794", "7569"],
-            ["387 287 6718", "387", "287", "6718"],
-            ["", "", "", ""],
-            ["233.398.9187", "233", "398", "9187"],
-            ["482 952 3315", "482", "952", "3315"],
-            ["239 923 8115", "239", "923", "8115"],
-            ["842 566 4692", "842", "566", "4692"],
-            ["579-499-7527", "579", "499", "7527"],
-            ["", "", "", ""],
-            ["543.355.3679", "543", "355", "3679"],
+            [["219 733 8965", "219", "733", "8965"]],
+            [["329-293-8753", "329", "293", "8753"]],
+            [],
+            [["595 794 7569", "595", "794", "7569"]],
+            [["387 287 6718", "387", "287", "6718"]],
+            [],
+            [["233.398.9187", "233", "398", "9187"]],
+            [["482 952 3315", "482", "952", "3315"]],
+            [["239 923 8115", "239", "923", "8115"], ["842 566 4692", "842", "566", "4692"]],
+            [["579-499-7527", "579", "499", "7527"]],
+            [],
+            [["543.355.3679", "543", "355", "3679"]],
         ]
         assert stp.str_match_all(strings, "([2-9][0-9]{2})[- .]([0-9]{3})[- .]([0-9]{4})") == expected
 
     @staticmethod
     def test_strMatchAll_array() -> None:
         x = np.array(["<a> <b>", "<a> <>", "<a>", "", None])
-        expected = np.array(
-            [
-                ["<a>", "a"],
-                ["<b>", "b"],
-                ["<a>", "a"],
-                ["", ""],
-                ["<a>", "a"],
-                ["", ""],
-                ["", ""],
-            ]
-        )
-        np.testing.assert_array_equal(stp.str_match_all(x, "<(.*?)>"), expected)
+        actual = stp.str_match_all(x, "<(.*?)>")
+        expected = [
+            [["<a>", "a"], ["<b>", "b"]],
+            [["<a>", "a"], ["<>", ""]],
+            [["<a>", "a"]],
+            [],
+            [[None, None]],
+        ]
+        assert len(actual) == len(expected)
+        for got, want in zip(actual, expected):
+            assert got.shape == (len(want), 2)
+            assert got.tolist() == want
 
     @staticmethod
     def test_strMatchAll_series() -> None:
         x = pd.Series(["<a> <b>", "<a> <>", "<a>", "", None])
-        expected = pd.DataFrame(
+        expected = pd.Series(
             [
-                ["<a>", "a"],
-                ["<b>", "b"],
-                ["<a>", "a"],
-                ["<>", ""],
-                ["<a>", "a"],
-                ["", ""],
-                ["", ""],
+                [["<a>", "a"], ["<b>", "b"]],
+                [["<a>", "a"], ["<>", ""]],
+                [["<a>", "a"]],
+                [],
+                [[None, None]],
             ]
         )
-        expected.columns = ["whole_match", 0]
-        pd.testing.assert_frame_equal(stp.str_match_all(x, "<(.*?)>"), expected)
+        pd.testing.assert_series_equal(stp.str_match_all(x, "<(.*?)>"), expected)
 
 
 # String Equal
@@ -1149,9 +1150,206 @@ class TestStrUnique:
         string = pd.Series(["What", "what", "is", "love"])
         pd.testing.assert_series_equal(
             stp.str_unique(string, 1),
-            pd.Series(["What", "is", "love"], index=[0, 1, 2]),
+            pd.Series(["What", "is", "love"], index=[0, 2, 3]),
         )
         pd.testing.assert_series_equal(stp.str_unique(string, 4), string)
+
+
+class TestRegressions:
+    """Regressions for bugs found in the correctness review."""
+
+    @staticmethod
+    def test_strTrim_sides() -> None:
+        assert stp.str_trim("  a  ", side="left") == "a  "
+        assert stp.str_trim("  a  ", side="right") == "  a"
+        assert stp.str_trim(["  a  "], side="left") == ["a  "]
+
+    @staticmethod
+    def test_strReplace_series_first_only() -> None:
+        pd.testing.assert_series_equal(stp.str_replace(pd.Series(["aaa"]), "a", "b"), pd.Series(["baa"]))
+        pd.testing.assert_series_equal(stp.str_replace_all(pd.Series(["aaa"]), "a", "b"), pd.Series(["bbb"]))
+
+    @staticmethod
+    def test_strReplace_vector_replacement_scalar_pattern() -> None:
+        string = pd.Series(["aa", "bb"], index=[5, 6])
+        pd.testing.assert_series_equal(
+            stp.str_replace_all(string, "a", ["x", "y"]), pd.Series(["xx", "bb"], index=[5, 6])
+        )
+
+    @staticmethod
+    def test_strReplace_none_uses_regex() -> None:
+        assert stp.str_replace("abc", "b.", None) is None
+        assert stp.str_replace("abc", "z.", None) == "abc"
+        assert stp.str_replace(["abc", "xyz"], "b.", None) == [None, "xyz"]
+        result = stp.str_replace(pd.Series(["abc", "xyz"]), "b.", None)
+        assert pd.isna(result[0])
+        assert result[1] == "xyz"
+
+    @staticmethod
+    def test_strPad_series_sides() -> None:
+        string = pd.Series(["ab"])
+        assert stp.str_pad(string, 6, "right").tolist() == ["ab    "]
+        assert stp.str_pad(string, 6, "left").tolist() == ["    ab"]
+        assert stp.str_pad(string, 6, "both").tolist() == ["  ab  "]
+
+    @staticmethod
+    def test_strPad_both() -> None:
+        # Uneven padding puts the extra character on the right, as in R
+        assert stp.str_pad("ab", 5, "both") == " ab  "
+        assert stp.str_pad("ab", 5, "center") == " ab  "
+
+    @staticmethod
+    def test_strTrunc_short_strings_unchanged() -> None:
+        assert stp.str_trunc("abc", 10) == "abc"
+        assert stp.str_trunc(pd.Series(["abc"]), 10).tolist() == ["abc"]
+
+    @staticmethod
+    def test_strTrunc_width_includes_ellipsis() -> None:
+        assert len(stp.str_trunc("a" * 30, 20)) == 20
+
+    @staticmethod
+    def test_strTrunc_sides_all_types() -> None:
+        assert stp.str_trunc(pd.Series(["abcdefghij"]), 6, "left").tolist() == ["...hij"]
+        np.testing.assert_array_equal(stp.str_trunc(np.array(["abcdefghij"]), 6, "center"), np.array(["ab...j"]))
+        assert stp.str_trunc(["abcdefghij"], 7, "center") == ["ab...ij"]
+        assert stp.str_trunc(pd.Series(["abcdefghij"]), 8, "center").tolist() == ["abc...ij"]
+
+    @staticmethod
+    def test_strStarts_strEnds_alternation() -> None:
+        assert stp.str_starts("xb", "a|b") is False
+        assert stp.str_starts("bx", "a|b") is True
+        assert stp.str_ends("ax", "a|b") is False
+        assert stp.str_ends("xa", "a|b") is True
+
+    @staticmethod
+    def test_strSplit_n_is_number_of_pieces() -> None:
+        assert stp.str_split("a b c", " ", n=2) == ["a", "b c"]
+        assert stp.str_split("a b c", " ", n=1) == ["a b c"]
+        assert stp.str_split_fixed(["a b c"], " ", 2) == [["a", "b c"]]
+        # str_split_fixed pads out to exactly n columns
+        assert stp.str_split_fixed(["a b"], " ", 4) == [["a", "b", "", ""]]
+
+    @staticmethod
+    def test_strSplit_regex_for_all_types() -> None:
+        assert stp.str_split("a1b2c", r"\d") == ["a", "b", "c"]
+        assert stp.str_split(["a1b2c"], r"\d") == [["a", "b", "c"]]
+        assert list(stp.str_split(np.array(["a1b2c"]), r"\d")[0]) == ["a", "b", "c"]
+        assert stp.str_split(pd.Series(["a1b2c"]), r"\d").tolist() == [["a", "b", "c"]]
+
+    @staticmethod
+    def test_strSplitN_out_of_range() -> None:
+        assert stp.str_split_n(["a b", "c"], " ", 1) == ["b", None]
+        assert stp.str_split_n(["a b"], " ", 5) == [None]
+        # Genuine empty pieces are kept rather than turned into missing values
+        assert stp.str_split_n(["a  b"], " ", 1) == [""]
+
+    @staticmethod
+    def test_strCount_numpy_regex() -> None:
+        np.testing.assert_array_equal(stp.str_count(np.array(["a1b22"]), r"\d"), np.array([3]))
+
+    @staticmethod
+    def test_strCount_does_not_mutate_input() -> None:
+        string = pd.Series(["apple", "banana"], index=[5, 6])
+        result = stp.str_count(string, ["a", "n"])
+        assert string.index.tolist() == [5, 6]
+        pd.testing.assert_series_equal(result, pd.Series([1, 2], index=[5, 6]))
+
+    @staticmethod
+    def test_strSort_na_last_none() -> None:
+        assert stp.str_sort(["b", None, "a"], na_last=None) == ["a", "b"]
+        assert stp.str_sort(pd.Series(["b", None, "c"]), na_last=None).tolist() == ["b", "c"]
+        np.testing.assert_array_equal(stp.str_sort(np.array(["b", None, "a"], dtype=object), na_last=None), ["a", "b"])
+
+    @staticmethod
+    def test_strSort_na_position() -> None:
+        assert stp.str_sort(["~x", None, "a"]) == ["a", "~x", None]
+        assert stp.str_sort(["1", None, "a"], na_last=False) == [None, "1", "a"]
+        assert stp.str_sort(["a10", None, "a2"], numeric=True) == ["a2", "a10", None]
+        # NAs stay last when sorting in decreasing order
+        assert stp.str_sort(["a", None, "b"], decreasing=True) == ["b", "a", None]
+
+    @staticmethod
+    def test_strSort_non_default_index() -> None:
+        string = pd.Series(["b", "a"], index=[10, 20])
+        pd.testing.assert_series_equal(stp.str_sort(string), pd.Series(["a", "b"], index=[20, 10]))
+        pd.testing.assert_series_equal(stp.str_order(string), pd.Series([1, 0]))
+
+    @staticmethod
+    def test_strUnique_no_truncation() -> None:
+        assert stp.str_unique(pd.Series(["abcdefghX", "abcdefghY"])).tolist() == ["abcdefghX", "abcdefghY"]
+
+    @staticmethod
+    def test_strUnique_returns_originals_and_strengths() -> None:
+        assert stp.str_unique(["café", "cafe"], 1) == ["café"]
+        # Strength 2 ignores case but not accents
+        assert stp.str_unique(["café", "cafe"], 2) == ["café", "cafe"]
+        assert stp.str_unique(["A", "a"], 2) == ["A"]
+        assert stp.str_unique(["A", "a"], 3) == ["A", "a"]
+
+    @staticmethod
+    def test_strUnique_first_seen_order() -> None:
+        np.testing.assert_array_equal(stp.str_unique(np.array(["b", "a", "b"]), 3), np.array(["b", "a"]))
+
+    @staticmethod
+    def test_strDup_numpy_single_count() -> None:
+        np.testing.assert_array_equal(stp.str_dup(np.array(["ab"]), np.array([3])), np.array(["ababab"]))
+
+    @staticmethod
+    def test_strC() -> None:
+        assert stp.str_c([["a", "b"], ["x", "y"]], sep="-") == ["a-x", "b-y"]
+        # A str is a length-1 vector that gets recycled
+        assert stp.str_c([["a", "b"], "z"]) == ["az", "bz"]
+        assert stp.str_c(["ab", "c"]) == ["abc"]
+        assert stp.str_c(np.array([["a", "b"], ["x", "y"]])) == ["ax", "by"]
+        assert stp.str_c(pd.DataFrame({"p": ["a", "b"], "q": ["x", "y"]}), collapse=",") == "ax,by"
+        assert stp.str_c([["a", None], ["x", "y"]]) == ["ax", None]
+
+    @staticmethod
+    def test_strMatch_series_keeps_groups() -> None:
+        result = stp.str_match(pd.Series(["ab12", "zz"], index=[3, 4]), r"([a-z]+)(\d+)")
+        assert result.columns.tolist() == ["whole_match", 1, 2]
+        assert result.index.tolist() == [3, 4]
+        assert result.loc[3].tolist() == ["ab12", "ab", "12"]
+        assert result.loc[4].isna().all()
+
+    @staticmethod
+    def test_strExtractAll_whole_matches() -> None:
+        assert stp.str_extract_all(["a1 b2"], r"([a-z])(\d)") == [["a1", "b2"]]
+        assert stp.str_extract_all(["f(x)"], r"\(x\)") == [["(x)"]]
+        assert stp.str_extract_all(pd.Series(["a1 b2", "c"]), r"\d").tolist() == [["1", "2"], []]
+
+    @staticmethod
+    def test_strMatchAll_per_string() -> None:
+        assert stp.str_match_all(["a1 b2", "c3"], r"([a-z])(\d)") == [
+            [["a1", "a", "1"], ["b2", "b", "2"]],
+            [["c3", "c", "3"]],
+        ]
+
+    @staticmethod
+    def test_computed_nan_is_missing() -> None:
+        computed_nan = float("nan")
+        assert stp.str_replace_na(["a", computed_nan]) == ["a", "NA"]
+        assert stp.str_extract(["a1", computed_nan], r"\d") == ["1", None]
+        assert stp.str_detect(["a", computed_nan], "a") == [True, None]
+
+    @staticmethod
+    def test_index_preserved() -> None:
+        string = pd.Series(["a1", " b  c "], index=[3, 4])
+        assert stp.str_extract(string, r"\d").index.tolist() == [3, 4]
+        assert stp.str_squish(string).tolist() == ["a1", "b c"]
+        assert stp.str_squish(string).index.tolist() == [3, 4]
+
+    @staticmethod
+    def test_strFlatten_na() -> None:
+        assert stp.str_flatten(pd.Series(["a", None, "b"])) is None
+        assert stp.str_flatten(pd.Series(["a", None, "b"]), na_rm=True) == "ab"
+
+    @staticmethod
+    def test_strToTitle_consistent() -> None:
+        assert stp.str_to_title("they're bob") == "They're Bob"
+        assert stp.str_to_title(["they're bob"]) == ["They're Bob"]
+        assert stp.str_to_title(pd.Series(["they're bob"])).tolist() == ["They're Bob"]
+        np.testing.assert_array_equal(stp.str_to_title(np.array(["hello-world"])), np.array(["Hello-World"]))
 
 
 if __name__ == "__main__":
